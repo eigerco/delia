@@ -17,43 +17,67 @@ This is a POC for Delia - a React web application for proposing and publishing d
 - lucide-react for icons
 - Fetch API for network requests
 
-## Flow Diagram
+## Flow Diagrams
 
+### Step 1: Connect to Provider
 ```mermaid
-flowchart TB
-    Start([Start]) --> ConnectProvider[Connect to Provider]
-    
-    subgraph Step1[Step 1: Connect]
-        ConnectProvider -->|HTTP GET /info| ProviderInfo[Get Provider Info]
-        ProviderInfo -->|Store provider details| Connected{Connected?}
-        Connected -->|No| RetryConnect[Retry Connection]
-        RetryConnect --> ConnectProvider
-    end
-    
-    Connected -->|Yes| ProposeDeal[Propose Deal]
-    
-    subgraph Step2[Step 2: Propose Deal]
-        ProposeDeal -->|HTTP POST /propose_deal| DealProposed{Deal Proposed?}
-        DealProposed -->|No| RetryProposal[Retry Proposal]
-        RetryProposal --> ProposeDeal
-        DealProposed -->|Yes, get Deal CID| UploadFile[Upload File]
-    end
-    
-    subgraph Step3[Step 3: Upload]
-        UploadFile -->|Generate test file| TestFile[Create 1KB Test File]
-        TestFile -->|HTTP PUT /upload/:dealCid| FileUploaded{File Uploaded?}
-        FileUploaded -->|No| RetryUpload[Retry Upload]
-        RetryUpload --> UploadFile
-        FileUploaded -->|Yes| PublishDeal[Publish Deal]
-    end
-    
-    subgraph Step4[Step 4: Publish]
-        PublishDeal -->|HTTP POST /sign_deal| GetSignature[Get Deal Signature]
-        GetSignature -->|HTTP POST /publish_deal| DealPublished{Deal Published?}
-        DealPublished -->|No| RetryPublish[Retry Publish]
-        RetryPublish --> PublishDeal
-        DealPublished -->|Yes, get Deal ID| Success([Deal Complete])
-    end
+flowchart LR
+    Start([Enter URL]) -->|HTTP GET| Connect[/Connect to Provider/]
+    Connect -->|/info| Check{Success?}
+    Check -->|Yes| Info[Store Provider Info]
+    Info --> Next[/Proceed to Deal Proposal/]
+    Check -->|No| Retry[/Show Error & Retry/]
+    Retry --> Connect
+
+    style Start fill:#e8f5e9,stroke:#43a047
+    style Next fill:#e8f5e9,stroke:#43a047
+    style Check fill:#fff3e0,stroke:#ff9800
+```
+
+### Step 2: Propose Deal
+```mermaid
+flowchart LR
+    Start([Deal Parameters]) -->|HTTP POST| Propose[/Propose Deal/]
+    Propose -->|/propose_deal| Check{Success?}
+    Check -->|Yes| CID[Store Deal CID]
+    CID --> Next[/Proceed to Upload/]
+    Check -->|No| Retry[/Show Error & Retry/]
+    Retry --> Propose
+
+    style Start fill:#e8f5e9,stroke:#43a047
+    style Next fill:#e8f5e9,stroke:#43a047
+    style Check fill:#fff3e0,stroke:#ff9800
+```
+
+### Step 3: Upload Test File
+```mermaid
+flowchart LR
+    Start([Deal CID]) --> Generate[/Generate Test File/]
+    Generate -->|1KB Data| Upload[/Upload File/]
+    Upload -->|PUT /upload/:dealCid| Check{Success?}
+    Check -->|Yes| Next[/Proceed to Publish/]
+    Check -->|No| Retry[/Show Error & Retry/]
+    Retry --> Upload
+
+    style Start fill:#e8f5e9,stroke:#43a047
+    style Next fill:#e8f5e9,stroke:#43a047
+    style Check fill:#fff3e0,stroke:#ff9800
+```
+
+### Step 4: Publish Deal
+```mermaid
+flowchart LR
+    Start([Deal Data]) -->|HTTP POST| Sign[/Get Signature/]
+    Sign -->|/sign_deal| Publish[/Publish Deal/]
+    Publish -->|/publish_deal| Check{Success?}
+    Check -->|Yes| ID[Store Deal ID]
+    ID --> Complete([Deal Complete])
+    Check -->|No| Retry[/Show Error & Retry/]
+    Retry --> Publish
+
+    style Start fill:#e8f5e9,stroke:#43a047
+    style Complete fill:#e8f5e9,stroke:#43a047
+    style Check fill:#fff3e0,stroke:#ff9800
 ```
 
 ## Prerequisites
