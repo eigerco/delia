@@ -83,7 +83,7 @@ flowchart LR
 ## Prerequisites
 
 In order for the POC to work properly, please ensure that you have:
-1. the testnet running (`just testnet` from the Polka Storage repo)
+1. the testnet running (`just testnet` from the Polka Storage repo, on branch `pete/test-delia-poc`)
 2. added balances to Alice and Charlie
 3. registered Charlie as a storage provider
 4. started the storage provider server (with something like `RUST_LOG=trace cargo run -- \
