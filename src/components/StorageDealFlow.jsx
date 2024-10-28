@@ -1,26 +1,23 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { AlertCircle, CheckCircle2, Upload, Send, Loader2 } from 'lucide-react';
-
-// Constants for demo addresses
-const DEMO_CLIENT_ADDRESS = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
-const DEMO_PROVIDER_ADDRESS = "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y";
 
 // Default deal proposal values
 const DEFAULT_DEAL_PROPOSAL = {
   piece_cid: "baga6ea4seaqjqwo3ck54anw2xch5pqbgblsefsisbfscldgcytt2pldanx4osay",
   piece_size: 2048,
   verified_deal: false,
-  client: DEMO_CLIENT_ADDRESS,
-  provider: DEMO_PROVIDER_ADDRESS,
+  provider: "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y",
   label: "New Test Deal",
   start_block: 4900,
   end_block: 5300,
   storage_price_per_block: 500000000,
   provider_collateral: 12500000000,
   client_collateral: 0,
+  client: "",
   state: "Published"
 };
 
+// SCALE encoding helpers
 const hexToBytes = (hex) => {
   const bytes = [];
   for (let i = 0; i < hex.length; i += 2) {
@@ -29,7 +26,6 @@ const hexToBytes = (hex) => {
   return bytes;
 };
 
-// SCALE encoding helpers
 const encodeCompact = (number) => {
   if (number < 64) {
     return [number << 2];
@@ -69,21 +65,25 @@ const encodeU64 = (number) => {
 const encodeU32 = (number) => {
   const buffer = new ArrayBuffer(4);
   const view = new DataView(buffer);
-  view.setUint32(0, number, true)
+  view.setUint32(0, number, true);
   return Array.from(new Uint8Array(buffer));
 };
 
-const encodeDealProposal = (proposal) => {
-  // This function mimics the SCALE encoding that Rust is doing
+const encodeDealProposal = async (proposal) => {
+  // First, convert SS58 addresses to public keys
+  const { decodeAddress } = await import('@polkadot/util-crypto');
+  const clientPublicKey = Array.from(decodeAddress(proposal.client));
+  const providerPublicKey = Array.from(decodeAddress(proposal.provider));
+
   const pieces = [
-    // Piece CID (hardcoded for now as it needs special encoding)
+    // Piece CID
     hexToBytes("9220209859db12bbc036dab88fd7c0260ae442c9120964258cc2c4e7a7ac606df8e903"),
     // piece_size (encoded as compact)
-    encodeCompact(proposal.piece_size),
-    // client address (hardcoded for demo)
-    hexToBytes("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"),
-    // provider address (hardcoded for demo)
-    hexToBytes("90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe223"),
+    hexToBytes("0008000000000000"),
+    // client address
+    clientPublicKey,
+    // provider address
+    providerPublicKey,
     // label
     encodeString(proposal.label),
     // start_block
@@ -121,6 +121,15 @@ function Alert({ variant = "info", title, children }) {
 function DealProposalForm({ dealProposal, onChange }) {
   return (
     <div className="grid grid-cols-1 gap-4 mb-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Client Address</label>
+        <input
+          type="text"
+          value={dealProposal.client}
+          disabled
+          className="w-full p-2 border rounded bg-gray-50 focus:ring-blue-500 focus:border-blue-500"
+        />
+      </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Piece CID</label>
         <input
@@ -200,10 +209,11 @@ function DealProposalForm({ dealProposal, onChange }) {
 }
 
 const steps = [
-  { id: 1, name: 'Connect to Provider' },
-  { id: 2, name: 'Propose Deal' },
-  { id: 3, name: 'Upload File' },
-  { id: 4, name: 'Publish Deal' }
+  { id: 1, name: 'Connect Wallet' },
+  { id: 2, name: 'Connect to Provider' },
+  { id: 3, name: 'Propose Deal' },
+  { id: 4, name: 'Upload File' },
+  { id: 5, name: 'Publish Deal' }
 ];
 
 export default function StorageDealFlow() {
@@ -214,9 +224,43 @@ export default function StorageDealFlow() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [accounts, setAccounts] = useState([]);
+  const [selectedAccount, setSelectedAccount] = useState(null);
   const [dealProposal, setDealProposal] = useState(DEFAULT_DEAL_PROPOSAL);
   const [selectedFile, setSelectedFile] = useState(null);
   const fileInputRef = useRef(null);
+
+  // Initialize polkadot.js extension
+  useEffect(() => {
+    const initExtension = async () => {
+      try {
+        const { web3Enable, web3Accounts } = await import('@polkadot/extension-dapp');
+        const extensions = await web3Enable('Storage Deal Flow');
+        
+        if (extensions.length === 0) {
+          throw new Error('No extension found');
+        }
+        
+        const accounts = await web3Accounts();
+        if (accounts.length === 0) {
+          throw new Error('No accounts found. Please create an account in your Polkadot.js extension');
+        }
+        
+        setAccounts(accounts);
+        setSelectedAccount(accounts[0]);
+        setDealProposal(prev => ({
+          ...prev,
+          client: accounts[0].address
+        }));
+        showAlert('Successfully connected to Polkadot.js extension');
+        setCurrentStep(2);
+      } catch (err) {
+        showAlert('Failed to connect to Polkadot.js extension: ' + err.message, true);
+      }
+    };
+
+    initExtension();
+  }, []);
 
   const showAlert = (message, isError = false) => {
     if (isError) {
@@ -228,14 +272,6 @@ export default function StorageDealFlow() {
     }
   };
 
-  const createTestFile = useCallback(() => {
-    const testData = new Array(1024).fill('test data ').join('').slice(0, 1024);
-    const blob = new Blob([testData], { type: 'text/plain' });
-    const file = new File([blob], 'test-file-1024.txt', { type: 'text/plain' });
-    setSelectedFile(file);
-    showAlert('Created test file: test-file-1024.txt');
-  }, []);
-
   const getProviderInfo = async () => {
     try {
       setLoading(true);
@@ -243,7 +279,7 @@ export default function StorageDealFlow() {
       const data = await response.json();
       setProviderInfo(data);
       showAlert('Successfully connected to provider');
-      setCurrentStep(2);
+      setCurrentStep(3);
     } catch (err) {
       showAlert('Failed to connect to provider: ' + err.message, true);
     } finally {
@@ -254,6 +290,7 @@ export default function StorageDealFlow() {
   const proposeDeal = async () => {
     try {
       setLoading(true);
+      console.log('Sending deal proposal:', dealProposal);
       const response = await fetch(`${providerUrl}:8000/propose_deal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -271,13 +308,21 @@ export default function StorageDealFlow() {
 
       setDealCid(result.Ok);
       showAlert('Deal proposed successfully');
-      setCurrentStep(3);
+      setCurrentStep(4);
     } catch (err) {
       showAlert('Failed to propose deal: ' + err.message, true);
     } finally {
       setLoading(false);
     }
   };
+
+  const createTestFile = useCallback(() => {
+    const testData = new Array(1024).fill('test data ').join('').slice(0, 1024);
+    const blob = new Blob([testData], { type: 'text/plain' });
+    const file = new File([blob], 'test-file-1024.txt', { type: 'text/plain' });
+    setSelectedFile(file);
+    showAlert('Created test file: test-file-1024.txt');
+  }, []);
 
   const uploadFile = async () => {
     if (!selectedFile || !dealCid) {
@@ -303,7 +348,7 @@ export default function StorageDealFlow() {
 
       const result = await response.text();
       showAlert('File uploaded successfully');
-      setCurrentStep(4);
+      setCurrentStep(5);
     } catch (err) {
       showAlert('Failed to upload file: ' + err.message, true);
     } finally {
@@ -311,63 +356,77 @@ export default function StorageDealFlow() {
     }
   };
 
+  // Then update publishDeal:
   const publishDeal = async () => {
     try {
       setLoading(true);
-
-      // Generate encoded proposal
-      const encodedProposal = encodeDealProposal(dealProposal);
-      console.log('Encoded proposal:', Array.from(encodedProposal).map(b => b.toString(16).padStart(2, '0')).join(''));
-
-      // Get signature from server
-      const signResponse = await fetch(`${providerUrl}:8000/sign_deal`, {
+      const { web3FromAddress } = await import('@polkadot/extension-dapp');
+  
+      // First get the encoded bytes from the server
+      const encodingResponse = await fetch(`${providerUrl}:8000/encode_proposal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dealProposal),
       });
-
-      if (!signResponse.ok) {
-        throw new Error('Failed to sign deal');
+  
+      if (!encodingResponse.ok) {
+        throw new Error(await encodingResponse.text());
       }
-
-      const signResult = await signResponse.json();
-      if (signResult.Err) {
-        throw new Error(signResult.Err);
+  
+      const { Ok: encodedProposal } = await encodingResponse.json();
+      console.log('Raw encoded proposal from server:', encodedProposal);
+  
+      // Get the injector for the selected account
+      const injector = await web3FromAddress(selectedAccount.address);
+      const signRaw = injector?.signer?.signRaw;
+      
+      if (!signRaw) {
+        throw new Error('Signing is not supported by the extension');
       }
-
+  
+      // Verify we don't have the prefix
+      if (encodedProposal.startsWith('9c0181e203')) {
+        throw new Error('Server returned proposal with prefix');
+      }
+  
+      // Sign using the browser extension without wrapper
+      const { signature } = await signRaw({
+        address: selectedAccount.address,
+        data: encodedProposal,
+        type: 'bytes',
+        withWrapper: false
+      });
+  
       // Create the full signed proposal
       const signedDeal = {
         deal_proposal: dealProposal,
         client_signature: {
-          Sr25519: `0x${signResult.Ok}`
+          Sr25519: signature
         }
       };
-
+  
       console.log('Sending publish payload:', JSON.stringify(signedDeal, null, 2));
-
       // Then publish with the signature
       const publishResponse = await fetch(`${providerUrl}:8000/publish_deal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(signedDeal),
       });
-
+  
       if (!publishResponse.ok) {
         const errorText = await publishResponse.text();
         console.error('Publish error response:', errorText);
         throw new Error(errorText);
       }
-
+  
       const publishResult = await publishResponse.json();
       console.log('Publish response:', publishResult);
-
+  
       if (publishResult.Err) {
         throw new Error(publishResult.Err);
       }
-
+  
       showAlert(`Deal published successfully! Deal ID: ${publishResult.Ok}`);
-
-      setCurrentStep(4);
     } catch (err) {
       showAlert('Failed to publish deal: ' + err.message, true);
       console.error('Publish error details:', err);
@@ -429,20 +488,22 @@ export default function StorageDealFlow() {
           {steps.map((step) => (
             <div
               key={step.id}
-              className={`flex items-center ${step.id === currentStep
-                ? 'text-blue-600'
-                : step.id < currentStep
+              className={`flex items-center ${
+                step.id === currentStep
+                  ? 'text-blue-600'
+                  : step.id < currentStep
                   ? 'text-green-600'
                   : 'text-gray-400'
-                }`}
+              }`}
             >
               <div
-                className={`flex items-center justify-center w-8 h-8 border-2 rounded-full ${step.id === currentStep
-                  ? 'border-blue-600'
-                  : step.id < currentStep
+                className={`flex items-center justify-center w-8 h-8 border-2 rounded-full ${
+                  step.id === currentStep
+                    ? 'border-blue-600'
+                    : step.id < currentStep
                     ? 'border-green-600'
                     : 'border-gray-400'
-                  }`}
+                }`}
               >
                 {step.id < currentStep ? (
                   <CheckCircle2 size={16} />
@@ -456,10 +517,17 @@ export default function StorageDealFlow() {
         </div>
       </div>
 
-      {providerInfo && currentStep > 1 && renderProviderInfo()}
+      {providerInfo && currentStep > 2 && renderProviderInfo()}
 
       <div className="space-y-4">
         {currentStep === 1 && (
+          <div className="text-center py-8">
+            <Loader2 className="animate-spin mx-auto mb-4" size={32} />
+            <p>Connecting to Polkadot.js extension...</p>
+          </div>
+        )}
+
+        {currentStep === 2 && (
           <div>
             <h2 className="text-lg font-semibold mb-4">Connect to Provider</h2>
             <div className="mb-4">
@@ -483,7 +551,7 @@ export default function StorageDealFlow() {
           </div>
         )}
 
-        {currentStep === 2 && (
+        {currentStep === 3 && (
           <div>
             <h2 className="text-lg font-semibold mb-4">Propose Deal</h2>
             <DealProposalForm dealProposal={dealProposal} onChange={setDealProposal} />
@@ -503,7 +571,7 @@ export default function StorageDealFlow() {
           </div>
         )}
 
-        {currentStep === 3 && (
+        {currentStep === 4 && (
           <div>
             <h2 className="text-lg font-semibold mb-4">Upload File</h2>
             <div className="mb-4">
@@ -531,7 +599,7 @@ export default function StorageDealFlow() {
           </div>
         )}
 
-        {currentStep === 4 && (
+        {currentStep === 5 && (
           <div>
             <h2 className="text-lg font-semibold mb-4">Publish Deal</h2>
             <button
