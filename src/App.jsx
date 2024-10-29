@@ -1,4 +1,4 @@
-import StorageDealFlow from './components/StorageDealFlow'
+import StorageDealFlow from './components/storage-deal/StorageDealFlow'
 
 function App() {
   return (
