@@ -98,7 +98,7 @@ In order for the POC to work properly, please ensure that you have:
 1. Clone the repository
 ```bash
 git clone <repository-url>
-cd storage-deal-flow
+cd delia
 ```
 
 2. Install dependencies
