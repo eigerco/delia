@@ -1,18 +1,18 @@
-// StorageDealFlow.jsx
 import React, { useState, useEffect } from 'react';
 import { Alert } from './Alert';
 import { ProviderInfo } from './ProviderInfo';
 import { StepIndicator, STEPS } from './Steps';
 import { ConnectWallet } from './steps/ConnectWallet';
-import { ConnectProvider } from './steps/ConnectProvider';
+import { ProviderSelector } from './steps/ProviderSelector';
 import { ProposeDeal } from './steps/ProposeDeal';
 import { PublishDeal } from './steps/PublishDeal';
 import { DEFAULT_DEAL_PROPOSAL } from '../../utils/constants';
 
 export default function StorageDealFlow() {
   const [currentStep, setCurrentStep] = useState(1);
-  const [providerUrl, setProviderUrl] = useState('http://127.0.0.1');
+  const [providerUrl, setProviderUrl] = useState('');
   const [providerInfo, setProviderInfo] = useState(null);
+  const [selectedProvider, setSelectedProvider] = useState(null);
   const [dealCid, setDealCid] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -27,7 +27,7 @@ export default function StorageDealFlow() {
     const initExtension = async () => {
       try {
         const { web3Enable, web3Accounts } = await import('@polkadot/extension-dapp');
-        const extensions = await web3Enable('Storage Deal Flow');
+        const extensions = await web3Enable('Delia');
 
         if (extensions.length === 0) {
           throw new Error('No extension found');
@@ -44,39 +44,65 @@ export default function StorageDealFlow() {
           ...prev,
           client: accounts[0].address
         }));
-        showAlert('Successfully connected to Polkadot.js extension');
+        showAlert('Successfully connected to Polkadot.js extension', 'success');
         setCurrentStep(2);
       } catch (err) {
-        showAlert('Failed to connect to Polkadot.js extension: ' + err.message, true);
+        showAlert(err.message, 'error');
       }
     };
 
     initExtension();
   }, []);
 
-  const showAlert = (message, isError = false) => {
-    if (isError) {
+  const showAlert = (message, type = 'info') => {
+    console.log(`Showing ${type} alert:`, message);
+    if (type === 'error') {
       setError(message);
       setSuccess(null);
-    } else {
+    } else if (type === 'success') {
       setSuccess(message);
       setError(null);
+      // Auto-dismiss only success messages
+      setTimeout(() => {
+        setSuccess(null);
+      }, 5000);
     }
   };
 
-  const getProviderInfo = async () => {
+  const dismissError = () => {
+    setError(null);
+  };
+
+  const getProviderInfo = async (provider) => {
     try {
       setLoading(true);
-      const response = await fetch(`${providerUrl}:8000/info`);
+      const infoUrl = `http://${provider.info.url}:8000/info`;
+      console.log('Fetching provider info from:', infoUrl);
+
+      const response = await fetch(infoUrl);
+
+      if (!response.ok) {
+        throw new Error(`Provider returned status: ${response.status}`);
+      }
+
       const data = await response.json();
       setProviderInfo(data);
-      showAlert('Successfully connected to provider');
+      showAlert('Successfully connected to provider', 'success');
       setCurrentStep(3);
     } catch (err) {
-      showAlert('Failed to connect to provider: ' + err.message, true);
+      setSelectedProvider(null);
+      setProviderUrl('');
+      showAlert(`Failed to connect to provider: ${err.message}`, 'error');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleProviderSelect = async (provider) => {
+    console.log('Provider selected:', provider);
+    setSelectedProvider(provider);
+    setProviderUrl(provider.info.url);
+    await getProviderInfo(provider);
   };
 
   const proposeDeal = async () => {
@@ -87,7 +113,8 @@ export default function StorageDealFlow() {
         throw new Error('Please generate a test file first to get a piece CID');
       }
 
-      const response = await fetch(`${providerUrl}:8000/propose_deal`, {
+      console.log('Proposing deal to:', `http://${providerUrl}:8000/propose_deal`);
+      const response = await fetch(`http://${providerUrl}:8000/propose_deal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dealProposal),
@@ -108,7 +135,8 @@ export default function StorageDealFlow() {
       const formData = new FormData();
       formData.append('file', selectedFile);
 
-      const uploadResponse = await fetch(`${providerUrl}:8001/upload/${result.Ok}`, {
+      console.log('Uploading file to:', `http://${providerUrl}:8001/upload/${result.Ok}`);
+      const uploadResponse = await fetch(`http://${providerUrl}:8001/upload/${result.Ok}`, {
         method: 'PUT',
         body: formData,
       });
@@ -118,10 +146,10 @@ export default function StorageDealFlow() {
       }
 
       await uploadResponse.text();
-      showAlert('Deal proposed and file uploaded successfully');
+      showAlert('Deal proposed and file uploaded successfully', 'success');
       setCurrentStep(4);
     } catch (err) {
-      showAlert('Failed to propose deal: ' + err.message, true);
+      showAlert(err.message, 'error');
     } finally {
       setLoading(false);
     }
@@ -132,7 +160,8 @@ export default function StorageDealFlow() {
       setLoading(true);
       const { web3FromAddress } = await import('@polkadot/extension-dapp');
 
-      const encodingResponse = await fetch(`${providerUrl}:8000/encode_proposal`, {
+      console.log('Encoding proposal at:', `http://${providerUrl}:8000/encode_proposal`);
+      const encodingResponse = await fetch(`http://${providerUrl}:8000/encode_proposal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dealProposal),
@@ -164,7 +193,8 @@ export default function StorageDealFlow() {
         }
       };
 
-      const publishResponse = await fetch(`${providerUrl}:8000/publish_deal`, {
+      console.log('Publishing deal to:', `http://${providerUrl}:8000/publish_deal`);
+      const publishResponse = await fetch(`http://${providerUrl}:8000/publish_deal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(signedDeal),
@@ -180,57 +210,64 @@ export default function StorageDealFlow() {
       }
 
       setIsPublished(true);
-      showAlert(`Deal published successfully! Deal ID: ${publishResult.Ok}`);
+      showAlert(`Deal published successfully! Deal ID: ${publishResult.Ok}`, 'success');
     } catch (err) {
-      showAlert('Failed to publish deal: ' + err.message, true);
+      showAlert(err.message, 'error');
+      setCurrentStep(3);
     } finally {
       setLoading(false);
     }
   };
 
   const startNewDeal = () => {
-    // Reset deal-specific state while keeping wallet and provider connections
     setDealProposal({
       ...DEFAULT_DEAL_PROPOSAL,
-      client: selectedAccount.address // Maintain the connected wallet address
+      client: selectedAccount.address
     });
     setDealCid(null);
     setSelectedFile(null);
     setIsPublished(false);
-    setCurrentStep(3); // Go back to propose deal step
+    setCurrentStep(3);
     setError(null);
     setSuccess(null);
   };
 
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow">
-      <h1 className="text-2xl font-bold mb-6">Storage Deal Flow</h1>
+      <h1 className="text-2xl font-bold mb-6">Delia</h1>
 
-      {error && <Alert variant="error" title="Error">{error}</Alert>}
-      {success && <Alert variant="info" title="Success">{success}</Alert>}
+      {currentStep === 4 && error && (
+        <Alert variant="error" title="Error" onDismiss={dismissError}>{error}</Alert>
+      )}
 
       <div className="mb-8">
         <StepIndicator steps={STEPS} currentStep={currentStep} />
       </div>
 
-      {/* Only show ProviderInfo when not in publishing state */}
-      {providerInfo && currentStep > 2 && !loading && currentStep === 4 && !isPublished && (
+      {error && currentStep !== 4 && (
+        <Alert variant="error" title="Error" onDismiss={dismissError}>{error}</Alert>
+      )}
+
+      {success && (
+        <Alert variant="success" title="Success">{success}</Alert>
+      )}
+
+      {selectedProvider && providerInfo && currentStep > 2 && !loading && (
         <ProviderInfo providerInfo={providerInfo} />
       )}
 
       <div className="space-y-4">
-        {currentStep === 1 && <ConnectWallet />}
+        {currentStep === 1 && <ConnectWallet onConnect={setAccounts} />}
 
         {currentStep === 2 && (
-          <ConnectProvider
-            providerUrl={providerUrl}
-            onProviderUrlChange={setProviderUrl}
-            onConnect={getProviderInfo}
+          <ProviderSelector
+            onSelect={handleProviderSelect}
             loading={loading}
+            selectedProvider={selectedProvider}
           />
         )}
 
-        {currentStep === 3 && (
+        {currentStep === 3 && providerInfo && (
           <ProposeDeal
             dealProposal={dealProposal}
             onDealProposalChange={setDealProposal}

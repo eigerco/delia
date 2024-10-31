@@ -15,18 +15,18 @@ export function StepIndicator({ steps, currentStep }) {
         <div
           key={step.id}
           className={`flex items-center ${step.id === currentStep
-              ? 'text-blue-600'
-              : step.id < currentStep
-                ? 'text-green-600'
-                : 'text-gray-400'
+            ? 'text-blue-600'
+            : step.id < currentStep
+              ? 'text-green-600'
+              : 'text-gray-400'
             }`}
         >
           <div
             className={`flex items-center justify-center w-8 h-8 border-2 rounded-full ${step.id === currentStep
-                ? 'border-blue-600'
-                : step.id < currentStep
-                  ? 'border-green-600'
-                  : 'border-gray-400'
+              ? 'border-blue-600'
+              : step.id < currentStep
+                ? 'border-green-600'
+                : 'border-gray-400'
               }`}
           >
             {step.id < currentStep ? (

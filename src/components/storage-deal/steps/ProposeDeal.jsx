@@ -21,11 +21,14 @@ export function ProposeDeal({
       setLoading(true);
       setUploadedFile(file);
 
-      // Calculate the piece CID
+      // Ensure we have a proper absolute URL
+      const pieceUrl = new URL(`http://${providerUrl}:8001/calculate_piece_cid`);
+      console.log('Calculating piece CID at:', pieceUrl.toString());
+
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(`${providerUrl}:8001/calculate_piece_cid`, {
+      const response = await fetch(pieceUrl.toString(), {
         method: 'PUT',
         body: formData,
       });
