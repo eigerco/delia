@@ -1,6 +1,6 @@
 # Delia
 
-This is an MVP for Delia - a React web application for proposing and publishing deals with providers on the Polka Storage System Parachain. This application provides a step-by-step interface to connect to providers, propose deals, upload test files, and publish storage deals.
+This is an MVP for Delia - a React web application for proposing and publishing deals with providers on the Polka Storage System Parachain. This application provides a step-by-step interface to connect to providers, propose deals, upload files, and publish storage deals.
 
 ## Features
 
