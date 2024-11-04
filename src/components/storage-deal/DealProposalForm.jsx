@@ -1,4 +1,5 @@
 import React from 'react';
+import TimeBlockConverter from './TimeBlockConverter';
 
 export function DealProposalForm({ dealProposal, onChange }) {
   return (
@@ -34,6 +35,7 @@ export function DealProposalForm({ dealProposal, onChange }) {
           className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
+
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Label</label>
         <input
@@ -43,26 +45,9 @@ export function DealProposalForm({ dealProposal, onChange }) {
           className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Start Block</label>
-          <input
-            type="number"
-            value={dealProposal.start_block}
-            onChange={(e) => onChange({ ...dealProposal, start_block: parseInt(e.target.value) })}
-            className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">End Block</label>
-          <input
-            type="number"
-            value={dealProposal.end_block}
-            onChange={(e) => onChange({ ...dealProposal, end_block: parseInt(e.target.value) })}
-            className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-      </div>
+
+      <TimeBlockConverter dealProposal={dealProposal} onChange={onChange} />
+
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Storage Price Per Block</label>
         <input
@@ -72,6 +57,7 @@ export function DealProposalForm({ dealProposal, onChange }) {
           className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
+
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Provider Collateral</label>
         <input
@@ -81,6 +67,7 @@ export function DealProposalForm({ dealProposal, onChange }) {
           className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
+
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Client Collateral</label>
         <input
