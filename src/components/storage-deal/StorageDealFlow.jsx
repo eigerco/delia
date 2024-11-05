@@ -75,7 +75,7 @@ export default function StorageDealFlow() {
   const getProviderInfo = async (provider) => {
     try {
       setLoading(true);
-      const infoUrl = `http://${provider.info.url}:8001/info`;  // Changed from 8000 to 8001
+      const infoUrl = `http://${provider.info.url}:8001/info`;
       console.log('Fetching provider info from:', infoUrl);
 
       const response = await fetch(infoUrl);
@@ -183,7 +183,7 @@ const publishDeal = async () => {
 
     const result = await encodingResponse.json();
     // Get the actual hex string from the Ok result
-    const encodedProposal = result.Ok;  // Now it's just the "0x..." string
+    const encodedProposal = result.Ok;
     const injector = await web3FromAddress(selectedAccount.address);
     const signRaw = injector?.signer?.signRaw;
 
@@ -193,7 +193,7 @@ const publishDeal = async () => {
 
     const { signature } = await signRaw({
       address: selectedAccount.address,
-      data: encodedProposal,  // Now this is just the hex string
+      data: encodedProposal,
       type: 'bytes',
       withWrapper: false
     });
@@ -205,7 +205,7 @@ const publishDeal = async () => {
       }
     };
 
-    console.log('Publishing deal to:', `http://${providerUrl}:8001/publish_deal`);  // Note: changed to 8001
+    console.log('Publishing deal to:', `http://${providerUrl}:8001/publish_deal`);
     const publishResponse = await fetch(`http://${providerUrl}:8001/publish_deal`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
