@@ -62,7 +62,6 @@ export default function StorageDealFlow() {
     } else if (type === 'success') {
       setSuccess(message);
       setError(null);
-      // Auto-dismiss only success messages
       setTimeout(() => {
         setSuccess(null);
       }, 5000);
@@ -76,7 +75,7 @@ export default function StorageDealFlow() {
   const getProviderInfo = async (provider) => {
     try {
       setLoading(true);
-      const infoUrl = `http://${provider.info.url}:8000/info`;
+      const infoUrl = `http://${provider.info.url}:8001/info`;  // Changed from 8000 to 8001
       console.log('Fetching provider info from:', infoUrl);
 
       const response = await fetch(infoUrl);
@@ -98,6 +97,7 @@ export default function StorageDealFlow() {
     }
   };
 
+
   const handleProviderSelect = async (provider) => {
     console.log('Provider selected:', provider);
     setSelectedProvider(provider);
@@ -107,117 +107,125 @@ export default function StorageDealFlow() {
 
   const proposeDeal = async () => {
     try {
-      setLoading(true);
+        setLoading(true);
 
-      if (!dealProposal.piece_cid) {
-        throw new Error('Please generate a test file first to get a piece CID');
-      }
+        // First, calculate the piece CID
+        const formData = new FormData();
+        formData.append('file', selectedFile);
 
-      console.log('Proposing deal to:', `http://${providerUrl}:8000/propose_deal`);
-      const response = await fetch(`http://${providerUrl}:8000/propose_deal`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(dealProposal),
-      });
+        const pieceResponse = await fetch(`http://${providerUrl}:8001/calculate_piece_cid`, {
+            method: 'PUT',
+            body: formData,
+        });
 
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
-
-      const result = await response.json();
-      if (result.Err) {
-        throw new Error(result.Err);
-      }
-
-      setDealCid(result.Ok);
-
-      // Upload file immediately after successful proposal
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-
-      console.log('Uploading file to:', `http://${providerUrl}:8001/upload/${result.Ok}`);
-      const uploadResponse = await fetch(`http://${providerUrl}:8001/upload/${result.Ok}`, {
-        method: 'PUT',
-        body: formData,
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error(await uploadResponse.text());
-      }
-
-      await uploadResponse.text();
-      showAlert('Deal proposed and file uploaded successfully', 'success');
-      setCurrentStep(4);
-    } catch (err) {
-      showAlert(err.message, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const publishDeal = async () => {
-    try {
-      setLoading(true);
-      const { web3FromAddress } = await import('@polkadot/extension-dapp');
-
-      console.log('Encoding proposal at:', `http://${providerUrl}:8000/encode_proposal`);
-      const encodingResponse = await fetch(`http://${providerUrl}:8000/encode_proposal`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(dealProposal),
-      });
-
-      if (!encodingResponse.ok) {
-        throw new Error(await encodingResponse.text());
-      }
-
-      const { Ok: encodedProposal } = await encodingResponse.json();
-      const injector = await web3FromAddress(selectedAccount.address);
-      const signRaw = injector?.signer?.signRaw;
-
-      if (!signRaw) {
-        throw new Error('Signing is not supported by the extension');
-      }
-
-      const { signature } = await signRaw({
-        address: selectedAccount.address,
-        data: encodedProposal,
-        type: 'bytes',
-        withWrapper: false
-      });
-
-      const signedDeal = {
-        deal_proposal: dealProposal,
-        client_signature: {
-          Sr25519: signature
+        if (!pieceResponse.ok) {
+            throw new Error(await pieceResponse.text());
         }
-      };
 
-      console.log('Publishing deal to:', `http://${providerUrl}:8000/publish_deal`);
-      const publishResponse = await fetch(`http://${providerUrl}:8000/publish_deal`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(signedDeal),
-      });
+        const pieceCid = await pieceResponse.text();
+        
+        // Update deal proposal with the calculated piece CID
+        const updatedDealProposal = {
+            ...dealProposal,
+            piece_cid: pieceCid,
+        };
 
-      if (!publishResponse.ok) {
-        throw new Error(await publishResponse.text());
-      }
+        // Now propose the deal
+        console.log('Proposing deal to:', `http://${providerUrl}:8001/propose_deal`);
+        const response = await fetch(`http://${providerUrl}:8001/propose_deal`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedDealProposal),
+        });
 
-      const publishResult = await publishResponse.json();
-      if (publishResult.Err) {
-        throw new Error(publishResult.Err);
-      }
+        if (!response.ok) {
+            throw new Error(await response.text());
+        }
 
-      setIsPublished(true);
-      showAlert(`Deal published successfully! Deal ID: ${publishResult.Ok}`, 'success');
+        const dealCid = await response.text();
+        setDealCid(dealCid);
+
+        // Now upload the actual file
+        console.log('Uploading file to:', `http://${providerUrl}:8001/upload/${dealCid}`);
+        const uploadResponse = await fetch(`http://${providerUrl}:8001/upload/${dealCid}`, {
+            method: 'PUT',
+            body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+            throw new Error(await uploadResponse.text());
+        }
+
+        await uploadResponse.text();
+        showAlert('Deal proposed and file uploaded successfully', 'success');
+        setCurrentStep(4);
     } catch (err) {
-      showAlert(err.message, 'error');
-      setCurrentStep(3);
+        showAlert(err.message || 'An unknown error occurred', 'error');
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
+};
+const publishDeal = async () => {
+  try {
+    setLoading(true);
+    const { web3FromAddress } = await import('@polkadot/extension-dapp');
+
+    console.log('Encoding proposal at:', `http://${providerUrl}:8001/encode_proposal`);
+    const encodingResponse = await fetch(`http://${providerUrl}:8001/encode_proposal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dealProposal),
+    });
+
+    if (!encodingResponse.ok) {
+      throw new Error(await encodingResponse.text());
+    }
+
+    const result = await encodingResponse.json();
+    // Get the actual hex string from the Ok result
+    const encodedProposal = result.Ok;  // Now it's just the "0x..." string
+    const injector = await web3FromAddress(selectedAccount.address);
+    const signRaw = injector?.signer?.signRaw;
+
+    if (!signRaw) {
+      throw new Error('Signing is not supported by the extension');
+    }
+
+    const { signature } = await signRaw({
+      address: selectedAccount.address,
+      data: encodedProposal,  // Now this is just the hex string
+      type: 'bytes',
+      withWrapper: false
+    });
+
+    const signedDeal = {
+      deal_proposal: dealProposal,
+      client_signature: {
+        Sr25519: signature
+      }
+    };
+
+    console.log('Publishing deal to:', `http://${providerUrl}:8001/publish_deal`);  // Note: changed to 8001
+    const publishResponse = await fetch(`http://${providerUrl}:8001/publish_deal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(signedDeal),
+    });
+
+    if (!publishResponse.ok) {
+      throw new Error(await publishResponse.text());
+    }
+
+    const publishResult = await publishResponse.json();
+    setIsPublished(true);
+    showAlert(`Deal published successfully! Deal ID: ${publishResult}`, 'success');
+  } catch (err) {
+    showAlert(err.message, 'error');
+    setCurrentStep(3);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const startNewDeal = () => {
     setDealProposal({
