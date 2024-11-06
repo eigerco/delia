@@ -8,6 +8,30 @@ import { ProposeDeal } from './steps/ProposeDeal';
 import { PublishDeal } from './steps/PublishDeal';
 import { DEFAULT_DEAL_PROPOSAL } from '../../utils/constants';
 
+// Server endpoints by protocol
+const JSON_RPC_PORT = 8000; // Running jsonrpsee RPC server
+const HTTP_PORT = 8001;     // Running axum REST server
+
+// Helper function for JSON-RPC calls
+const makeRpcCall = async (url, method, params = []) => {
+  const response = await fetch(`http://${url}:${JSON_RPC_PORT}/rpc`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method,
+      params
+    })
+  });
+
+  const jsonResponse = await response.json();
+  if (jsonResponse.error) {
+    throw new Error(jsonResponse.error.message);
+  }
+  return jsonResponse.result;
+};
+
 export default function StorageDealFlow() {
   const [currentStep, setCurrentStep] = useState(1);
   const [providerUrl, setProviderUrl] = useState('');
@@ -75,17 +99,10 @@ export default function StorageDealFlow() {
   const getProviderInfo = async (provider) => {
     try {
       setLoading(true);
-      const infoUrl = `http://${provider.info.url}:8001/info`;
-      console.log('Fetching provider info from:', infoUrl);
-
-      const response = await fetch(infoUrl);
-
-      if (!response.ok) {
-        throw new Error(`Provider returned status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setProviderInfo(data);
+      console.log('Fetching provider info via RPC');
+      
+      const info = await makeRpcCall(provider.info.url, 'info');
+      setProviderInfo(info);
       showAlert('Successfully connected to provider', 'success');
       setCurrentStep(3);
     } catch (err) {
@@ -97,7 +114,6 @@ export default function StorageDealFlow() {
     }
   };
 
-
   const handleProviderSelect = async (provider) => {
     console.log('Provider selected:', provider);
     setSelectedProvider(provider);
@@ -107,125 +123,107 @@ export default function StorageDealFlow() {
 
   const proposeDeal = async () => {
     try {
-        setLoading(true);
-
-        // First, calculate the piece CID
-        const formData = new FormData();
-        formData.append('file', selectedFile);
-
-        const pieceResponse = await fetch(`http://${providerUrl}:8001/calculate_piece_cid`, {
-            method: 'PUT',
-            body: formData,
-        });
-
-        if (!pieceResponse.ok) {
-            throw new Error(await pieceResponse.text());
-        }
-
-        const pieceCid = await pieceResponse.text();
-        
-        // Update deal proposal with the calculated piece CID
-        const updatedDealProposal = {
-            ...dealProposal,
-            piece_cid: pieceCid,
-        };
-
-        // Now propose the deal
-        console.log('Proposing deal to:', `http://${providerUrl}:8001/propose_deal`);
-        const response = await fetch(`http://${providerUrl}:8001/propose_deal`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updatedDealProposal),
-        });
-
-        if (!response.ok) {
-            throw new Error(await response.text());
-        }
-
-        const dealCid = await response.text();
-        setDealCid(dealCid);
-
-        // Now upload the actual file
-        console.log('Uploading file to:', `http://${providerUrl}:8001/upload/${dealCid}`);
-        const uploadResponse = await fetch(`http://${providerUrl}:8001/upload/${dealCid}`, {
-            method: 'PUT',
-            body: formData,
-        });
-
-        if (!uploadResponse.ok) {
-            throw new Error(await uploadResponse.text());
-        }
-
-        await uploadResponse.text();
-        showAlert('Deal proposed and file uploaded successfully', 'success');
-        setCurrentStep(4);
-    } catch (err) {
-        showAlert(err.message || 'An unknown error occurred', 'error');
-    } finally {
-        setLoading(false);
-    }
-};
-const publishDeal = async () => {
-  try {
-    setLoading(true);
-    const { web3FromAddress } = await import('@polkadot/extension-dapp');
-
-    console.log('Encoding proposal at:', `http://${providerUrl}:8001/encode_proposal`);
-    const encodingResponse = await fetch(`http://${providerUrl}:8001/encode_proposal`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(dealProposal),
-    });
-
-    if (!encodingResponse.ok) {
-      throw new Error(await encodingResponse.text());
-    }
-
-    const result = await encodingResponse.json();
-    // Get the actual hex string from the Ok result
-    const encodedProposal = result.Ok;
-    const injector = await web3FromAddress(selectedAccount.address);
-    const signRaw = injector?.signer?.signRaw;
-
-    if (!signRaw) {
-      throw new Error('Signing is not supported by the extension');
-    }
-
-    const { signature } = await signRaw({
-      address: selectedAccount.address,
-      data: encodedProposal,
-      type: 'bytes',
-      withWrapper: false
-    });
-
-    const signedDeal = {
-      deal_proposal: dealProposal,
-      client_signature: {
-        Sr25519: signature
+      setLoading(true);
+  
+      // Calculate piece CID using HTTP server
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+  
+      console.log('Calculating piece CID via HTTP endpoint');
+      const pieceResponse = await fetch(`http://${providerUrl}:${HTTP_PORT}/calculate_piece_cid`, {
+        method: 'PUT',
+        body: formData,
+      });
+  
+      if (!pieceResponse.ok) {
+        throw new Error(await pieceResponse.text());
       }
-    };
-
-    console.log('Publishing deal to:', `http://${providerUrl}:8001/publish_deal`);
-    const publishResponse = await fetch(`http://${providerUrl}:8001/publish_deal`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(signedDeal),
-    });
-
-    if (!publishResponse.ok) {
-      throw new Error(await publishResponse.text());
+  
+      const pieceCid = await pieceResponse.text();
+      
+      // Update deal proposal with the calculated piece CID
+      const updatedDealProposal = {
+        ...dealProposal,
+        piece_cid: pieceCid,
+      };
+  
+      // Propose deal using JSON-RPC
+      console.log('Proposing deal via RPC');
+      const dealCid = await makeRpcCall(providerUrl, 'propose_deal', [updatedDealProposal]);
+      setDealCid(dealCid);
+      
+      console.log('Uploading file via HTTP endpoint');
+      const uploadResponse = await fetch(`http://${providerUrl}:${HTTP_PORT}/upload/${dealCid}`, {
+          method: 'PUT',
+          body: formData,
+      });
+      
+      if (!uploadResponse.ok) {
+        throw new Error(await uploadResponse.text());
+      }
+  
+      await uploadResponse.text();
+      showAlert('Deal proposed and file uploaded successfully', 'success');
+      setCurrentStep(4);
+    } catch (err) {
+      showAlert(err.message || 'An unknown error occurred', 'error');
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const publishResult = await publishResponse.json();
-    setIsPublished(true);
-    showAlert(`Deal published successfully! Deal ID: ${publishResult}`, 'success');
-  } catch (err) {
-    showAlert(err.message, 'error');
-    setCurrentStep(3);
-  } finally {
-    setLoading(false);
-  }
-};
+  const publishDeal = async () => {
+    try {
+      setLoading(true);
+      const { web3FromAddress } = await import('@polkadot/extension-dapp');
+  
+      console.log('Encoding proposal via HTTP endpoint');
+      const encodingResponse = await fetch(`http://${providerUrl}:${HTTP_PORT}/encode_proposal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dealProposal),
+      });
+  
+      if (!encodingResponse.ok) {
+        throw new Error(await encodingResponse.text());
+      }
+  
+      const result = await encodingResponse.json();
+      const encodedProposal = result.Ok;
+      const injector = await web3FromAddress(selectedAccount.address);
+      const signRaw = injector?.signer?.signRaw;
+  
+      if (!signRaw) {
+        throw new Error('Signing is not supported by the extension');
+      }
+  
+      const { signature } = await signRaw({
+        address: selectedAccount.address,
+        data: encodedProposal,
+        type: 'bytes',
+        withWrapper: false
+      });
+  
+      const signedDeal = {
+        deal_proposal: dealProposal,
+        client_signature: {
+          Sr25519: signature
+        }
+      };
+  
+      console.log('Publishing deal with payload:', JSON.stringify(signedDeal, null, 2));
+      const dealId = await makeRpcCall(providerUrl, 'publish_deal', [signedDeal]);
+      console.log('Received deal ID:', dealId);
+  
+      setIsPublished(true);
+      showAlert(`Deal published successfully! Deal ID: ${dealId}`, 'success');
+    } catch (err) {
+      showAlert(err.message, 'error');
+      setCurrentStep(3);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const startNewDeal = () => {
     setDealProposal({
