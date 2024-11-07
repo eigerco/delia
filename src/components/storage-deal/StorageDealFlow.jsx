@@ -14,18 +14,31 @@ const HTTP_PORT = 8001;     // Running axum REST server
 
 // Helper function for JSON-RPC calls
 const makeRpcCall = async (url, method, params = []) => {
+  // Check if method already has v0_ prefix to avoid double prefixing
+  const prefixedMethod = method.startsWith('v0_') ? method : `v0_${method}`;
+  
+  const request = {
+    jsonrpc: '2.0',
+    id: 1,
+    method: prefixedMethod,
+    params
+  };
+  
+  console.log('RPC Request:', {
+    url: `http://${url}:${JSON_RPC_PORT}/rpc`,
+    method: request.method,
+    params: JSON.stringify(params, null, 2)
+  });
+
   const response = await fetch(`http://${url}:${JSON_RPC_PORT}/rpc`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: 1,
-      method,
-      params
-    })
+    body: JSON.stringify(request)
   });
 
   const jsonResponse = await response.json();
+  console.log('RPC Response:', jsonResponse);
+
   if (jsonResponse.error) {
     throw new Error(jsonResponse.error.message);
   }
