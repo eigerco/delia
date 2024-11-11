@@ -191,49 +191,64 @@ export default function StorageDealFlow() {
     }
   };
 
+  function getSignatureWrapper(signature, type) {
+    switch (type.toLowerCase()) {
+      case 'sr25519':
+        return { Sr25519: signature };
+      case 'ed25519':
+        return { Ed25519: signature };
+      case 'ecdsa':
+        return { Ecdsa: signature };
+      default:
+        throw new Error(`Unsupported account type: ${type}`);
+    }
+  }
+
   const publishDeal = async () => {
     try {
       setLoading(true);
       const { web3FromAddress } = await import('@polkadot/extension-dapp');
-
+  
       console.log('Encoding proposal via HTTP endpoint');
       const encodingResponse = await fetch(`http://${providerUrl}:${HTTP_PORT}/encode_proposal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dealProposal),
       });
-
+  
       if (!encodingResponse.ok) {
         throw new Error(await encodingResponse.text());
       }
-
+  
       const result = await encodingResponse.json();
       const encodedProposal = result.Ok;
       const injector = await web3FromAddress(selectedAccount.address);
       const signRaw = injector?.signer?.signRaw;
-
+  
       if (!signRaw) {
         throw new Error('Signing is not supported by the extension');
       }
-
+  
+      if (!selectedAccount.type) {
+        throw new Error('Account type information is missing');
+      }
+  
       const { signature } = await signRaw({
         address: selectedAccount.address,
         data: encodedProposal,
         type: 'bytes',
         withWrapper: false
       });
-
+  
       const signedDeal = {
         deal_proposal: dealProposal,
-        client_signature: {
-          Sr25519: signature
-        }
+        client_signature: getSignatureWrapper(signature, selectedAccount.type)
       };
-
+  
       console.log('Publishing deal with payload:', JSON.stringify(signedDeal, null, 2));
       const dealId = await makeRpcCall(providerUrl, 'publish_deal', [signedDeal]);
       console.log('Received deal ID:', dealId);
-
+  
       setIsPublished(true);
       showAlert(`Deal published successfully! Deal ID: ${dealId}`, 'success');
     } catch (err) {
