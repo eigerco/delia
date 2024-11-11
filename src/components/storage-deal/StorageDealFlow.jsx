@@ -7,6 +7,7 @@ import { ProviderSelector } from './steps/ProviderSelector';
 import { ProposeDeal } from './steps/ProposeDeal';
 import { PublishDeal } from './steps/PublishDeal';
 import { DEFAULT_DEAL_PROPOSAL } from '../../utils/constants';
+import AccountSelector from './AccountSelector';
 
 // Server endpoints by protocol
 const JSON_RPC_PORT = 8000; // Running jsonrpsee RPC server
@@ -16,14 +17,14 @@ const HTTP_PORT = 8001;     // Running axum REST server
 const makeRpcCall = async (url, method, params = []) => {
   // Check if method already has v0_ prefix to avoid double prefixing
   const prefixedMethod = method.startsWith('v0_') ? method : `v0_${method}`;
-  
+
   const request = {
     jsonrpc: '2.0',
     id: 1,
     method: prefixedMethod,
     params
   };
-  
+
   console.log('RPC Request:', {
     url: `http://${url}:${JSON_RPC_PORT}/rpc`,
     method: request.method,
@@ -76,13 +77,7 @@ export default function StorageDealFlow() {
         }
 
         setAccounts(accounts);
-        setSelectedAccount(accounts[0]);
-        setDealProposal(prev => ({
-          ...prev,
-          client: accounts[0].address
-        }));
-        showAlert('Successfully connected to Polkadot.js extension', 'success');
-        setCurrentStep(2);
+        showAlert('Please select an account to continue', 'success');
       } catch (err) {
         showAlert(err.message, 'error');
       }
@@ -109,11 +104,22 @@ export default function StorageDealFlow() {
     setError(null);
   };
 
+  const handleAccountSelect = (account) => {
+    setSelectedAccount(account);
+    setDealProposal(prev => ({
+      ...prev,
+      client: account.address
+    }));
+    // Only move to next step after account is selected
+    setCurrentStep(2);
+    showAlert('Account selected successfully', 'success');
+  };
+
   const getProviderInfo = async (provider) => {
     try {
       setLoading(true);
       console.log('Fetching provider info via RPC');
-      
+
       const info = await makeRpcCall(provider.info.url, 'info');
       setProviderInfo(info);
       showAlert('Successfully connected to provider', 'success');
@@ -137,44 +143,44 @@ export default function StorageDealFlow() {
   const proposeDeal = async () => {
     try {
       setLoading(true);
-  
+
       // Calculate piece CID using HTTP server
       const formData = new FormData();
       formData.append('file', selectedFile);
-  
+
       console.log('Calculating piece CID via HTTP endpoint');
       const pieceResponse = await fetch(`http://${providerUrl}:${HTTP_PORT}/calculate_piece_cid`, {
         method: 'PUT',
         body: formData,
       });
-  
+
       if (!pieceResponse.ok) {
         throw new Error(await pieceResponse.text());
       }
-  
+
       const pieceCid = await pieceResponse.text();
-      
+
       // Update deal proposal with the calculated piece CID
       const updatedDealProposal = {
         ...dealProposal,
         piece_cid: pieceCid,
       };
-  
+
       // Propose deal using JSON-RPC
       console.log('Proposing deal via RPC');
       const dealCid = await makeRpcCall(providerUrl, 'propose_deal', [updatedDealProposal]);
       setDealCid(dealCid);
-      
+
       console.log('Uploading file via HTTP endpoint');
       const uploadResponse = await fetch(`http://${providerUrl}:${HTTP_PORT}/upload/${dealCid}`, {
-          method: 'PUT',
-          body: formData,
+        method: 'PUT',
+        body: formData,
       });
-      
+
       if (!uploadResponse.ok) {
         throw new Error(await uploadResponse.text());
       }
-  
+
       await uploadResponse.text();
       showAlert('Deal proposed and file uploaded successfully', 'success');
       setCurrentStep(4);
@@ -189,45 +195,45 @@ export default function StorageDealFlow() {
     try {
       setLoading(true);
       const { web3FromAddress } = await import('@polkadot/extension-dapp');
-  
+
       console.log('Encoding proposal via HTTP endpoint');
       const encodingResponse = await fetch(`http://${providerUrl}:${HTTP_PORT}/encode_proposal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dealProposal),
       });
-  
+
       if (!encodingResponse.ok) {
         throw new Error(await encodingResponse.text());
       }
-  
+
       const result = await encodingResponse.json();
       const encodedProposal = result.Ok;
       const injector = await web3FromAddress(selectedAccount.address);
       const signRaw = injector?.signer?.signRaw;
-  
+
       if (!signRaw) {
         throw new Error('Signing is not supported by the extension');
       }
-  
+
       const { signature } = await signRaw({
         address: selectedAccount.address,
         data: encodedProposal,
         type: 'bytes',
         withWrapper: false
       });
-  
+
       const signedDeal = {
         deal_proposal: dealProposal,
         client_signature: {
           Sr25519: signature
         }
       };
-  
+
       console.log('Publishing deal with payload:', JSON.stringify(signedDeal, null, 2));
       const dealId = await makeRpcCall(providerUrl, 'publish_deal', [signedDeal]);
       console.log('Received deal ID:', dealId);
-  
+
       setIsPublished(true);
       showAlert(`Deal published successfully! Deal ID: ${dealId}`, 'success');
     } catch (err) {
@@ -276,7 +282,19 @@ export default function StorageDealFlow() {
       )}
 
       <div className="space-y-4">
-        {currentStep === 1 && <ConnectWallet onConnect={setAccounts} />}
+        {currentStep === 1 && (
+          <>
+            {accounts.length === 0 ? (
+              <ConnectWallet onConnect={setAccounts} />
+            ) : (
+              <AccountSelector
+                accounts={accounts}
+                selectedAccount={selectedAccount}
+                onSelectAccount={handleAccountSelect}
+              />
+            )}
+          </>
+        )}
 
         {currentStep === 2 && (
           <ProviderSelector
