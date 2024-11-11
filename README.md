@@ -104,14 +104,15 @@ In order for the MVP to work properly, please ensure that you have:
 1. The testnet running (`just testnet` from the Polka Storage repo)
 2. Added balance to a chosen storage provider account eg. Charlie (as well as to the account you'll use as a client)
 3. Registered Charlie as a storage provider
-4. Started the storage provider server:
+4. Started the storage provider server with the `delia` feature enabled:
 ```bash
-RUST_LOG=trace cargo run -- \
+RUST_LOG=trace cargo run --features delia -- \
   --sr25519-key //Charlie \
   --seal-proof "2KiB" \
   --post-proof "2KiB" \
   --database-directory ./tmp/db \
-  --storage-directory ./tmp/storage
+  --storage-directory ./tmp/storage \
+  --porep-parameters ../../../2KiB.porep.params
 ```
 5. Installed the Polkadot.js extension
 
