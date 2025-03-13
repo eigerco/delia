@@ -1,6 +1,7 @@
-import React, { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { web3AccountsSubscribe, web3Enable } from "@polkadot/extension-dapp";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
+import { Loader2 } from "lucide-react";
+import React, { useState } from "react";
 import { RefreshButton } from "./buttons/RefreshButton";
 
 enum ConnectionStatus {
@@ -19,31 +20,23 @@ export function ConnectWallet({
 
   React.useEffect(() => {
     const connectWallet = async () => {
-      try {
-        const { web3Enable, web3Accounts } = await import(
-          "@polkadot/extension-dapp"
-        );
-        const extensions = await web3Enable("Delia");
+      const extensions = await web3Enable("Delia");
+      if (extensions.length === 0) {
+        setError("No extension found, please install the Polkadot.js extension");
+        setStatus(ConnectionStatus.Failed);
+        return;
+      }
 
-        if (extensions.length === 0) {
-          throw new Error("No extension found");
-        }
-
-        const accounts = await web3Accounts();
+      web3AccountsSubscribe((accounts) => {
         if (accounts.length === 0) {
-          throw new Error(
-            "No accounts found. Please create an account in your Polkadot.js extension"
-          );
+          setError("No accounts found. Please create an account in your Polkadot.js extension");
+          setStatus(ConnectionStatus.Failed);
+          return;
         }
 
         onConnect(accounts);
         setStatus(ConnectionStatus.Connected);
-      } catch (err) {
-        if (err && err instanceof Error) {
-          setError(err.message);
-        }
-        setStatus(ConnectionStatus.Failed);
-      }
+      });
     };
 
     connectWallet();

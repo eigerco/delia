@@ -3,6 +3,7 @@ import { hexToU8a } from "@polkadot/util";
 import { base58Encode } from "@polkadot/util-crypto";
 import { AlertCircle, Loader2, RefreshCw, Server } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import type { StorageProviderInfo } from "../lib/storageProvider";
 import { ProviderButton } from "./buttons/ProviderButton";
 
 const COLLATOR_RPC_URL = "ws://127.0.0.1:42069"; // TODO: replace with some mechanism like polkadot.js
@@ -14,8 +15,8 @@ enum Status {
 }
 
 type ProviderSelectorProps = {
-  providers: Map<string, object>;
-  setProviders: (providers: Map<string, object>) => void;
+  providers: Map<string, StorageProviderInfo>;
+  setProviders: (providers: Map<string, StorageProviderInfo>) => void;
   onSelectProvider: (provider: string) => void;
   selectedProviders: Set<string>;
 };
@@ -36,6 +37,7 @@ export function ProviderSelector({
   const getStorageProviders = async () => {
     setStatus(Status.Connecting);
     setError(null);
+    debugger;
     setProviders(new Map());
 
     // This should be parametrizable

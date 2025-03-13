@@ -1,18 +1,14 @@
 import { CheckCircle2, Circle } from "lucide-react";
+import type { StorageProviderInfo } from "../../lib/storageProvider";
 
 type ProviderButtonProps = {
   accountId: string;
-  provider: object; // TODO: replace the object with a better type
+  provider: StorageProviderInfo; // TODO: replace the object with a better type
   isSelected: boolean;
   onSelect: (accountId: string) => void;
 };
 
-export function ProviderButton({
-  accountId,
-  provider,
-  isSelected,
-  onSelect,
-}: ProviderButtonProps) {
+export function ProviderButton({ accountId, provider, isSelected, onSelect }: ProviderButtonProps) {
   const peerId = provider.peerId;
 
   return (
@@ -21,9 +17,7 @@ export function ProviderButton({
         type="button"
         onClick={() => onSelect(accountId)}
         className={`flex items-center justify-between p-4 border rounded-lg transition-colors ${
-          isSelected
-            ? "border-blue-500 bg-blue-50"
-            : "border-gray-200 hover:border-blue-300"
+          isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-blue-300"
         }`}
       >
         {/* This should probably check connectivity */}
