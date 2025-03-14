@@ -178,7 +178,7 @@ export function ProviderSelector({
   };
 
   return (
-    <div className="grow">
+    <div>
       <div className="flex py-4">
         <h2 className="flex items-center text-lg font-semibold pr-2">Select Storage Provider</h2>
         <button
@@ -189,7 +189,9 @@ export function ProviderSelector({
           <RefreshCw />
         </button>
       </div>
-      <Body />
+      <div className="min-w-md max-w-md">
+        <Body />
+      </div>
     </div>
   );
 }

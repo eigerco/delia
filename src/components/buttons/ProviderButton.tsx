@@ -15,7 +15,7 @@ export function ProviderButton({ accountId, provider, isSelected, onSelect }: Pr
     <button
       type="button"
       onClick={() => onSelect(accountId)}
-      className={`flex max-w-md p-4 border rounded-lg transition-colors ${
+      className={`p-4 border rounded-lg transition-colors ${
         isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-blue-300"
       }`}
     >
@@ -27,10 +27,9 @@ export function ProviderButton({ accountId, provider, isSelected, onSelect }: Pr
           <Circle className="text-gray-500" />
         )}
         <div className="text-left max-w-md">
-          <div className="font-medium truncate max-w-md">{accountId}</div>
-          <div className="text-sm text-gray-500">
+          <div className="font-medium truncate">{accountId}</div>
+          <div className="flex flex-col text-sm text-gray-500">
             <span className="truncate">Peer Id: {peerId}</span>
-            <br />
             <span>Sector Size: {provider.sectorSize} bytes</span>
           </div>
         </div>

@@ -132,12 +132,12 @@ export function DealPreparation({
       !validateInput(dealProposal) || !dealFile || selectedProviders.size === 0 || loading;
 
     return (
-      <div className={"pt-8"}>
+      <div className={"pt-4"}>
         <button
           type="submit"
           className={`px-4 py-2 bg-blue-200 rounded-sm ${
             submitDisabled ? "bg-gray-400 cursor-not-allowed" : "hover:bg-blue-600"
-          }`}
+          } ${loading ? "cursor-progress" : ""}`}
           onClick={submit}
           disabled={submitDisabled}
         >
@@ -156,7 +156,7 @@ export function DealPreparation({
           onFileSelect={setDealFile}
           selectedFile={dealFile}
         />
-        <div className="bg-black mx-8" style={{ width: "1px" }} />
+        <div className="bg-black mx-8 min-w-px max-w-px" />
         <ProviderSelector
           providers={providers}
           setProviders={setProviders}
