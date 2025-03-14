@@ -1,10 +1,9 @@
 import { noise } from "@chainsafe/libp2p-noise";
 import { yamux } from "@chainsafe/libp2p-yamux";
 import { webSockets } from "@libp2p/websockets";
-import { multiaddr, type Multiaddr } from "@multiformats/multiaddr";
-import { createLibp2p, type Libp2p } from "libp2p";
+import { type Multiaddr, multiaddr } from "@multiformats/multiaddr";
 import { cborStream } from "it-cbor-stream";
-import type { PeerId } from "@libp2p/interface";
+import { type Libp2p, createLibp2p } from "libp2p";
 
 const BOOTSTRAP_DEFAULT_MULTIADDR = multiaddr("/ip4/127.0.0.1/tcp/62650/ws");
 const BOOTSTRAP_REQUEST_RESPONSE_PROTOCOL = "/polka-storage-bootstrap-req-resp/1.0.0";
@@ -18,7 +17,10 @@ async function createNode(): Promise<Libp2p> {
   });
 }
 
-export async function queryPeerId(peerId: PeerId, remote: Multiaddr = BOOTSTRAP_DEFAULT_MULTIADDR): Promise<Multiaddr | null> {
+export async function queryPeerId(
+  peerId: string,
+  remote: Multiaddr = BOOTSTRAP_DEFAULT_MULTIADDR,
+): Promise<Multiaddr | null> {
   const local = await createNode();
   const connection = await local.dialProtocol(remote, BOOTSTRAP_REQUEST_RESPONSE_PROTOCOL);
   const cbor = cborStream(connection);

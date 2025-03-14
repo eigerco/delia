@@ -8,6 +8,7 @@ import { Input as DealProposal, type Validated } from "../lib/dealProposal";
 import { uploadFile } from "../lib/fileUpload";
 import { callProposeDeal, callPublishDeal } from "../lib/jsonRpc";
 import { queryPeerId } from "../lib/requestResponse";
+import type { StorageProviderInfo } from "../lib/storageProvider";
 
 export function DealPreparation({
   account,
@@ -19,7 +20,7 @@ export function DealPreparation({
   );
 
   const [dealFile, setDealFile] = useState<File | null>(null);
-  const [providers, setProviders] = useState(new Map<string, object>());
+  const [providers, setProviders] = useState(new Map<string, StorageProviderInfo>());
   const [selectedProviders, selectProviders] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
 

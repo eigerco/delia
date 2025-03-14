@@ -2,8 +2,8 @@ import { ApiPromise, WsProvider } from "@polkadot/api";
 import { hexToU8a } from "@polkadot/util";
 import { base58Encode } from "@polkadot/util-crypto";
 import { AlertCircle, Loader2, RefreshCw, Server } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import type { StorageProviderInfo } from "../lib/storageProvider";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { type StorageProviderInfo, isStorageProviderInfo } from "../lib/storageProvider";
 import { ProviderButton } from "./buttons/ProviderButton";
 
 const COLLATOR_RPC_URL = "ws://127.0.0.1:42069"; // TODO: replace with some mechanism like polkadot.js
@@ -12,7 +12,30 @@ enum Status {
   Connecting = 0,
   Connected = 1,
   Failed = 2,
+  Loading = 3,
+  Loaded = 4,
 }
+
+// Yes, returning a string here is kinda weird, but makes the control flow SO MUCH SIMPLER
+// plus, throwing here is too much since these are supposed to be warnings
+// biome-ignore lint/suspicious/noExplicitAny: any is a superset of AnyJson and easier to work with
+const anyJsonToSpInfo = (key: string, value: any): StorageProviderInfo | string => {
+  if (!value) {
+    return `Provider ${key} has an undefined value, skipping...`;
+  }
+  if (typeof value !== "object") {
+    return `Provider ${key} is of unsupported type ${typeof value}, skipping...`;
+  }
+  if (!("info" in value)) {
+    return `Provider ${key} does not have an "info" field, skipping...`;
+  }
+  const spInfo = value.info;
+  if (!isStorageProviderInfo(spInfo)) {
+    return `Provider ${key} "info" field is not valid, skipping...`;
+  }
+  spInfo.peerId = base58Encode(hexToU8a(spInfo.peerId));
+  return spInfo;
+};
 
 type ProviderSelectorProps = {
   providers: Map<string, StorageProviderInfo>;
@@ -32,49 +55,75 @@ export function ProviderSelector({
 
   const apiPromiseRef = useRef<ApiPromise | null>(null);
 
-  // A liveness check before populating (or maybe populating but disabled)
-  // would be great UX
-  const getStorageProviders = async () => {
-    setStatus(Status.Connecting);
-    setError(null);
-    debugger;
-    setProviders(new Map());
+  const handleError = useCallback((error: unknown) => {
+    if (error instanceof Error) {
+      setError(error.message);
+    } else {
+      console.error(error);
+      setError("Failed to decode error, check the logs for more information");
+    }
+    setStatus(Status.Failed);
+  }, []);
 
-    // This should be parametrizable
-    const wsProvider = new WsProvider(COLLATOR_RPC_URL);
+  const connectPolkadotApi = useCallback(async (): Promise<ApiPromise | null> => {
+    setStatus(Status.Connecting);
+
+    if (apiPromiseRef.current) {
+      if (!apiPromiseRef.current.isConnected) {
+        // No clue if this throws an error
+        await apiPromiseRef.current.connect();
+      }
+      return apiPromiseRef.current;
+    }
+
     try {
+      // This should be parametrizeable
+      const wsProvider = new WsProvider(COLLATOR_RPC_URL);
       console.log(`Connecting to ${COLLATOR_RPC_URL}`);
       const polkaStorageApi = await ApiPromise.create({
         provider: wsProvider,
       });
-
-      const entries = await polkaStorageApi.query.storageProvider.storageProviders.entries();
-      for (const [key, value] of entries) {
-        const human = value.toHuman().info; // TODO: proper conversion
-        if ("peerId" in human) {
-          human.peerId = base58Encode(hexToU8a(human.peerId));
-        }
-        const newProviders = new Map(providers);
-        // debugger;
-        newProviders.set(key.args[0].toString(), human);
-        setProviders(newProviders);
-      }
-
-      console.log(`Connected to ${await polkaStorageApi.rpc.system.chain()}`);
       apiPromiseRef.current = polkaStorageApi;
+      console.log(`Connected to ${await polkaStorageApi.rpc.system.chain()}`);
       setStatus(Status.Connected);
-    } catch (error) {
-      if (error && error instanceof Error) {
-        setStatus(Status.Failed);
-        setError(error.message);
-      }
+      return polkaStorageApi;
+    } catch (err) {
+      handleError(err);
     }
-  };
+    return null;
+  }, [handleError]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: False positive, this is supposed to run ONCE
+  // A liveness check before populating (or maybe populating but disabled)
+  // would be great UX
+  const getStorageProviders = useCallback(async () => {
+    setError(null);
+
+    const polkaStorageApi = await connectPolkadotApi();
+    if (!polkaStorageApi) {
+      console.warn("Unable to connect to the Polkadot API");
+      return;
+    }
+
+    setStatus(Status.Loading);
+    const newProviders = new Map();
+    const entries = await polkaStorageApi.query.storageProvider.storageProviders.entries();
+    for (const [key, value] of entries) {
+      const accountId = key.args[0].toString();
+      // biome-ignore lint/suspicious/noExplicitAny: any is a superset of AnyJson and easier to work with
+      const spInfo = anyJsonToSpInfo(accountId, value.toJSON() as any);
+      if (spInfo instanceof String) {
+        console.warn(spInfo);
+        continue;
+      }
+      newProviders.set(key.args[0].toString(), spInfo);
+    }
+    setProviders(newProviders);
+    setStatus(Status.Loaded);
+  }, [setProviders, connectPolkadotApi]);
+
   useEffect(() => {
     getStorageProviders();
-  }, []);
+  }, [getStorageProviders]);
 
   const NoProviders = () => {
     return (
@@ -96,7 +145,7 @@ export function ProviderSelector({
           accountId={accountId}
           provider={provider}
           isSelected={selectedProviders.has(accountId)}
-          onSelect={(accountId) => onSelectProvider(accountId)}
+          onSelect={onSelectProvider}
         />
       </li>
     ));
@@ -104,6 +153,7 @@ export function ProviderSelector({
 
   const Body = () => {
     switch (status) {
+      case Status.Loading:
       case Status.Connecting: {
         return (
           <div className="text-center py-8">
@@ -112,6 +162,7 @@ export function ProviderSelector({
           </div>
         );
       }
+      case Status.Loaded:
       case Status.Connected: {
         return (
           <div className="grid gap-4">{providers.size === 0 ? <NoProviders /> : <Providers />}</div>
