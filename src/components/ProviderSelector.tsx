@@ -130,7 +130,7 @@ export function ProviderSelector({
         <p className="text-sm mt-2 text-gray-400">
           Run a storage provider node and register it on chain
         </p>
-        <p className="text-xs mt-1 text-gray-400 font-mono">endpoint: {COLLATOR_RPC_URL}</p>
+        <p className="text-xs mt-1 text-gray-400 font-mono">endpoint: {COLLATOR_LOCAL_RPC_URL}</p>
       </div>
     );
   };
