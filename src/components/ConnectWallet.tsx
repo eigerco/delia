@@ -45,7 +45,7 @@ export function ConnectWallet({
   switch (status) {
     case ConnectionStatus.Connecting: {
       return (
-        <div className="text-center py-8">
+        <div className="items-center py-8">
           <Loader2 className="animate-spin mx-auto mb-4" size={32} />
           <p>Connecting to Polkadot.js extension...</p>
           <p className="text-sm text-gray-500 mt-2">

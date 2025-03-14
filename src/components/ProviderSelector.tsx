@@ -3,18 +3,16 @@ import { hexToU8a } from "@polkadot/util";
 import { base58Encode } from "@polkadot/util-crypto";
 import { AlertCircle, Loader2, RefreshCw, Server } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { COLLATOR_LOCAL_RPC_URL } from "../lib/consts";
 import { type StorageProviderInfo, isStorageProviderInfo } from "../lib/storageProvider";
 import { ProviderButton } from "./buttons/ProviderButton";
 
-const COLLATOR_RPC_URL = "ws://127.0.0.1:42069"; // TODO: replace with some mechanism like polkadot.js
-
-enum Status {
-  Connecting = 0,
-  Connected = 1,
-  Failed = 2,
-  Loading = 3,
-  Loaded = 4,
-}
+type Status =
+  | { type: "connecting" }
+  | { type: "connected" }
+  | { type: "loading" }
+  | { type: "loaded" }
+  | { type: "failed"; error: string };
 
 // Yes, returning a string here is kinda weird, but makes the control flow SO MUCH SIMPLER
 // plus, throwing here is too much since these are supposed to be warnings
@@ -50,23 +48,24 @@ export function ProviderSelector({
   onSelectProvider,
   selectedProviders,
 }: ProviderSelectorProps) {
-  const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState(Status.Connecting);
+  const [status, setStatus] = useState<Status>({ type: "connecting" });
 
   const apiPromiseRef = useRef<ApiPromise | null>(null);
 
   const handleError = useCallback((error: unknown) => {
     if (error instanceof Error) {
-      setError(error.message);
+      setStatus({ type: "failed", error: error.message });
     } else {
       console.error(error);
-      setError("Failed to decode error, check the logs for more information");
+      setStatus({
+        type: "failed",
+        error: "Failed to decode error, check the logs for more information",
+      });
     }
-    setStatus(Status.Failed);
   }, []);
 
   const connectPolkadotApi = useCallback(async (): Promise<ApiPromise | null> => {
-    setStatus(Status.Connecting);
+    setStatus({ type: "connecting" });
 
     if (apiPromiseRef.current) {
       if (!apiPromiseRef.current.isConnected) {
@@ -78,17 +77,18 @@ export function ProviderSelector({
 
     try {
       // This should be parametrizeable
-      const wsProvider = new WsProvider(COLLATOR_RPC_URL);
-      console.log(`Connecting to ${COLLATOR_RPC_URL}`);
+      const wsProvider = new WsProvider(COLLATOR_LOCAL_RPC_URL);
+      console.log(`Connecting to ${COLLATOR_LOCAL_RPC_URL}`);
       const polkaStorageApi = await ApiPromise.create({
         provider: wsProvider,
       });
       apiPromiseRef.current = polkaStorageApi;
       console.log(`Connected to ${await polkaStorageApi.rpc.system.chain()}`);
-      setStatus(Status.Connected);
+      setStatus({ type: "connected" });
       return polkaStorageApi;
     } catch (err) {
       handleError(err);
+      console.warn("Unable to connect to the Polkadot API");
     }
     return null;
   }, [handleError]);
@@ -96,15 +96,12 @@ export function ProviderSelector({
   // A liveness check before populating (or maybe populating but disabled)
   // would be great UX
   const getStorageProviders = useCallback(async () => {
-    setError(null);
-
     const polkaStorageApi = await connectPolkadotApi();
     if (!polkaStorageApi) {
-      console.warn("Unable to connect to the Polkadot API");
       return;
     }
 
-    setStatus(Status.Loading);
+    setStatus({ type: "loading" });
     const newProviders = new Map();
     const entries = await polkaStorageApi.query.storageProvider.storageProviders.entries();
     for (const [key, value] of entries) {
@@ -118,7 +115,7 @@ export function ProviderSelector({
       newProviders.set(key.args[0].toString(), spInfo);
     }
     setProviders(newProviders);
-    setStatus(Status.Loaded);
+    setStatus({ type: "loaded" });
   }, [setProviders, connectPolkadotApi]);
 
   useEffect(() => {
@@ -152,9 +149,9 @@ export function ProviderSelector({
   };
 
   const Body = () => {
-    switch (status) {
-      case Status.Loading:
-      case Status.Connecting: {
+    switch (status.type) {
+      case "loading":
+      case "connecting": {
         return (
           <div className="text-center py-8">
             <Loader2 className="animate-spin mx-auto h-8 w-8 text-blue-500 mb-4" />
@@ -162,41 +159,35 @@ export function ProviderSelector({
           </div>
         );
       }
-      case Status.Loaded:
-      case Status.Connected: {
+      case "loaded":
+      case "connected": {
         return (
           <div className="grid gap-4">{providers.size === 0 ? <NoProviders /> : <Providers />}</div>
         );
       }
 
-      case Status.Failed: {
+      case "failed": {
         return (
           <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg flex items-center gap-2">
             <AlertCircle className="h-5 w-5" />
-            <span>{error}</span>
+            <span>{status.error}</span>
           </div>
         );
       }
     }
   };
 
-  const RefreshStorageProviders = () => {
-    return (
-      <button
-        type="submit"
-        className="transition-colors hover:text-blue-400"
-        onClick={getStorageProviders}
-      >
-        <RefreshCw />
-      </button>
-    );
-  };
-
   return (
     <div className="grow">
       <div className="flex py-4">
         <h2 className="flex items-center text-lg font-semibold pr-2">Select Storage Provider</h2>
-        <RefreshStorageProviders />
+        <button
+          type="submit"
+          className="transition-colors hover:text-blue-400"
+          onClick={getStorageProviders}
+        >
+          <RefreshCw />
+        </button>
       </div>
       <Body />
     </div>

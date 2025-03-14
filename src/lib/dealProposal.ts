@@ -12,17 +12,7 @@ function encodeLabel(label: string): string {
   return u8aToHex(stringToU8a(label));
 }
 
-type InputKeys =
-  | "pieceCid"
-  | "pieceSize"
-  | "client"
-  | "label"
-  | "startBlock"
-  | "endBlock"
-  | "storagePricePerBlock"
-  | "providerCollateral";
-
-export class Input {
+export type InputFields = {
   pieceCid: string;
   pieceSize: string;
   client: string; // AccountId32
@@ -31,235 +21,132 @@ export class Input {
   endBlock: string;
   storagePricePerBlock: string;
   providerCollateral: string;
+};
 
-  constructor(
-    pieceCid: string,
-    pieceSize: string,
-    client: string,
-    label: string,
-    startBlock: string,
-    endBlock: string,
-    storagePricePerBlock: string,
-    providerCollateral: string,
-  ) {
-    this.pieceCid = pieceCid;
-    this.pieceSize = pieceSize;
-    this.client = client;
-    this.label = label;
-    this.startBlock = startBlock;
-    this.endBlock = endBlock;
-    this.storagePricePerBlock = storagePricePerBlock;
-    this.providerCollateral = providerCollateral;
+// Default values — based on Spaceglenda
+export const DEFAULT_INPUT: InputFields = {
+  pieceCid: "baga6ea4seaqmif7wqwq23pg2megbycbuxav4x4yw7fqfbxcihduqsupciaguspq",
+  pieceSize: "1048576",
+  client: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+  label: "Spaceglenda!",
+  startBlock: "100",
+  endBlock: "150",
+  storagePricePerBlock: "1000",
+  providerCollateral: "100",
+};
+
+// Validation function
+export const validateInput = (input: InputFields): ValidatedFields | null => {
+  try {
+    const pieceCid = CID.parse(input.pieceCid);
+    if (!pieceCid) return null;
+
+    return {
+      pieceCid,
+      pieceSize: Number.parseInt(input.pieceSize, 10),
+      client: input.client,
+      label: input.label,
+      startBlock: Number.parseInt(input.startBlock, 10),
+      endBlock: Number.parseInt(input.endBlock, 10),
+      storagePricePerBlock: Number.parseInt(input.storagePricePerBlock, 10),
+      providerCollateral: Number.parseInt(input.providerCollateral, 10),
+    };
+  } catch {
+    return null;
   }
+};
 
-  static default(): Input {
-    return new Input(
-      "baga6ea4seaqmif7wqwq23pg2megbycbuxav4x4yw7fqfbxcihduqsupciaguspq",
-      "1048576",
-      "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-      "Spaceglenda!",
-      "100",
-      "150",
-      "1000",
-      "100",
-    );
-  }
+// Convert validated data to RPC format
+export const toRpc = (validated: ValidatedFields, provider: string): RpcFields => ({
+  piece_cid: validated.pieceCid.toString(),
+  piece_size: validated.pieceSize,
+  client: validated.client,
+  provider,
+  label: validated.label,
+  start_block: validated.startBlock,
+  end_block: validated.endBlock,
+  storage_price_per_block: validated.storagePricePerBlock,
+  provider_collateral: validated.providerCollateral,
+  state: "Published",
+});
 
-  private deepCopy(): Input {
-    return new Input(
-      this.pieceCid,
-      this.pieceSize,
-      this.client,
-      this.label,
-      this.startBlock,
-      this.endBlock,
-      this.storagePricePerBlock,
-      this.providerCollateral,
-    );
-  }
+// Convert validated data to SCALEable format
+export const toSCALEable = (validated: ValidatedFields, provider: string): SCALEableFields => ({
+  piece_cid: encodeCid(validated.pieceCid),
+  piece_size: validated.pieceSize,
+  client: validated.client,
+  provider,
+  label: encodeLabel(validated.label),
+  start_block: validated.startBlock,
+  end_block: validated.endBlock,
+  storage_price_per_block: validated.storagePricePerBlock,
+  provider_collateral: validated.providerCollateral,
+  deal_state: { Published: null },
+});
 
-  copyUpdate(key: InputKeys, value: string): Input {
-    const copy: Input = this.deepCopy();
-    copy[key] = value;
-    return copy;
-  }
+// Encode SCALEable data
+export const encodeSCALEable = (
+  scaleableData: SCALEableFields,
+  registry: TypeRegistry,
+): Uint8Array => {
+  return registry.createType("DealProposal", scaleableData).toU8a();
+};
 
-  validate(): Validated | null {
-    try {
-      const pieceCid = CID.parse(this.pieceCid);
-      if (pieceCid === null) {
-        return null;
-      }
+export const createSignedRpc = async (
+  validated: ValidatedFields,
+  provider: string,
+  registry: TypeRegistry,
+  account: InjectedAccountWithMeta,
+): Promise<SignedRpcFields> => {
+  const rpc = toRpc(validated, provider);
+  const scaleable = toSCALEable(validated, provider);
+  const scale = encodeSCALEable(scaleable, registry);
+  const signed = await signRaw(account, u8aToHex(scale));
 
-      return new Validated(
-        pieceCid,
-        Number.parseInt(this.pieceSize),
-        this.client,
-        this.label,
-        Number.parseInt(this.startBlock),
-        Number.parseInt(this.endBlock),
-        Number.parseInt(this.storagePricePerBlock),
-        Number.parseInt(this.providerCollateral),
-      );
-    } catch {
-      return null;
-    }
-  }
-}
+  return {
+    client_signature: signed,
+    deal_proposal: rpc,
+  };
+};
 
-export class Validated {
-  readonly pieceCid: CID;
-  readonly pieceSize: number;
-  readonly client: string;
-  readonly label: string;
-  readonly startBlock: number;
-  readonly endBlock: number;
-  readonly storagePricePerBlock: number;
-  readonly providerCollateral: number;
+export type ValidatedFields = {
+  pieceCid: CID;
+  pieceSize: number;
+  client: string;
+  label: string;
+  startBlock: number;
+  endBlock: number;
+  storagePricePerBlock: number;
+  providerCollateral: number;
+};
 
-  constructor(
-    pieceCid: CID,
-    pieceSize: number,
-    client: string,
-    label: string,
-    startBlock: number,
-    endBlock: number,
-    storagePricePerBlock: number,
-    providerCollateral: number,
-  ) {
-    this.pieceCid = pieceCid;
-    this.pieceSize = pieceSize;
-    this.client = client;
-    this.label = label;
-    this.startBlock = startBlock;
-    this.endBlock = endBlock;
-    this.storagePricePerBlock = storagePricePerBlock;
-    this.providerCollateral = providerCollateral;
-  }
-
-  toRpc(provider: string): Rpc {
-    return new Rpc(
-      this.pieceCid.toString(),
-      this.pieceSize,
-      this.client,
-      provider,
-      this.label,
-      this.startBlock,
-      this.endBlock,
-      this.storagePricePerBlock,
-      this.providerCollateral,
-    );
-  }
-
-  toSCALEable(provider: string): SCALEable {
-    return new SCALEable(
-      encodeCid(this.pieceCid),
-      this.pieceSize,
-      this.client,
-      provider,
-      encodeLabel(this.label),
-      this.startBlock,
-      this.endBlock,
-      this.storagePricePerBlock,
-      this.providerCollateral,
-    );
-  }
-
-  async toSignedRpc(
-    provider: string,
-    registry: TypeRegistry,
-    account: InjectedAccountWithMeta,
-  ): Promise<SignedRpc> {
-    const rpc = this.toRpc(provider);
-    const scale = this.toSCALEable(provider).encode(registry);
-    const signed = await signRaw(account, u8aToHex(scale));
-
-    return new SignedRpc(signed, rpc);
-  }
-}
-
-export class Rpc {
-  readonly piece_cid: string;
-  readonly piece_size: number;
-  readonly client: string; // AccountId32
-  readonly provider: string; // AccountId32
-  readonly label: string;
-  readonly start_block: number;
-  readonly end_block: number;
-  readonly storage_price_per_block: number;
-  readonly provider_collateral: number;
-  readonly state: "Published";
-
-  constructor(
-    piece_cid: string,
-    piece_size: number,
-    client: string, // AccountId32
-    provider: string, // AccountId32
-    label: string,
-    start_block: number,
-    end_block: number,
-    storage_price_per_block: number,
-    provider_collateral: number,
-  ) {
-    this.piece_cid = piece_cid;
-    this.piece_size = piece_size;
-    this.client = client;
-    this.provider = provider;
-    this.label = label;
-    this.start_block = start_block;
-    this.end_block = end_block;
-    this.storage_price_per_block = storage_price_per_block;
-    this.provider_collateral = provider_collateral;
-    this.state = "Published";
-  }
-}
-
-export class SCALEable {
-  piece_cid: string; // Bytes
+export type RpcFields = {
+  piece_cid: string;
   piece_size: number;
-  client: string; // AccountId32
-  provider: string; // AccountId32
-  label: string; // Bytes
+  client: string;
+  provider: string;
+  label: string;
+  start_block: number;
+  end_block: number;
+  storage_price_per_block: number;
+  provider_collateral: number;
+  state: "Published";
+};
+
+export type SignedRpcFields = {
+  client_signature: SignatureWrapper;
+  deal_proposal: RpcFields;
+};
+
+export type SCALEableFields = {
+  piece_cid: string;
+  piece_size: number;
+  client: string;
+  provider: string;
+  label: string;
   start_block: number;
   end_block: number;
   storage_price_per_block: number;
   provider_collateral: number;
   deal_state: { Published: null };
-
-  constructor(
-    piece_cid: string, // Bytes
-    piece_size: number,
-    client: string, // AccountId32
-    provider: string, // AccountId32
-    label: string, // Bytes
-    start_block: number,
-    end_block: number,
-    storage_price_per_block: number,
-    provider_collateral: number,
-  ) {
-    this.piece_cid = piece_cid;
-    this.piece_size = piece_size;
-    this.client = client;
-    this.provider = provider;
-    this.label = label;
-    this.start_block = start_block;
-    this.end_block = end_block;
-    this.storage_price_per_block = storage_price_per_block;
-    this.provider_collateral = provider_collateral;
-    this.deal_state = { Published: null };
-  }
-
-  encode(registry: TypeRegistry): Uint8Array {
-    return registry.createType("DealProposal", this).toU8a();
-  }
-}
-
-export class SignedRpc {
-  client_signature: SignatureWrapper;
-  deal_proposal: Rpc;
-
-  constructor(client_signature: SignatureWrapper, deal_proposal: Rpc) {
-    this.client_signature = client_signature;
-    this.deal_proposal = deal_proposal;
-  }
-}
+};

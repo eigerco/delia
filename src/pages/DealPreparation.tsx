@@ -4,7 +4,15 @@ import { Toaster, toast } from "react-hot-toast";
 import { useCtx } from "../GlobalCtx";
 import { DealProposalForm } from "../components/DealProposalForm";
 import { ProviderSelector } from "../components/ProviderSelector";
-import { Input as DealProposal, type Validated } from "../lib/dealProposal";
+import { DEFAULT_LOCAL_RPC_ADDRESS, DEFAULT_LOCAL_STORAGE_ADDRESS } from "../lib/consts";
+import {
+  DEFAULT_INPUT,
+  type InputFields,
+  type ValidatedFields,
+  createSignedRpc,
+  toRpc,
+  validateInput,
+} from "../lib/dealProposal";
 import { uploadFile } from "../lib/fileUpload";
 import { callProposeDeal, callPublishDeal } from "../lib/jsonRpc";
 import { queryPeerId } from "../lib/requestResponse";
@@ -15,9 +23,10 @@ export function DealPreparation({
 }: {
   account: InjectedAccountWithMeta;
 }) {
-  const [dealProposal, setDealProposal] = useState(
-    DealProposal.default().copyUpdate("client", account.address),
-  );
+  const [dealProposal, setDealProposal] = useState<InputFields>({
+    ...DEFAULT_INPUT,
+    client: account.address,
+  });
 
   const [dealFile, setDealFile] = useState<File | null>(null);
   const [providers, setProviders] = useState(new Map<string, StorageProviderInfo>());
@@ -38,7 +47,13 @@ export function DealPreparation({
 
   const ctx = useCtx();
 
-  const performDeal = async (p: string, validDealProposal: Validated) => {
+  const performDeal = async (p: string, validDealProposal: ValidatedFields) => {
+    if (!dealFile) {
+      // NOTE: This should never happen unless the "Continue" button is wrong
+      toast.error("No file was selected");
+      return;
+    }
+
     // We can make a function out of this and use Promise.all for more efficiency
     const provider = providers.get(p);
     if (!provider) {
@@ -46,9 +61,7 @@ export function DealPreparation({
       throw new Error("Selected provider does not exist");
     }
 
-    // TODO: type this
     const providerPeerId = provider.peerId;
-    // TODO: catch the error?
     const peerIdMultiaddress = await queryPeerId(providerPeerId);
     if (!peerIdMultiaddress) {
       toast.error(`Failed to find multiaddress for PeerId: ${providerPeerId}`);
@@ -61,33 +74,30 @@ export function DealPreparation({
       port: nodeAddress.port,
     };
 
-    const proposeDealResponse = await callProposeDeal(validDealProposal.toRpc(p), {
-      ...address,
-      port: 8000, // We can't hardcode this but we can't do anything about it *right now*
-    });
+    try {
+      const proposeDealResponse = await callProposeDeal(toRpc(validDealProposal, p), {
+        ...address,
+        port: DEFAULT_LOCAL_RPC_ADDRESS.port, // We can't hardcode this but we can't do anything about it *right now*
+      });
 
-    if (proposeDealResponse instanceof Error) {
-      toast.error(proposeDealResponse.message);
-      return;
-    }
+      await uploadFile(
+        dealFile,
+        proposeDealResponse,
+        { ...address, port: DEFAULT_LOCAL_STORAGE_ADDRESS.port }, // We can't hardcode this but we can't do anything about it *right now*
+      );
 
-    if (!dealFile) {
-      // NOTE: This should never happen unless the "Continue" button is wrong
-      throw new Error("No file was selected");
-    }
-    await uploadFile(
-      dealFile,
-      proposeDealResponse,
-      { ...address, port: 8001 }, // We can't hardcode this but we can't do anything about it *right now*
-    );
-
-    const signedRpc = await validDealProposal.toSignedRpc(p, ctx.registry, account);
-    const publishDealResponse = await callPublishDeal(
-      signedRpc,
-      { ...address, port: 8000 }, // We can't hardcode this but we can't do anything about it *right now*
-    );
-    if (publishDealResponse instanceof Error) {
-      toast.error(publishDealResponse.message);
+      const signedRpc = await createSignedRpc(validDealProposal, p, ctx.registry, account);
+      await callPublishDeal(
+        signedRpc,
+        { ...address, port: DEFAULT_LOCAL_RPC_ADDRESS.port }, // We can't hardcode this but we can't do anything about it *right now*
+      );
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Unable to decode error message, check console for details.");
+        console.error(error);
+      }
       return;
     }
     toast.success(`Successfully uploaded file to ${p}`);
@@ -95,7 +105,7 @@ export function DealPreparation({
 
   const Submit = () => {
     const submit = async () => {
-      const validDealProposal = dealProposal.validate();
+      const validDealProposal = validateInput(dealProposal);
       if (!validDealProposal) {
         toast.error("Failed to validate deal proposal");
         return;
@@ -119,7 +129,7 @@ export function DealPreparation({
     };
 
     const submitDisabled =
-      !dealProposal.validate() || !dealFile || selectedProviders.size === 0 || loading;
+      !validateInput(dealProposal) || !dealFile || selectedProviders.size === 0 || loading;
 
     return (
       <div className={"pt-8"}>

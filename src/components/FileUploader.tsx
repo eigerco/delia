@@ -1,6 +1,6 @@
-import { useCallback, useState } from "react";
+import { FileText, Upload } from "lucide-react";
+import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import { Upload, Loader2, FileText } from "lucide-react";
 
 export function FileUploader({
   onFileSelect,
@@ -9,8 +9,6 @@ export function FileUploader({
   onFileSelect: (file: File) => void;
   selectedFile: File | null;
 }) {
-  const [loading, setLoading] = useState(false);
-
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       if (acceptedFiles.length > 0) {
@@ -22,28 +20,22 @@ export function FileUploader({
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    // disabled: loading, // Prevent new uploads ddwhile processing
   });
 
   return (
     <div
       {...getRootProps()}
-      className={`flex flex-col items-center p-6 border-2 border-dashed rounded-lg transition-colors ${
+      className={`flex flex-col items-center p-6 border-2 border-dashed rounded-lg transition-colors cursor-pointer hover:border-blue-400 ${
         isDragActive
           ? "border-blue-400 bg-blue-50"
           : selectedFile
             ? "border-green-500 bg-green-50"
             : "border-gray-300"
-      } ${loading ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-blue-400"}`}
+      } `}
     >
-      <input {...getInputProps()} disabled={loading} />
+      <input {...getInputProps()} />
 
-      {loading ? (
-        <>
-          <Loader2 className="w-12 h-12 text-gray-400 mb-2 animate-spin" />
-          <p className="text-sm text-gray-600">Processing file...</p>
-        </>
-      ) : selectedFile ? (
+      {selectedFile ? (
         <>
           <FileText className="w-12 h-12 text-green-500 mb-2" />
           <p className="text-sm font-medium text-green-600">File processed successfully!</p>

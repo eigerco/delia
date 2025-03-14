@@ -1,5 +1,5 @@
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { GlobalCtxProvider } from "./GlobalCtxProvider";
 import { ConnectWallet } from "./components/ConnectWallet";
 import { setupTypeRegistry } from "./lib/registry";
@@ -55,6 +55,9 @@ function App() {
   return (
     <GlobalCtxProvider registry={registry}>
       <div className="m-8">
+        <div className="flex pb-4 items-center">
+          <h1 className="grow text-xl font-bold">📦 Delia</h1>
+        </div>
         <Flow />
       </div>
     </GlobalCtxProvider>

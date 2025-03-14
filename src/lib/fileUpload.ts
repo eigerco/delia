@@ -6,7 +6,7 @@ export async function uploadFile(
   address: { ip: string; port?: number } = DEFAULT_LOCAL_STORAGE_ADDRESS,
 ) {
   if (!address.port) {
-    address.port = 8001;
+    address.port = DEFAULT_LOCAL_STORAGE_ADDRESS.port;
   }
 
   const body = new FormData();

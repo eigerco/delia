@@ -32,11 +32,10 @@ export async function queryPeerId(
     return multiaddr(response.Found.multiaddrs[0]);
   }
 
-  if (isNotFound(response)) {
-    return null;
+  if (!isNotFound(response)) {
+    console.warn(`unknown format: ${response}`);
   }
-  // This error is unchecked on purpose!
-  throw new Error("unknown format");
+  return null;
 }
 
 type Found = {
