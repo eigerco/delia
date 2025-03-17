@@ -17,9 +17,6 @@ importers:
       '@libp2p/bootstrap':
         specifier: ^11.0.30
         version: 11.0.30
-      '@libp2p/identify':
-        specifier: ^3.0.25
-        version: 3.0.25
       '@libp2p/interface':
         specifier: ^2.7.0
         version: 2.7.0
@@ -42,12 +39,6 @@ importers:
         specifier: ^13.4.3
         version: 13.4.3(@polkadot/util-crypto@13.4.3(@polkadot/util@13.4.3))(@polkadot/util@13.4.3)
       '@polkadot/rpc-provider':
-        specifier: ^15.8.1
-        version: 15.8.1
-      '@polkadot/types':
-        specifier: ^15.7.2
-        version: 15.7.2
-      '@polkadot/types-codec':
         specifier: ^15.8.1
         version: 15.8.1
       '@polkadot/util':
@@ -86,9 +77,6 @@ importers:
       react-dropzone:
         specifier: ^14.3.8
         version: 14.3.8(react@19.0.0)
-      react-hook-form:
-        specifier: ^7.54.2
-        version: 7.54.2(react@19.0.0)
       react-hot-toast:
         specifier: ^2.5.2
         version: 2.5.2(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -99,6 +87,12 @@ importers:
       '@biomejs/biome':
         specifier: 1.9.4
         version: 1.9.4
+      '@polkadot/types':
+        specifier: ^15.7.2
+        version: 15.7.2
+      '@polkadot/types-codec':
+        specifier: ^15.8.1
+        version: 15.8.1
       '@types/react':
         specifier: ^19.0.10
         version: 19.0.10
@@ -507,9 +501,6 @@ packages:
 
   '@libp2p/crypto@5.0.15':
     resolution: {integrity: sha512-28xYMOn3fs8flsNgCVVxp27gEmDTtZHbz+qEVv3v7cWfGRipaVhNXFV9tQJHWXHQ8mN8v/PQvgcfCcWu5jkrTg==}
-
-  '@libp2p/identify@3.0.25':
-    resolution: {integrity: sha512-zEmXtoPfW5T389e0hQxpTiZTaJq+FSqyjczrr/bckRjB8qe7VuKWw8rSEAO4+dVVbq3Ub4Zw3K0VwJsh3Wq4mg==}
 
   '@libp2p/interface-internal@2.3.7':
     resolution: {integrity: sha512-u0I4zqUJhhPbL2ReX88068Sudv2uA/Z1sn6EeD8mr5kkGActTrzxoTjjxscmiQgQybOVyvJbkTiJciorT0ZyPw==}
@@ -1474,9 +1465,6 @@ packages:
     resolution: {integrity: sha512-sIoNrQl1qSRg2seYSBH/3QxWhJFn9PKYvOf/bHdtCBF0bnghey44VyASsWzn5dAx0DCDDABq1hZIuzKmtBZmKA==}
     engines: {node: '>=16.0.0', npm: '>=7.0.0'}
 
-  it-protobuf-stream@1.1.6:
-    resolution: {integrity: sha512-TxqgDHXTBt1XkYhrGKP8ubNsYD4zuTClSg6S1M0xTPsskGKA4nPFOGM60zrkh4NMB1Wt3EnsqM5U7kXkx60EXQ==}
-
   it-pushable@3.2.3:
     resolution: {integrity: sha512-gzYnXYK8Y5t5b/BnJUr7glfQLO4U5vyb05gPx/TyTw+4Bv1zM9gFk4YsOrnulWefMewlphCjKkakFvj1y99Tcg==}
 
@@ -1799,12 +1787,6 @@ packages:
     engines: {node: '>= 10.13'}
     peerDependencies:
       react: '>= 16.8 || 18.0.0'
-
-  react-hook-form@7.54.2:
-    resolution: {integrity: sha512-eHpAUgUjWbZocoQYUHposymRb4ZP6d0uwUnooL2uOybA9/3tPUvoAKqEWK1WaSiTxxOfTpffNZP7QwlnM3/gEg==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      react: ^16.8.0 || ^17 || ^18 || ^19
 
   react-hot-toast@2.5.2:
     resolution: {integrity: sha512-Tun3BbCxzmXXM7C+NI4qiv6lT0uwGh4oAfeJyNOjYUejTsm35mK9iCaYLGv8cBz9L5YxZLx/2ii7zsIwPtPUdw==}
@@ -2380,23 +2362,6 @@ snapshots:
       '@noble/curves': 1.8.1
       '@noble/hashes': 1.7.1
       multiformats: 13.3.2
-      protons-runtime: 5.5.0
-      uint8arraylist: 2.4.8
-      uint8arrays: 5.1.0
-
-  '@libp2p/identify@3.0.25':
-    dependencies:
-      '@libp2p/crypto': 5.0.15
-      '@libp2p/interface': 2.7.0
-      '@libp2p/interface-internal': 2.3.7
-      '@libp2p/peer-id': 5.0.16
-      '@libp2p/peer-record': 8.0.23
-      '@libp2p/utils': 6.5.7
-      '@multiformats/multiaddr': 12.4.0
-      '@multiformats/multiaddr-matcher': 1.6.0
-      it-drain: 3.0.8
-      it-parallel: 3.0.9
-      it-protobuf-stream: 1.1.6
       protons-runtime: 5.5.0
       uint8arraylist: 2.4.8
       uint8arrays: 5.1.0
@@ -3691,12 +3656,6 @@ snapshots:
       it-pushable: 3.2.3
       it-stream-types: 2.0.2
 
-  it-protobuf-stream@1.1.6:
-    dependencies:
-      it-length-prefixed-stream: 1.2.1
-      it-stream-types: 2.0.2
-      uint8arraylist: 2.4.8
-
   it-pushable@3.2.3:
     dependencies:
       p-defer: 4.0.1
@@ -4008,10 +3967,6 @@ snapshots:
       attr-accept: 2.2.5
       file-selector: 2.1.2
       prop-types: 15.8.1
-      react: 19.0.0
-
-  react-hook-form@7.54.2(react@19.0.0):
-    dependencies:
       react: 19.0.0
 
   react-hot-toast@2.5.2(react-dom@19.0.0(react@19.0.0))(react@19.0.0):
