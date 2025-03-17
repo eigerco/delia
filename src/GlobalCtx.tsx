@@ -4,6 +4,7 @@ import { GlobalCtxProvider } from "./GlobalCtxProvider";
 
 export type Ctx = {
   registry: TypeRegistry;
+  wsAddress: string;
 };
 
 export const GlobalCtx = createContext<Ctx | null>(null);
