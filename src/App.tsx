@@ -1,5 +1,5 @@
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
-import { RefreshCw } from "lucide-react";
+import { Component, RefreshCw } from "lucide-react";
 import { useMemo, useState } from "react";
 import { GlobalCtxProvider } from "./GlobalCtxProvider";
 import { ConnectWallet } from "./components/ConnectWallet";
@@ -13,6 +13,7 @@ enum FlowStatus {
   DealPreparation = 1,
 }
 
+// TODO: this component should be red if it fails to connect
 function WsAddressInput({ onChange }: { onChange: (newValue: string) => void }) {
   const [wsAddress, setWsAddress] = useState(COLLATOR_LOCAL_RPC_URL);
   return (
