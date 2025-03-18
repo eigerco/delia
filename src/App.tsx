@@ -1,5 +1,5 @@
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
-import { Component, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { useMemo, useState } from "react";
 import { GlobalCtxProvider } from "./GlobalCtxProvider";
 import { ConnectWallet } from "./components/ConnectWallet";
