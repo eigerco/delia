@@ -4,7 +4,7 @@ export function DownloadButton({
   onClick,
 }: {
   disabled: boolean;
-  text: string,
+  text: string;
   onClick: React.MouseEventHandler<HTMLButtonElement>;
 }) {
   return (

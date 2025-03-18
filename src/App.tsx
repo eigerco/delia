@@ -91,9 +91,7 @@ function App() {
         return <DealPreparation account={selectedAccount} />;
       }
       case FlowStatus.Download: {
-        return (
-          <Download />
-        );
+        return <Download />;
       }
     }
   };
