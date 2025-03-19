@@ -16,6 +16,7 @@
     "@helia/block-brokers": "^4.1.0",
     "@helia/car": "^4.0.3",
     "@helia/routers": "^3.0.1",
+    "@helia/unixfs": "^4.0.3",
     "@libp2p/bootstrap": "^11.0.30",
     "@libp2p/identify": "^3.0.26",
     "@libp2p/interface": "^2.7.0",

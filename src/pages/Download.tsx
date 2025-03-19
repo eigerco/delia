@@ -13,6 +13,7 @@ import { CID } from "multiformats/cid";
 import { useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import { DownloadButton } from "../components/buttons/DownloadButton";
+import { unixfs } from "@helia/unixfs";
 
 // TODO: This is temporary. It will be automatically resolved when we start
 // accepting deal ids.
@@ -38,7 +39,7 @@ export function Download() {
       const payloadCid = CID.parse(carCid);
       const provider = multiaddr(providerMultiaddr);
 
-      const blob = await retrieveCAR(payloadCid, provider);
+      const blob = await retrieveContent(payloadCid, provider);
       createDownloadTrigger(payloadCid, blob);
     } catch (error) {
       if (error instanceof Error) {
@@ -100,7 +101,7 @@ export function Download() {
   );
 }
 
-async function retrieveCAR(payloadCid: CID, provider: Multiaddr): Promise<Blob> {
+async function retrieveContent(payloadCid: CID, provider: Multiaddr): Promise<Blob> {
   // enable verbose logging in browser console to view debug logs
   enable("ui*,libp2p*,-libp2p:connection-manager*,helia*,helia*:trace,-*:trace");
 
@@ -126,25 +127,21 @@ async function retrieveCAR(payloadCid: CID, provider: Multiaddr): Promise<Blob> 
     routers: [libp2pRouting(libp2p)],
   });
 
+  const fs = unixfs(helia);
+
   try {
     // Connect to the provider
     console.log("Connecting to provider...");
     await helia.libp2p.dial(provider);
     console.log("Connected!");
 
-    const received = [];
-
-    // Create CAR instance
-    const heliaCAR = car(helia);
-    console.log("Starting CAR export...");
-
-    // Export the CAR file to the output stream
-    // This will automatically traverse the DAG and retrieve all necessary blocks
-    for await (const buf of heliaCAR.stream(payloadCid)) {
-      received.push(buf);
+    const content = [];
+    console.log("Fetching content...");
+    for await (const buf of fs.cat(payloadCid)) {
+      content.push(buf);
     }
 
-    return new Blob(received);
+    return new Blob(content);
   } catch (err) {
     console.error("Error retrieving CAR file:", err);
     throw err;
@@ -161,8 +158,8 @@ function createDownloadTrigger(payloadCid: CID, blob: Blob) {
   // Create a temporary anchor element to trigger download
   const a = document.createElement("a");
   a.href = url;
-  // Name the file using the CAR ID
-  a.download = `${payloadCid.toString()}.car`;
+  // Name of the file
+  a.download = `${payloadCid.toString()}`;
   document.body.appendChild(a);
   a.click();
 
