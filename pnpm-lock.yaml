@@ -17,6 +17,9 @@ importers:
       '@helia/block-brokers':
         specifier: ^4.1.0
         version: 4.1.0
+      '@helia/car':
+        specifier: ^4.0.3
+        version: 4.0.3
       '@helia/routers':
         specifier: ^3.0.1
         version: 3.0.1
@@ -1062,6 +1065,9 @@ packages:
   '@helia/block-brokers@4.1.0':
     resolution: {integrity: sha512-pzIhJeDLdF0VFkj9+LeLI6ZZORdH6/FwV7Q+IlIi2m5kAExqaYh8Oob6Dc7J5luu1atf69q4PWNIPYRiySmsmg==}
 
+  '@helia/car@4.0.3':
+    resolution: {integrity: sha512-CK6DTXY3gR+UUeP0O3/zLLhi1F6V8VsAO2XLEJkUhXoEph7AumscAkbYHLINpCkfyiqOnIvQj56TV2AijnlAuQ==}
+
   '@helia/delegated-routing-v1-http-api-client@4.2.2':
     resolution: {integrity: sha512-SQuyIZAbfvXUkGiralGI7sWq44Ztd1Cf+3pz/paCzq1J3Jvl7JnofWB0spsZjwSu0jYPdwAL60Nmg1TSTm6ZVg==}
 
@@ -1096,6 +1102,10 @@ packages:
   '@humanwhocodes/retry@0.4.2':
     resolution: {integrity: sha512-xeO57FpIu4p1Ri3Jq/EXq4ClRm86dVF2z/+kvFnyqVYRavTZmaFaUBbWCOuuTh0o/g7DSsk6kc2vrS4Vl5oPOQ==}
     engines: {node: '>=18.18'}
+
+  '@ipld/car@5.4.0':
+    resolution: {integrity: sha512-FiGxOhTUh3fn/kkA+YvNYQjA/T8T5DcKG0NZwAi3aXrizN1qm99HzdYTccEwcX/rUCtI8wTUCKDNPBLUb7pBIQ==}
+    engines: {node: '>=16.0.0', npm: '>=7.0.0'}
 
   '@ipld/dag-cbor@9.2.2':
     resolution: {integrity: sha512-uIEOuruCqKTP50OBWwgz4Js2+LhiBQaxc57cnP71f45b1mHEAo1OCR1Zn/TbvSW/mV1x+JqhacIktkKyaYqhCw==}
@@ -4053,6 +4063,9 @@ packages:
     resolution: {integrity: sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA==}
     engines: {node: '>= 0.4.0'}
 
+  varint@6.0.0:
+    resolution: {integrity: sha512-cXEIW6cfr15lFv563k4GuVuW/fiwjknytD37jIOLSdSWuOI6WnO/oKwmP2FQTU2l01LP8/M5TSAJpzUaGe3uWg==}
+
   vite@6.2.0:
     resolution: {integrity: sha512-7dPxoo+WsT/64rDcwoOjk76XHj+TqNTIvHKcuMQ1k4/SeHDaQt5GFAeLYzrimZrMpn/O6DtdI03WUjdxuPM0oQ==}
     engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
@@ -5291,6 +5304,20 @@ snapshots:
       multiformats: 13.3.2
       progress-events: 1.0.1
 
+  '@helia/car@4.0.3':
+    dependencies:
+      '@helia/interface': 5.2.1
+      '@ipld/car': 5.4.0
+      '@libp2p/interface': 2.7.0
+      '@libp2p/utils': 6.5.8
+      interface-blockstore: 5.3.1
+      it-drain: 3.0.8
+      it-map: 3.1.2
+      multiformats: 13.3.2
+      p-defer: 4.0.1
+      p-queue: 8.1.0
+      progress-events: 1.0.1
+
   '@helia/delegated-routing-v1-http-api-client@4.2.2':
     dependencies:
       '@libp2p/interface': 2.7.0
@@ -5394,6 +5421,13 @@ snapshots:
   '@humanwhocodes/retry@0.3.1': {}
 
   '@humanwhocodes/retry@0.4.2': {}
+
+  '@ipld/car@5.4.0':
+    dependencies:
+      '@ipld/dag-cbor': 9.2.2
+      cborg: 4.2.8
+      multiformats: 13.3.2
+      varint: 6.0.0
 
   '@ipld/dag-cbor@9.2.2':
     dependencies:
@@ -9405,6 +9439,8 @@ snapshots:
   util-deprecate@1.0.2: {}
 
   utils-merge@1.0.1: {}
+
+  varint@6.0.0: {}
 
   vite@6.2.0(@types/node@22.13.8)(jiti@2.4.2)(lightningcss@1.29.1)(terser@5.39.0):
     dependencies:

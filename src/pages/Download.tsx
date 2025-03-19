@@ -13,6 +13,7 @@ import { useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import { DownloadButton } from "../components/buttons/DownloadButton";
 import { unixfs } from "@helia/unixfs";
+import { car } from "@helia/car";
 
 // TODO: This is temporary. It will be automatically resolved when we start
 // accepting deal ids.
@@ -23,6 +24,7 @@ export function Download() {
     "bafkreiechz74drg7tg5zswmxf4g2dnwhemlwdv7e3l5ypehdqdwaoyz3dy",
   );
   const [providerMultiaddr, setProviderMultiaddr] = useState<string>(PROVIDER_DEFAULT_MULTIADDRT);
+  const [shouldExtract, setShouldExtract] = useState<boolean>(true);
   const [loading, setLoading] = useState(false);
 
   const downloadCar = async () => {
@@ -38,8 +40,8 @@ export function Download() {
       const payloadCid = CID.parse(carCid);
       const provider = multiaddr(providerMultiaddr);
 
-      const blob = await retrieveContent(payloadCid, provider);
-      createDownloadTrigger(payloadCid, blob);
+      const { title, contents } = await retrieveContent(payloadCid, provider, shouldExtract);
+      createDownloadTrigger(title, contents);
     } catch (error) {
       if (error instanceof Error) {
         toast.error(error.message);
@@ -57,7 +59,7 @@ export function Download() {
   return (
     <>
       <div className="bg-white rounded-lg shadow p-6 mb-4">
-        <h2 className="text-xl font-bold mb-4">Download CAR</h2>
+        <h2 className="text-xl font-bold mb-4">Content retrieval</h2>
         <div className="mb-4">
           <label htmlFor="car-id" className="block text-sm font-medium text-gray-700 mb-1">
             Payload CID
@@ -87,6 +89,21 @@ export function Download() {
           />
         </div>
 
+        <div className="mb-4">
+          <div className="flex items-center">
+            <input
+              id="extract-car"
+              type="checkbox"
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              checked={shouldExtract}
+              onChange={(e) => setShouldExtract(e.target.checked)}
+            />
+            <label htmlFor="extract-car" className="ml-2 block text-sm text-gray-700">
+              Extract
+            </label>
+          </div>
+        </div>
+
         <div className="mt-6">
           <DownloadButton
             onClick={downloadCar}
@@ -100,7 +117,7 @@ export function Download() {
   );
 }
 
-async function retrieveContent(payloadCid: CID, provider: Multiaddr): Promise<Blob> {
+async function retrieveContent(payloadCid: CID, provider: Multiaddr, extractContents: boolean = true): Promise<{ title: string, contents: Blob }> {
   // enable verbose logging in browser console to view debug logs
   enable("ui*,libp2p*,-libp2p:connection-manager*,helia*,helia*:trace,-*:trace");
 
@@ -126,21 +143,37 @@ async function retrieveContent(payloadCid: CID, provider: Multiaddr): Promise<Bl
     routers: [libp2pRouting(libp2p)],
   });
 
-  const fs = unixfs(helia);
-
   try {
     // Connect to the provider
     console.log("Connecting to provider...");
     await helia.libp2p.dial(provider);
     console.log("Connected!");
 
-    const content = [];
-    console.log("Fetching content...");
-    for await (const buf of fs.cat(payloadCid)) {
-      content.push(buf);
+    const contents = [];
+    let title = payloadCid.toString();
+
+    // If extraction is enabled, use fs.cat to extract the content
+    if (extractContents) {
+      console.log("Fetching blocks and extracting contents...");
+
+      const fs = unixfs(helia);
+      for await (const buf of fs.cat(payloadCid)) {
+        contents.push(buf);
+      }
+    } else {
+      console.log("Fetching car file...");
+
+      title += ".car";
+      const heliaCar = car(helia);
+      for await (const buf of heliaCar.stream(payloadCid)) {
+        contents.push(buf);
+      }
     }
 
-    return new Blob(content);
+    return {
+      title,
+      contents: new Blob(contents)
+    };
   } catch (err) {
     console.error("Error retrieving CAR file:", err);
     throw err;
@@ -150,7 +183,7 @@ async function retrieveContent(payloadCid: CID, provider: Multiaddr): Promise<Bl
   }
 }
 
-function createDownloadTrigger(payloadCid: CID, blob: Blob) {
+function createDownloadTrigger(title: string, blob: Blob) {
   // Create a URL for the blob
   const url = URL.createObjectURL(blob);
 
@@ -158,7 +191,7 @@ function createDownloadTrigger(payloadCid: CID, blob: Blob) {
   const a = document.createElement("a");
   a.href = url;
   // Name of the file
-  a.download = `${payloadCid.toString()}`;
+  a.download = title;
   document.body.appendChild(a);
   a.click();
 
