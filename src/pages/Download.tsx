@@ -1,7 +1,6 @@
 import { noise } from "@chainsafe/libp2p-noise";
 import { yamux } from "@chainsafe/libp2p-yamux";
 import { bitswap } from "@helia/block-brokers";
-import { car } from "@helia/car";
 import { libp2pRouting } from "@helia/routers";
 import { identify } from "@libp2p/identify";
 import { enable } from "@libp2p/logger";
