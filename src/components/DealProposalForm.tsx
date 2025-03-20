@@ -1,13 +1,15 @@
 import type { ChangeEventHandler, PropsWithChildren } from "react";
 import type { InputFields } from "../lib/dealProposal";
 import { FileUploader } from "./FileUploader";
+import { Tooltip } from "./Tooltip";
 
 type FieldProps = {
   id: string;
   value: string;
   type?: string;
   disabled?: boolean;
-  onChange?: ChangeEventHandler;
+  onChange?: ChangeEventHandler<HTMLInputElement>;
+  tooltip?: string;
 };
 
 function Field({
@@ -16,12 +18,16 @@ function Field({
   type = "text",
   disabled = false,
   onChange = (_) => {},
+  tooltip,
   children,
 }: PropsWithChildren<FieldProps>) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
+      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
         {children}
+        {tooltip && (
+          <Tooltip content={tooltip} icon={true} />
+        )}
       </label>
       <input
         id={id}
@@ -44,12 +50,21 @@ const FormInput = ({
 }) => {
   return (
     <div className="grid grid-cols-1 gap-4 mb-4">
-      <Field id="client-address" disabled={true} value={dealProposal.client.toString()}>
+      <Field
+        id="client-address"
+        disabled={true}
+        value={dealProposal.client.toString()}
+        tooltip="Your blockchain address that will be associated with this storage deal"
+      >
         Client Address
       </Field>
 
       {/* TODO: add CID validation */}
-      <Field id="piece-cid" value={dealProposal.pieceCid.toString()}>
+      <Field
+        id="piece-cid"
+        value={dealProposal.pieceCid.toString()}
+        tooltip="Content Identifier - a unique hash that identifies your data"
+      >
         Piece CID
       </Field>
 
@@ -57,8 +72,8 @@ const FormInput = ({
         id="piece-size"
         type="number"
         value={dealProposal.pieceSize}
+        tooltip="Piece size in bytes"
         onChange={(e) => {
-          // TODO: check this "error"
           onChange({ ...dealProposal, pieceSize: e.target.value });
         }}
       >
@@ -68,6 +83,7 @@ const FormInput = ({
       <Field
         id="label"
         value={dealProposal.label}
+        tooltip="A human-readable label for this storage deal"
         onChange={(e) => {
           onChange({ ...dealProposal, label: e.target.value });
         }}
@@ -79,6 +95,7 @@ const FormInput = ({
         id="start-block"
         type="number"
         value={dealProposal.startBlock}
+        tooltip="The block number of when the deal starts"
         onChange={(e) => onChange({ ...dealProposal, startBlock: e.target.value })}
       >
         Start Block
@@ -88,6 +105,7 @@ const FormInput = ({
         id="end-block"
         type="number"
         value={dealProposal.endBlock}
+        tooltip="The block number when the deal will end"
         onChange={(e) => onChange({ ...dealProposal, endBlock: e.target.value })}
       >
         End Block
@@ -97,9 +115,9 @@ const FormInput = ({
         id="price-per-block"
         type="number"
         value={dealProposal.storagePricePerBlock}
+        tooltip="The amount you'll pay for each block your data is stored"
         onChange={(e) => onChange({ ...dealProposal, storagePricePerBlock: e.target.value })}
       >
-        {/* TODO: add hover/tooltip */}
         Price-per-Block
       </Field>
 
@@ -107,6 +125,7 @@ const FormInput = ({
         id="provider-collateral"
         type="number"
         value={dealProposal.providerCollateral}
+        tooltip="Amount the storage provider must stake as collateral to ensure they fulfill the deal"
         onChange={(e) => onChange({ ...dealProposal, providerCollateral: e.target.value })}
       >
         Provider Collateral

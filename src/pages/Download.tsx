@@ -15,6 +15,7 @@ import { DownloadButton } from "../components/buttons/DownloadButton";
 import { ValidatedInput } from "../components/form/ValidatedInput";
 import { unixfs } from "@helia/unixfs";
 import { car } from "@helia/car";
+import { Tooltip } from "../components/Tooltip";
 
 // TODO: This is temporary. It will be automatically resolved when we start
 // accepting deal ids.
@@ -106,8 +107,9 @@ export function Download() {
               checked={shouldExtract}
               onChange={(e) => setShouldExtract(e.target.checked)}
             />
-            <label htmlFor="extract-car" className="ml-2 block text-sm text-gray-700">
+            <label htmlFor="extract-car" className="ml-2 block text-sm text-gray-700 flex items-center gap-1">
               Extract
+              <Tooltip content="When checked, extracts the content. When unchecked, downloads the raw CAR file." icon={true}/>
             </label>
           </div>
         </div>
