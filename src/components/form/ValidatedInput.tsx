@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Tooltip, TooltipProps } from '../Tooltip';
 
 interface ValidatedInputProps {
   id: string;
@@ -9,6 +10,7 @@ interface ValidatedInputProps {
   helpText?: string;
   validate?: (value: string) => string;
   className?: string;
+  tooltip?: TooltipProps,
 }
 
 export const ValidatedInput = React.forwardRef<
@@ -44,8 +46,9 @@ export const ValidatedInput = React.forwardRef<
   
   return (
     <div className={`mb-4 ${props.className || ''}`}>
-      <label htmlFor={props.id} className="block text-sm font-medium text-gray-700 mb-1">
+      <label htmlFor={props.id} className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
         {props.label}
+        {props.tooltip && <Tooltip content={props.tooltip.content} icon={props.tooltip.icon}/>}
       </label>
       <input
         id={props.id}

@@ -88,6 +88,9 @@ export function Download() {
           placeholder="bafybeiefli7iugocosgirzpny4t6yxw5zehy6khtao3d252pbf352xzx5q"
           helpText="Enter the payload CID (starts with 'baf')."
           validate={validateCid}
+          tooltip={{
+            content: "Content Identifier - the unique hash that identifies the content you want to retrieve"
+          }}
         />
 
         {/* TODO: Validate*/}
@@ -96,6 +99,9 @@ export function Download() {
           label="Provider"
           value={providerMultiaddr}
           onChange={setProviderMultiaddr}
+          tooltip={{
+            content: "The multiaddress of the storage provider that has the content"
+          }}
         />
 
         <div className="mb-4">

@@ -1,13 +1,13 @@
 import { HelpCircle } from "lucide-react";
 import { useState } from "react";
 
-type TooltipProps = {
+export type TooltipProps = {
   content: string;
   children?: React.ReactNode;
   icon?: boolean;
 };
 
-export function Tooltip({ content, children, icon = false }: TooltipProps) {
+export function Tooltip({ content, children, icon = true }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
 
   return (
