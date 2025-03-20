@@ -20,12 +20,11 @@ import { car } from "@helia/car";
 const PROVIDER_DEFAULT_MULTIADDRT = "/ip4/127.0.0.1/tcp/8003/ws";
 
 export function Download() {
-  const [carCid, setCarId] = useState<string>(
-    "bafkreiechz74drg7tg5zswmxf4g2dnwhemlwdv7e3l5ypehdqdwaoyz3dy",
-  );
+  const carCidHint = "bafybeiefli7iugocosgirzpny4t6yxw5zehy6khtao3d252pbf352xzx5q";
+  const [carCid, setCarId] = useState<string>("");
   const [providerMultiaddr, setProviderMultiaddr] = useState<string>(PROVIDER_DEFAULT_MULTIADDRT);
   const [shouldExtract, setShouldExtract] = useState<boolean>(true);
-  const [loading, setLoading] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const downloadCar = async () => {
     if (!carCid.trim()) {
@@ -34,7 +33,7 @@ export function Download() {
     }
 
     try {
-      setLoading(true);
+      setIsDownloading(true);
       toast.success("Downloading file");
 
       const payloadCid = CID.parse(carCid);
@@ -50,11 +49,11 @@ export function Download() {
         console.error(error);
       }
     } finally {
-      setLoading(false);
+      setIsDownloading(false);
     }
   };
 
-  const isDownloadDisabled = !carCid.trim() || loading;
+  const isDownloadDisabled = !carCid.trim() || isDownloading;
 
   return (
     <>
@@ -68,6 +67,7 @@ export function Download() {
             id="car-id"
             type="text"
             className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500"
+            placeholder={carCidHint}
             value={carCid}
             onChange={(e) => setCarId(e.target.value)}
           />
@@ -108,7 +108,7 @@ export function Download() {
           <DownloadButton
             onClick={downloadCar}
             disabled={isDownloadDisabled}
-            text={loading ? "Downloading..." : "Download"}
+            text={isDownloading ? "Downloading..." : "Download"}
           />
         </div>
       </div>
