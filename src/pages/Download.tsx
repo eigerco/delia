@@ -9,9 +9,10 @@ import { type Multiaddr, multiaddr } from "@multiformats/multiaddr";
 import { createHelia } from "helia";
 import { createLibp2p } from "libp2p";
 import { CID } from "multiformats/cid";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import { DownloadButton } from "../components/buttons/DownloadButton";
+import { ValidatedInput } from "../components/form/ValidatedInput";
 import { unixfs } from "@helia/unixfs";
 import { car } from "@helia/car";
 
@@ -19,23 +20,43 @@ import { car } from "@helia/car";
 // accepting deal ids.
 const PROVIDER_DEFAULT_MULTIADDRT = "/ip4/127.0.0.1/tcp/8003/ws";
 
+// Validate if Cid can be used by the retrieval
+function validateCid (value: string): string {
+  if (!value.trim()) {
+    return "Payload CID is required";
+  }
+
+  if (!value.startsWith('baf')) {
+    return "Invalid CID format - must start with 'baf'";
+  }
+
+  try {
+    CID.parse(value);
+    return ""; // Valid CID. I miss you my dear `Option` type.
+  } catch (error) {
+    return "Invalid CID format";
+  }
+};
+
 export function Download() {
-  const carCidHint = "bafybeiefli7iugocosgirzpny4t6yxw5zehy6khtao3d252pbf352xzx5q";
   const [carCid, setCarId] = useState<string>("");
   const [providerMultiaddr, setProviderMultiaddr] = useState<string>(PROVIDER_DEFAULT_MULTIADDRT);
   const [shouldExtract, setShouldExtract] = useState<boolean>(true);
   const [isDownloading, setIsDownloading] = useState(false);
 
+  // Create a ref to access the validation method of the input component
+  const cidInputRef = useRef<{ validateField: () => string }>(null);
+
   const downloadCar = async () => {
-    if (!carCid.trim()) {
-      toast.error("CAR Cid is required");
+    // Validate the CID
+    const error = cidInputRef.current?.validateField();
+    if (error) {
       return;
     }
 
     try {
       setIsDownloading(true);
       toast.success("Downloading file");
-
       const payloadCid = CID.parse(carCid);
       const provider = multiaddr(providerMultiaddr);
 
@@ -53,41 +74,28 @@ export function Download() {
     }
   };
 
-  const isDownloadDisabled = !carCid.trim() || isDownloading;
-
   return (
     <>
       <div className="bg-white rounded-lg shadow p-6 mb-4">
         <h2 className="text-xl font-bold mb-4">Content retrieval</h2>
-        <div className="mb-4">
-          <label htmlFor="car-id" className="block text-sm font-medium text-gray-700 mb-1">
-            Payload CID
-          </label>
-          <input
-            id="car-id"
-            type="text"
-            className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500"
-            placeholder={carCidHint}
-            value={carCid}
-            onChange={(e) => setCarId(e.target.value)}
-          />
-        </div>
+        <ValidatedInput
+          ref={cidInputRef}
+          id="car-id"
+          label="Payload CID"
+          value={carCid}
+          onChange={setCarId}
+          placeholder="bafybeiefli7iugocosgirzpny4t6yxw5zehy6khtao3d252pbf352xzx5q"
+          helpText="Enter the payload CID (starts with 'baf')."
+          validate={validateCid}
+        />
 
-        <div className="mb-4">
-          <label
-            htmlFor="provider-multiaddr-id"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Provider
-          </label>
-          <input
-            id="provider-multiaddr-id"
-            type="text"
-            className="w-full p-2 border rounded focus:ring-blue-500 focus:border-blue-500"
-            value={providerMultiaddr}
-            onChange={(e) => setProviderMultiaddr(e.target.value)}
-          />
-        </div>
+        {/* TODO: Validate*/}
+        <ValidatedInput
+          id="provider-multiaddr-id"
+          label="Provider"
+          value={providerMultiaddr}
+          onChange={setProviderMultiaddr}
+        />
 
         <div className="mb-4">
           <div className="flex items-center">
@@ -107,7 +115,7 @@ export function Download() {
         <div className="mt-6">
           <DownloadButton
             onClick={downloadCar}
-            disabled={isDownloadDisabled}
+            disabled={isDownloading}
             text={isDownloading ? "Downloading..." : "Download"}
           />
         </div>
