@@ -120,7 +120,7 @@ export function Download() {
           />
         </div>
       </div>
-      <Toaster position="bottom-right" reverseOrder={true} />
+      <Toaster position="top-center" reverseOrder={true} />
     </>
   );
 }
