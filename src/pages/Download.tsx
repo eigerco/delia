@@ -11,6 +11,8 @@ import { createLibp2p } from "libp2p";
 import { CID } from "multiformats/cid";
 import { useRef, useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
+import { Tooltip } from "react-tooltip";
+import { HelpCircle } from "lucide-react";
 import { DownloadButton } from "../components/buttons/DownloadButton";
 import { ValidatedInput } from "../components/form/ValidatedInput";
 import { unixfs } from "@helia/unixfs";
@@ -87,6 +89,9 @@ export function Download() {
           placeholder="bafybeiefli7iugocosgirzpny4t6yxw5zehy6khtao3d252pbf352xzx5q"
           helpText="Enter the payload CID (starts with 'baf')."
           validate={validateCid}
+          tooltip={{
+            content: "Content Identifier - the unique hash that identifies the content you want to retrieve. Payload CID != Piece CID."
+          }}
         />
 
         {/* TODO: Validate*/}
@@ -95,6 +100,9 @@ export function Download() {
           label="Provider"
           value={providerMultiaddr}
           onChange={setProviderMultiaddr}
+          tooltip={{
+            content: "The multiaddress of the storage provider that has the content"
+          }}
         />
 
         <div className="mb-4">
@@ -106,8 +114,12 @@ export function Download() {
               checked={shouldExtract}
               onChange={(e) => setShouldExtract(e.target.checked)}
             />
-            <label htmlFor="extract-car" className="ml-2 block text-sm text-gray-700">
+            <label htmlFor="extract-car" className="ml-2 block text-sm text-gray-700 flex items-center gap-1">
               Extract
+              <span id="extract-tooltip" className="cursor-help inline-flex items-center ml-1">
+                <HelpCircle className="inline w-4 h-4 text-gray-400" />
+              </span>
+              <Tooltip anchorSelect="#extract-tooltip" content="When checked, extracts the content. When unchecked, downloads the raw CAR file." />
             </label>
           </div>
         </div>
