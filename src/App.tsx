@@ -1,5 +1,5 @@
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
-import { Component, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { useMemo, useState } from "react";
 import { GlobalCtxProvider } from "./GlobalCtxProvider";
 import { ConnectWallet } from "./components/ConnectWallet";
@@ -7,10 +7,12 @@ import { COLLATOR_LOCAL_RPC_URL } from "./lib/consts";
 import { setupTypeRegistry } from "./lib/registry";
 import AccountSelector from "./pages/AccountSelector";
 import { DealPreparation } from "./pages/DealPreparation";
+import { Download } from "./pages/Download";
 
 enum FlowStatus {
   AccountSelection = 0,
   DealPreparation = 1,
+  Download = 2,
 }
 
 // TODO: this component should be red if it fails to connect
@@ -52,14 +54,24 @@ function App() {
     return (
       <>
         {accounts.length > 0 ? (
-          <AccountSelector
-            accounts={accounts}
-            selectedAccount={selectedAccount}
-            onSelectAccount={setSelectedAccount}
-            onContinue={() => {
-              setFlowStatus(FlowStatus.DealPreparation);
-            }}
-          />
+          <>
+            <AccountSelector
+              accounts={accounts}
+              selectedAccount={selectedAccount}
+              onSelectAccount={setSelectedAccount}
+              onContinue={() => {
+                setFlowStatus(FlowStatus.DealPreparation);
+              }}
+            />
+            <div className="flex justify-left mt-4">
+              <button
+                onClick={() => setFlowStatus(FlowStatus.Download)}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-sm"
+              >
+                Download Files
+              </button>
+            </div>
+          </>
         ) : (
           <ConnectWallet onConnect={setAccounts} />
         )}
@@ -77,6 +89,9 @@ function App() {
           throw new Error(`Selected account cannot be ${selectedAccount}`);
         }
         return <DealPreparation account={selectedAccount} />;
+      }
+      case FlowStatus.Download: {
+        return <Download />;
       }
     }
   };
