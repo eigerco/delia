@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Tooltip, TooltipProps } from '../Tooltip';
+import { Tooltip } from 'react-tooltip';
+import { HelpCircle } from 'lucide-react';
 
 interface ValidatedInputProps {
   id: string;
@@ -10,7 +11,9 @@ interface ValidatedInputProps {
   helpText?: string;
   validate?: (value: string) => string;
   className?: string;
-  tooltip?: TooltipProps,
+  tooltip?: {
+    content: string;
+  },
 }
 
 export const ValidatedInput = React.forwardRef<
@@ -48,7 +51,14 @@ export const ValidatedInput = React.forwardRef<
     <div className={`mb-4 ${props.className || ''}`}>
       <label htmlFor={props.id} className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
         {props.label}
-        {props.tooltip && <Tooltip content={props.tooltip.content} icon={props.tooltip.icon}/>}
+        {props.tooltip && (
+          <>
+            <span id={`tooltip-${props.id}`} className="cursor-help inline-flex items-center ml-1">
+              {props.tooltip.content !== "" && <HelpCircle className="inline w-4 h-4 text-gray-400" />}
+            </span>
+            <Tooltip anchorSelect={`#tooltip-${props.id}`} content={props.tooltip.content} />
+          </>
+        )}
       </label>
       <input
         id={props.id}

@@ -1,6 +1,6 @@
-import { CheckCircle2, Circle } from "lucide-react";
+import { CheckCircle2, Circle, HelpCircle } from "lucide-react";
 import type { StorageProviderInfo } from "../../lib/storageProvider";
-import { Tooltip } from "../Tooltip";
+import { Tooltip } from "react-tooltip";
 
 type ProviderButtonProps = {
   accountId: string;
@@ -32,11 +32,17 @@ export function ProviderButton({ accountId, provider, isSelected, onSelect }: Pr
           <div className="flex flex-col text-sm text-gray-500">
             <span className="truncate">
               Peer Id: {peerId}
-              <Tooltip content="Unique identifier for the storage provider in the peer-to-peer network" icon={true} />
+              <span id="tooltip-peer-id" className="cursor-help inline-flex items-center ml-1">
+                <HelpCircle className="inline w-4 h-4 text-gray-400" />
+              </span>
+              <Tooltip anchorSelect="#tooltip-peer-id" content="Unique identifier for the storage provider in the peer-to-peer network" />
             </span>
             <span>
               Sector Size: {provider.sectorSize} bytes
-              <Tooltip content="Maximum amount of data that can be stored in a single sector by this provider" icon={true} />
+              <span id="tooltip-sector-size" className="cursor-help inline-flex items-center ml-1">
+                <HelpCircle className="inline w-4 h-4 text-gray-400" />
+              </span>
+              <Tooltip anchorSelect="#tooltip-sector-size" content="Maximum amount of data that can be stored in a single sector by this provider" />
             </span>
           </div>
         </div>

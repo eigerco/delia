@@ -11,11 +11,12 @@ import { createLibp2p } from "libp2p";
 import { CID } from "multiformats/cid";
 import { useRef, useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
+import { Tooltip } from "react-tooltip";
+import { HelpCircle } from "lucide-react";
 import { DownloadButton } from "../components/buttons/DownloadButton";
 import { ValidatedInput } from "../components/form/ValidatedInput";
 import { unixfs } from "@helia/unixfs";
 import { car } from "@helia/car";
-import { Tooltip } from "../components/Tooltip";
 
 // TODO: This is temporary. It will be automatically resolved when we start
 // accepting deal ids.
@@ -89,7 +90,7 @@ export function Download() {
           helpText="Enter the payload CID (starts with 'baf')."
           validate={validateCid}
           tooltip={{
-            content: "Content Identifier - the unique hash that identifies the content you want to retrieve"
+            content: "Content Identifier - the unique hash that identifies the content you want to retrieve. Payload CID != Piece CID."
           }}
         />
 
@@ -115,7 +116,10 @@ export function Download() {
             />
             <label htmlFor="extract-car" className="ml-2 block text-sm text-gray-700 flex items-center gap-1">
               Extract
-              <Tooltip content="When checked, extracts the content. When unchecked, downloads the raw CAR file." icon={true}/>
+              <span id="extract-tooltip" className="cursor-help inline-flex items-center ml-1">
+                <HelpCircle className="inline w-4 h-4 text-gray-400" />
+              </span>
+              <Tooltip anchorSelect="#extract-tooltip" content="When checked, extracts the content. When unchecked, downloads the raw CAR file." />
             </label>
           </div>
         </div>
