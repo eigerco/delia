@@ -151,9 +151,23 @@ export function DealProposalForm({
   onFileSelect: (file: File) => void;
   selectedFile: File | null;
 }) {
+  // Calculate total price
+  const startBlock = parseInt(dealProposal.startBlock) || 0;
+  const endBlock = parseInt(dealProposal.endBlock) || 0;
+  const pricePerBlock = parseInt(dealProposal.storagePricePerBlock) || 0;
+  const totalPrice = (endBlock - startBlock) * pricePerBlock;
+
   return (
     <div className="flex flex-col min-w-md max-w-md">
       <FormInput dealProposal={dealProposal} onChange={onChange} />
+
+      {totalPrice > 0 && (
+        <div className="p-3 mb-4 bg-blue-50 border border-blue-200 rounded">
+          <p className="font-semibold text-sm">Total Deal Price: <span className="text-blue-600">{totalPrice}</span></p>
+          <p className="text-xs text-gray-500">({endBlock - startBlock} blocks × {pricePerBlock} per block)</p>
+        </div>
+      )}
+
       <FileUploader onFileSelect={onFileSelect} selectedFile={selectedFile} />
     </div>
   );
