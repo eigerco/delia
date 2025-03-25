@@ -21,5 +21,5 @@ export async function callPublishDeal(
     address.port = DEFAULT_LOCAL_RPC_ADDRESS.port;
   }
   const provider = new HttpProvider(`http://${address.ip}:${address.port}`);
-  return await provider.send("v0_published_deal", [signed]);
+  return await provider.send("v0_publish_deal", [signed]);
 }

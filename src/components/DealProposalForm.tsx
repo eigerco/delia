@@ -1,3 +1,4 @@
+import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { HelpCircle } from "lucide-react";
 import type { ChangeEventHandler, PropsWithChildren } from "react";
 import { Tooltip } from "react-tooltip";
@@ -53,20 +54,53 @@ function Field({
 const FormInput = ({
   dealProposal,
   onChange,
+  accounts,
+  selectedAccount,
+  onSelectAccount,
 }: {
   dealProposal: InputFields;
   onChange: (dealProposal: InputFields) => void;
+  accounts: InjectedAccountWithMeta[];
+  selectedAccount: InjectedAccountWithMeta | null;
+  onSelectAccount: (account: InjectedAccountWithMeta) => void;
 }) => {
   return (
     <div className="grid grid-cols-1 gap-4 mb-4">
-      <Field
-        id="client-address"
-        disabled={true}
-        value={dealProposal.client.toString()}
-        tooltip="Your blockchain address that will be associated with this storage deal"
-      >
-        Client Address
-      </Field>
+      <div>
+        <label
+          htmlFor="account-selector"
+          className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1"
+        >
+          Client Account
+          <span id="tooltip-account-selector" className="cursor-help inline-flex items-center ml-1">
+            <HelpCircle className="inline w-4 h-4 text-gray-400" />
+          </span>
+          <Tooltip
+            anchorSelect="#tooltip-account-selector"
+            content="Your blockchain account that will be associated with this storage deal"
+          />
+        </label>
+        <select
+          id="account-selector"
+          value={selectedAccount?.address || ""}
+          onChange={(e) => {
+            const account = accounts.find((acc) => acc.address === e.target.value);
+            if (account) {
+              onSelectAccount(account);
+              onChange({ ...dealProposal, client: account.address });
+            }
+          }}
+          className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+        >
+          <option value="">Select an account</option>
+          {accounts.map((account) => (
+            <option key={account.address} value={account.address}>
+              {account.meta.name} ({account.address.slice(0, 8)}...
+              {account.address.slice(-8)})
+            </option>
+          ))}
+        </select>
+      </div>
 
       {/* TODO: add CID validation */}
       <Field
@@ -148,11 +182,17 @@ export function DealProposalForm({
   onChange,
   onFileSelect,
   selectedFile,
+  accounts,
+  selectedAccount,
+  onSelectAccount,
 }: {
   dealProposal: InputFields;
   onChange: (dealProposal: InputFields) => void;
   onFileSelect: (file: File) => void;
   selectedFile: File | null;
+  accounts: InjectedAccountWithMeta[];
+  selectedAccount: InjectedAccountWithMeta | null;
+  onSelectAccount: (account: InjectedAccountWithMeta) => void;
 }) {
   // Calculate total price
   const startBlock = Number.parseInt(dealProposal.startBlock) || 0;
@@ -167,7 +207,13 @@ export function DealProposalForm({
 
   return (
     <div className="flex flex-col min-w-md max-w-md">
-      <FormInput dealProposal={dealProposal} onChange={onChange} />
+      <FormInput
+        dealProposal={dealProposal}
+        onChange={onChange}
+        accounts={accounts}
+        selectedAccount={selectedAccount}
+        onSelectAccount={onSelectAccount}
+      />
 
       {totalPrice > 0 && (
         <div className="p-3 mb-4 bg-blue-50 border border-blue-200 rounded">
