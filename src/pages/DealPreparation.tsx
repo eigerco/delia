@@ -19,13 +19,17 @@ import { queryPeerId } from "../lib/requestResponse";
 import type { StorageProviderInfo } from "../lib/storageProvider";
 
 export function DealPreparation({
-  account,
+  accounts,
+  selectedAccount,
+  onSelectAccount,
 }: {
-  account: InjectedAccountWithMeta;
+  accounts: InjectedAccountWithMeta[];
+  selectedAccount: InjectedAccountWithMeta | null;
+  onSelectAccount: (account: InjectedAccountWithMeta) => void;
 }) {
   const [dealProposal, setDealProposal] = useState<InputFields>({
     ...DEFAULT_INPUT,
-    client: account.address,
+    client: selectedAccount?.address || null,
   });
 
   const [dealFile, setDealFile] = useState<File | null>(null);
@@ -86,7 +90,12 @@ export function DealPreparation({
         { ...address, port: DEFAULT_LOCAL_STORAGE_ADDRESS.port }, // We can't hardcode this but we can't do anything about it *right now*
       );
 
-      const signedRpc = await createSignedRpc(validDealProposal, p, ctx.registry, account);
+      if (!selectedAccount) {
+        toast.error("No account selected");
+        return;
+      }
+
+      const signedRpc = await createSignedRpc(validDealProposal, p, ctx.registry, selectedAccount);
       await callPublishDeal(
         signedRpc,
         { ...address, port: DEFAULT_LOCAL_RPC_ADDRESS.port }, // We can't hardcode this but we can't do anything about it *right now*
@@ -129,7 +138,11 @@ export function DealPreparation({
     };
 
     const submitDisabled =
-      !validateInput(dealProposal) || !dealFile || selectedProviders.size === 0 || loading;
+      !selectedAccount ||
+      !validateInput(dealProposal) ||
+      !dealFile ||
+      selectedProviders.size === 0 ||
+      loading;
 
     return (
       <div className={"pt-4"}>
@@ -155,6 +168,9 @@ export function DealPreparation({
           onChange={setDealProposal}
           onFileSelect={setDealFile}
           selectedFile={dealFile}
+          accounts={accounts}
+          selectedAccount={selectedAccount}
+          onSelectAccount={onSelectAccount}
         />
         <div className="bg-black mx-8 min-w-px max-w-px" />
         <ProviderSelector

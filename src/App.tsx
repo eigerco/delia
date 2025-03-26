@@ -5,14 +5,12 @@ import { GlobalCtxProvider } from "./GlobalCtxProvider";
 import { ConnectWallet } from "./components/ConnectWallet";
 import { COLLATOR_LOCAL_RPC_URL } from "./lib/consts";
 import { setupTypeRegistry } from "./lib/registry";
-import AccountSelector from "./pages/AccountSelector";
 import { DealPreparation } from "./pages/DealPreparation";
 import { Download } from "./pages/Download";
 
 enum FlowStatus {
-  AccountSelection = 0,
-  DealPreparation = 1,
-  Download = 2,
+  DealPreparation = 0,
+  Download = 1,
 }
 
 // TODO: this component should be red if it fails to connect
@@ -44,27 +42,30 @@ function WsAddressInput({ onChange }: { onChange: (newValue: string) => void }) 
 }
 
 function App() {
-  const [flowStatus, setFlowStatus] = useState(FlowStatus.AccountSelection);
+  const [flowStatus, setFlowStatus] = useState(FlowStatus.DealPreparation);
 
   const [accounts, setAccounts] = useState<InjectedAccountWithMeta[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<InjectedAccountWithMeta | null>(null);
   const [wsAddress, setWsAddress] = useState(COLLATOR_LOCAL_RPC_URL);
 
-  const AccountSelection = () => {
-    return (
-      <>
-        {accounts.length > 0 ? (
+  const Flow = () => {
+    // If no accounts are connected, show the connect wallet page regardless of flow status
+    if (accounts.length === 0) {
+      return <ConnectWallet onConnect={setAccounts} />;
+    }
+
+    switch (flowStatus) {
+      case FlowStatus.DealPreparation: {
+        return (
           <>
-            <AccountSelector
+            <DealPreparation
               accounts={accounts}
               selectedAccount={selectedAccount}
               onSelectAccount={setSelectedAccount}
-              onContinue={() => {
-                setFlowStatus(FlowStatus.DealPreparation);
-              }}
             />
             <div className="flex justify-left mt-4">
               <button
+                type="button"
                 onClick={() => setFlowStatus(FlowStatus.Download)}
                 className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-sm"
               >
@@ -72,23 +73,7 @@ function App() {
               </button>
             </div>
           </>
-        ) : (
-          <ConnectWallet onConnect={setAccounts} />
-        )}
-      </>
-    );
-  };
-
-  const Flow = () => {
-    switch (flowStatus) {
-      case FlowStatus.AccountSelection: {
-        return <AccountSelection />;
-      }
-      case FlowStatus.DealPreparation: {
-        if (!selectedAccount) {
-          throw new Error(`Selected account cannot be ${selectedAccount}`);
-        }
-        return <DealPreparation account={selectedAccount} />;
+        );
       }
       case FlowStatus.Download: {
         return <Download />;

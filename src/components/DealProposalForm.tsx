@@ -1,6 +1,9 @@
+import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
+import { formatBalance } from "@polkadot/util";
 import { HelpCircle } from "lucide-react";
 import type { ChangeEventHandler, PropsWithChildren } from "react";
 import { Tooltip } from "react-tooltip";
+import { plank_to_dot } from "../lib/conversion";
 import type { InputFields } from "../lib/dealProposal";
 import { FileUploader } from "./FileUploader";
 
@@ -53,20 +56,53 @@ function Field({
 const FormInput = ({
   dealProposal,
   onChange,
+  accounts,
+  selectedAccount,
+  onSelectAccount,
 }: {
   dealProposal: InputFields;
   onChange: (dealProposal: InputFields) => void;
+  accounts: InjectedAccountWithMeta[];
+  selectedAccount: InjectedAccountWithMeta | null;
+  onSelectAccount: (account: InjectedAccountWithMeta) => void;
 }) => {
   return (
     <div className="grid grid-cols-1 gap-4 mb-4">
-      <Field
-        id="client-address"
-        disabled={true}
-        value={dealProposal.client.toString()}
-        tooltip="Your blockchain address that will be associated with this storage deal"
-      >
-        Client Address
-      </Field>
+      <div>
+        <label
+          htmlFor="account-selector"
+          className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1"
+        >
+          Client Account
+          <span id="tooltip-account-selector" className="cursor-help inline-flex items-center ml-1">
+            <HelpCircle className="inline w-4 h-4 text-gray-400" />
+          </span>
+          <Tooltip
+            anchorSelect="#tooltip-account-selector"
+            content="Your blockchain account that will be associated with this storage deal"
+          />
+        </label>
+        <select
+          id="account-selector"
+          value={selectedAccount?.address || ""}
+          onChange={(e) => {
+            const account = accounts.find((acc) => acc.address === e.target.value);
+            if (account) {
+              onSelectAccount(account);
+              onChange({ ...dealProposal, client: account.address });
+            }
+          }}
+          className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+        >
+          <option value="">Select an account</option>
+          {accounts.map((account) => (
+            <option key={account.address} value={account.address}>
+              {account.meta.name} ({account.address.slice(0, 8)}...
+              {account.address.slice(-8)})
+            </option>
+          ))}
+        </select>
+      </div>
 
       {/* TODO: add CID validation */}
       <Field
@@ -148,11 +184,17 @@ export function DealProposalForm({
   onChange,
   onFileSelect,
   selectedFile,
+  accounts,
+  selectedAccount,
+  onSelectAccount,
 }: {
   dealProposal: InputFields;
   onChange: (dealProposal: InputFields) => void;
   onFileSelect: (file: File) => void;
   selectedFile: File | null;
+  accounts: InjectedAccountWithMeta[];
+  selectedAccount: InjectedAccountWithMeta | null;
+  onSelectAccount: (account: InjectedAccountWithMeta) => void;
 }) {
   // Calculate total price
   const startBlock = Number.parseInt(dealProposal.startBlock) || 0;
@@ -160,20 +202,21 @@ export function DealProposalForm({
   const pricePerBlock = Number.parseInt(dealProposal.storagePricePerBlock) || 0;
   const totalPrice = (endBlock - startBlock) * pricePerBlock;
 
-  // Standard DOT conversion: 1 DOT = 10^10 Plancks (10 billion)
-  // TODO: Move conversion somewhere else.
-  const PLANCKS_PER_DOT = 10_000_000_000;
-  const totalPriceInDOT = totalPrice / PLANCKS_PER_DOT;
-
   return (
     <div className="flex flex-col min-w-md max-w-md">
-      <FormInput dealProposal={dealProposal} onChange={onChange} />
+      <FormInput
+        dealProposal={dealProposal}
+        onChange={onChange}
+        accounts={accounts}
+        selectedAccount={selectedAccount}
+        onSelectAccount={onSelectAccount}
+      />
 
       {totalPrice > 0 && (
         <div className="p-3 mb-4 bg-blue-50 border border-blue-200 rounded">
           <p className="font-semibold text-sm">
             Total Deal Price: <span className="text-blue-600">{totalPrice}</span> Planck (
-            <span className="text-blue-600">{totalPriceInDOT}</span> DOT)
+            <span className="text-blue-600">{plank_to_dot(totalPrice)}</span> DOT)
           </p>
           <p className="text-xs text-gray-500">
             ({endBlock - startBlock} blocks × {pricePerBlock} per block)
