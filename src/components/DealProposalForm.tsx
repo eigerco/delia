@@ -1,7 +1,9 @@
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
+import { formatBalance } from "@polkadot/util";
 import { HelpCircle } from "lucide-react";
 import type { ChangeEventHandler, PropsWithChildren } from "react";
 import { Tooltip } from "react-tooltip";
+import { plank_to_dot } from "../lib/conversion";
 import type { InputFields } from "../lib/dealProposal";
 import { FileUploader } from "./FileUploader";
 
@@ -200,11 +202,6 @@ export function DealProposalForm({
   const pricePerBlock = Number.parseInt(dealProposal.storagePricePerBlock) || 0;
   const totalPrice = (endBlock - startBlock) * pricePerBlock;
 
-  // Standard DOT conversion: 1 DOT = 10^10 Plancks (10 billion)
-  // TODO: Move conversion somewhere else.
-  const PLANCKS_PER_DOT = 10_000_000_000;
-  const totalPriceInDOT = totalPrice / PLANCKS_PER_DOT;
-
   return (
     <div className="flex flex-col min-w-md max-w-md">
       <FormInput
@@ -219,7 +216,7 @@ export function DealProposalForm({
         <div className="p-3 mb-4 bg-blue-50 border border-blue-200 rounded">
           <p className="font-semibold text-sm">
             Total Deal Price: <span className="text-blue-600">{totalPrice}</span> Planck (
-            <span className="text-blue-600">{totalPriceInDOT}</span> DOT)
+            <span className="text-blue-600">{plank_to_dot(totalPrice)}</span> DOT)
           </p>
           <p className="text-xs text-gray-500">
             ({endBlock - startBlock} blocks × {pricePerBlock} per block)
