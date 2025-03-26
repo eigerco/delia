@@ -29,7 +29,7 @@ export function DealPreparation({
 }) {
   const [dealProposal, setDealProposal] = useState<InputFields>({
     ...DEFAULT_INPUT,
-    client: selectedAccount?.address || "",
+    client: selectedAccount?.address || null,
   });
 
   const [dealFile, setDealFile] = useState<File | null>(null);
@@ -138,11 +138,11 @@ export function DealPreparation({
     };
 
     const submitDisabled =
+      !selectedAccount ||
       !validateInput(dealProposal) ||
       !dealFile ||
       selectedProviders.size === 0 ||
-      loading ||
-      !selectedAccount;
+      loading;
 
     return (
       <div className={"pt-4"}>

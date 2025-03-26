@@ -15,7 +15,7 @@ function encodeLabel(label: string): string {
 export type InputFields = {
   pieceCid: string;
   pieceSize: string;
-  client: string; // AccountId32
+  client: string | null; // AccountId32
   label: string;
   startBlock: string;
   endBlock: string;
@@ -39,7 +39,7 @@ export const DEFAULT_INPUT: InputFields = {
 export const validateInput = (input: InputFields): ValidatedFields | null => {
   try {
     const pieceCid = CID.parse(input.pieceCid);
-    if (!pieceCid) return null;
+    if (!pieceCid || !input.client) return null;
 
     return {
       pieceCid,
