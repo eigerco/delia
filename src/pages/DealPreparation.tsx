@@ -1,6 +1,7 @@
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { useCallback, useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
+import { useOutletContext } from "react-router";
 import { useCtx } from "../GlobalCtx";
 import { DealProposalForm } from "../components/DealProposalForm";
 import { ProviderSelector } from "../components/ProviderSelector";
@@ -18,15 +19,15 @@ import { callProposeDeal, callPublishDeal } from "../lib/jsonRpc";
 import { queryPeerId } from "../lib/requestResponse";
 import type { StorageProviderInfo } from "../lib/storageProvider";
 
-export function DealPreparation({
-  accounts,
-  selectedAccount,
-  onSelectAccount,
-}: {
+type OutletContextType = {
   accounts: InjectedAccountWithMeta[];
   selectedAccount: InjectedAccountWithMeta | null;
-  onSelectAccount: (account: InjectedAccountWithMeta) => void;
-}) {
+  setSelectedAccount: (account: InjectedAccountWithMeta) => void;
+};
+
+export function DealPreparation() {
+  const { accounts, selectedAccount, setSelectedAccount } = useOutletContext<OutletContextType>();
+
   const [dealProposal, setDealProposal] = useState<InputFields>({
     ...DEFAULT_INPUT,
     client: selectedAccount?.address || null,
@@ -170,7 +171,7 @@ export function DealPreparation({
           selectedFile={dealFile}
           accounts={accounts}
           selectedAccount={selectedAccount}
-          onSelectAccount={onSelectAccount}
+          onSelectAccount={setSelectedAccount}
         />
         <div className="bg-black mx-8 min-w-px max-w-px" />
         <ProviderSelector
