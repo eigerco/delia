@@ -164,15 +164,19 @@ export function DealPreparation() {
   return (
     <>
       <div className="flex">
-        <DealProposalForm
-          dealProposal={dealProposal}
-          onChange={setDealProposal}
-          onFileSelect={setDealFile}
-          selectedFile={dealFile}
-          accounts={accounts}
-          selectedAccount={selectedAccount}
-          onSelectAccount={setSelectedAccount}
-        />
+        <div className="bg-white rounded-lg shadow p-6 mb-4">
+          <h2 className="text-xl font-bold mb-4">Deal Creation</h2>
+          <DealProposalForm
+            dealProposal={dealProposal}
+            onChange={setDealProposal}
+            onFileSelect={setDealFile}
+            selectedFile={dealFile}
+            accounts={accounts}
+            selectedAccount={selectedAccount}
+            onSelectAccount={setSelectedAccount}
+          />
+          <Submit />
+        </div>
         <div className="bg-black mx-8 min-w-px max-w-px" />
         <ProviderSelector
           providers={providers}
@@ -181,7 +185,6 @@ export function DealPreparation() {
           onSelectProvider={updateProviderSelection}
         />
       </div>
-      <Submit />
       <Toaster position="bottom-right" reverseOrder={true} />
     </>
   );
