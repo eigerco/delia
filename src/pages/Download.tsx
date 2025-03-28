@@ -137,7 +137,7 @@ export function Download() {
   );
 }
 
-async function retrieveContent(payloadCid: CID, provider: Multiaddr, extractContents: boolean = true): Promise<{ title: string, contents: Blob }> {
+async function retrieveContent(payloadCid: CID, provider: Multiaddr, extractContents = true): Promise<{ title: string, contents: Blob }> {
   // enable verbose logging in browser console to view debug logs
   enable("ui*,libp2p*,-libp2p:connection-manager*,helia*,helia*:trace,-*:trace");
 

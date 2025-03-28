@@ -1,17 +1,14 @@
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { RefreshCw } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Link, Outlet, useLocation } from "react-router";
 import { GlobalCtxProvider } from "./GlobalCtxProvider";
 import { ConnectWallet } from "./components/ConnectWallet";
 import { COLLATOR_LOCAL_RPC_URL } from "./lib/consts";
 import { setupTypeRegistry } from "./lib/registry";
-import { DealPreparation } from "./pages/DealPreparation";
-import { Download } from "./pages/Download";
 
-enum FlowStatus {
-  DealPreparation = 0,
-  Download = 1,
-}
+const DEAL_CREATION_PATH = "/";
+const DOWNLOAD_PATH = "/download";
 
 // TODO: this component should be red if it fails to connect
 function WsAddressInput({ onChange }: { onChange: (newValue: string) => void }) {
@@ -42,45 +39,11 @@ function WsAddressInput({ onChange }: { onChange: (newValue: string) => void }) 
 }
 
 function App() {
-  const [flowStatus, setFlowStatus] = useState(FlowStatus.DealPreparation);
-
   const [accounts, setAccounts] = useState<InjectedAccountWithMeta[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<InjectedAccountWithMeta | null>(null);
   const [wsAddress, setWsAddress] = useState(COLLATOR_LOCAL_RPC_URL);
 
-  const Flow = () => {
-    // If no accounts are connected, show the connect wallet page regardless of flow status
-    if (accounts.length === 0) {
-      return <ConnectWallet onConnect={setAccounts} />;
-    }
-
-    switch (flowStatus) {
-      case FlowStatus.DealPreparation: {
-        return (
-          <>
-            <DealPreparation
-              accounts={accounts}
-              selectedAccount={selectedAccount}
-              onSelectAccount={setSelectedAccount}
-            />
-            <div className="flex justify-left mt-4">
-              <button
-                type="button"
-                onClick={() => setFlowStatus(FlowStatus.Download)}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-sm"
-              >
-                Download Files
-              </button>
-            </div>
-          </>
-        );
-      }
-      case FlowStatus.Download: {
-        return <Download />;
-      }
-    }
-  };
-
+  const location = useLocation();
   const registry = useMemo(() => setupTypeRegistry(), []);
 
   return (
@@ -88,9 +51,29 @@ function App() {
       <div className="m-8">
         <div className="flex mb-4 items-center">
           <h1 className="grow text-xl font-bold">📦 Delia</h1>
+          <div className="flex items-center mr-6">
+            {location.pathname === DEAL_CREATION_PATH ? (
+              <></>
+            ) : (
+              <Link to="/" className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-sm">
+                Deal Creation
+              </Link>
+            )}
+            {location.pathname === DOWNLOAD_PATH ? (
+              <></>
+            ) : (
+              <Link to="/download" className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-sm">
+                Download
+              </Link>
+            )}
+          </div>
           <WsAddressInput onChange={setWsAddress} />
         </div>
-        <Flow />
+        {accounts.length === 0 ? (
+          <ConnectWallet onConnect={setAccounts} />
+        ) : (
+          <Outlet context={{ accounts, selectedAccount, setSelectedAccount }} />
+        )}
       </div>
     </GlobalCtxProvider>
   );

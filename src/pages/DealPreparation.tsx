@@ -1,6 +1,7 @@
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { useCallback, useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
+import { useOutletContext } from "react-router";
 import { useCtx } from "../GlobalCtx";
 import { DealProposalForm } from "../components/DealProposalForm";
 import { ProviderSelector } from "../components/ProviderSelector";
@@ -18,15 +19,15 @@ import { callProposeDeal, callPublishDeal } from "../lib/jsonRpc";
 import { queryPeerId } from "../lib/requestResponse";
 import type { StorageProviderInfo } from "../lib/storageProvider";
 
-export function DealPreparation({
-  accounts,
-  selectedAccount,
-  onSelectAccount,
-}: {
+type OutletContextType = {
   accounts: InjectedAccountWithMeta[];
   selectedAccount: InjectedAccountWithMeta | null;
-  onSelectAccount: (account: InjectedAccountWithMeta) => void;
-}) {
+  setSelectedAccount: (account: InjectedAccountWithMeta) => void;
+};
+
+export function DealPreparation() {
+  const { accounts, selectedAccount, setSelectedAccount } = useOutletContext<OutletContextType>();
+
   const [dealProposal, setDealProposal] = useState<InputFields>({
     ...DEFAULT_INPUT,
     client: selectedAccount?.address || null,
@@ -162,16 +163,20 @@ export function DealPreparation({
 
   return (
     <>
-      <div className="flex">
-        <DealProposalForm
-          dealProposal={dealProposal}
-          onChange={setDealProposal}
-          onFileSelect={setDealFile}
-          selectedFile={dealFile}
-          accounts={accounts}
-          selectedAccount={selectedAccount}
-          onSelectAccount={onSelectAccount}
-        />
+      <div className="flex bg-white rounded-lg shadow p-6 mb-4">
+        <div>
+          <h2 className="text-xl font-bold mb-4">Deal Creation</h2>
+          <DealProposalForm
+            dealProposal={dealProposal}
+            onChange={setDealProposal}
+            onFileSelect={setDealFile}
+            selectedFile={dealFile}
+            accounts={accounts}
+            selectedAccount={selectedAccount}
+            onSelectAccount={setSelectedAccount}
+          />
+          <Submit />
+        </div>
         <div className="bg-black mx-8 min-w-px max-w-px" />
         <ProviderSelector
           providers={providers}
@@ -180,7 +185,6 @@ export function DealPreparation({
           onSelectProvider={updateProviderSelection}
         />
       </div>
-      <Submit />
       <Toaster position="bottom-right" reverseOrder={true} />
     </>
   );
