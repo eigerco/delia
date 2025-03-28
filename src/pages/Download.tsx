@@ -1,34 +1,34 @@
 import { noise } from "@chainsafe/libp2p-noise";
 import { yamux } from "@chainsafe/libp2p-yamux";
 import { bitswap } from "@helia/block-brokers";
+import { car } from "@helia/car";
 import { libp2pRouting } from "@helia/routers";
+import { unixfs } from "@helia/unixfs";
 import { identify } from "@libp2p/identify";
 import { enable } from "@libp2p/logger";
 import { webSockets } from "@libp2p/websockets";
 import { type Multiaddr, multiaddr } from "@multiformats/multiaddr";
 import { createHelia } from "helia";
 import { createLibp2p } from "libp2p";
+import { HelpCircle } from "lucide-react";
 import { CID } from "multiformats/cid";
 import { useRef, useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import { Tooltip } from "react-tooltip";
-import { HelpCircle } from "lucide-react";
 import { DownloadButton } from "../components/buttons/DownloadButton";
 import { ValidatedInput } from "../components/form/ValidatedInput";
-import { unixfs } from "@helia/unixfs";
-import { car } from "@helia/car";
 
 // TODO: This is temporary. It will be automatically resolved when we start
 // accepting deal ids.
 const PROVIDER_DEFAULT_MULTIADDRT = "/ip4/127.0.0.1/tcp/8003/ws";
 
 // Validate if Cid can be used by the retrieval
-function validateCid (value: string): string {
+function validateCid(value: string): string {
   if (!value.trim()) {
     return "Payload CID is required";
   }
 
-  if (!value.startsWith('baf')) {
+  if (!value.startsWith("baf")) {
     return "Invalid CID format - must start with 'baf'";
   }
 
@@ -38,7 +38,7 @@ function validateCid (value: string): string {
   } catch (error) {
     return "Invalid CID format";
   }
-};
+}
 
 export function Download() {
   const [carCid, setCarId] = useState<string>("");
@@ -90,7 +90,8 @@ export function Download() {
           helpText="Enter the payload CID (starts with 'baf')."
           validate={validateCid}
           tooltip={{
-            content: "Content Identifier - the unique hash that identifies the content you want to retrieve. Payload CID != Piece CID."
+            content:
+              "Content Identifier - the unique hash that identifies the content you want to retrieve. Payload CID != Piece CID.",
           }}
         />
 
@@ -101,7 +102,7 @@ export function Download() {
           value={providerMultiaddr}
           onChange={setProviderMultiaddr}
           tooltip={{
-            content: "The multiaddress of the storage provider that has the content"
+            content: "The multiaddress of the storage provider that has the content",
           }}
         />
 
@@ -114,12 +115,18 @@ export function Download() {
               checked={shouldExtract}
               onChange={(e) => setShouldExtract(e.target.checked)}
             />
-            <label htmlFor="extract-car" className="ml-2 block text-sm text-gray-700 flex items-center gap-1">
+            <label
+              htmlFor="extract-car"
+              className="ml-2 block text-sm text-gray-700 flex items-center gap-1"
+            >
               Extract
               <span id="extract-tooltip" className="cursor-help inline-flex items-center ml-1">
                 <HelpCircle className="inline w-4 h-4 text-gray-400" />
               </span>
-              <Tooltip anchorSelect="#extract-tooltip" content="When checked, extracts the content. When unchecked, downloads the raw CAR file." />
+              <Tooltip
+                anchorSelect="#extract-tooltip"
+                content="When checked, extracts the content. When unchecked, downloads the raw CAR file."
+              />
             </label>
           </div>
         </div>
@@ -137,7 +144,11 @@ export function Download() {
   );
 }
 
-async function retrieveContent(payloadCid: CID, provider: Multiaddr, extractContents = true): Promise<{ title: string, contents: Blob }> {
+async function retrieveContent(
+  payloadCid: CID,
+  provider: Multiaddr,
+  extractContents = true,
+): Promise<{ title: string; contents: Blob }> {
   // enable verbose logging in browser console to view debug logs
   enable("ui*,libp2p*,-libp2p:connection-manager*,helia*,helia*:trace,-*:trace");
 
@@ -192,7 +203,7 @@ async function retrieveContent(payloadCid: CID, provider: Multiaddr, extractCont
 
     return {
       title,
-      contents: new Blob(contents)
+      contents: new Blob(contents),
     };
   } catch (err) {
     console.error("Error retrieving CAR file:", err);

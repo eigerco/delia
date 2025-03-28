@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Tooltip } from 'react-tooltip';
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle } from "lucide-react";
+import React, { useState } from "react";
+import { Tooltip } from "react-tooltip";
 
 interface ValidatedInputProps {
   id: string;
@@ -13,48 +13,53 @@ interface ValidatedInputProps {
   className?: string;
   tooltip?: {
     content: string;
-  },
+  };
 }
 
 export const ValidatedInput = React.forwardRef<
   { validateField: () => string },
   ValidatedInputProps
 >((props, ref) => {
-  const [error, setError] = useState<string>('');
-  
+  const [error, setError] = useState<string>("");
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     props.onChange(newValue);
-    
+
     if (props.validate && newValue) {
       setError(props.validate(newValue));
     } else {
-      setError('');
+      setError("");
     }
   };
-  
+
   // Method exposed via ref
   const validateField = (): string => {
-    if (!props.validate) return '';
-    
+    if (!props.validate) return "";
+
     const validationError = props.validate(props.value);
     setError(validationError);
     return validationError;
   };
-  
+
   // Expose methods via ref
   React.useImperativeHandle(ref, () => ({
-    validateField
+    validateField,
   }));
-  
+
   return (
-    <div className={`mb-4 ${props.className || ''}`}>
-      <label htmlFor={props.id} className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+    <div className={`mb-4 ${props.className || ""}`}>
+      <label
+        htmlFor={props.id}
+        className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1"
+      >
         {props.label}
         {props.tooltip && (
           <>
             <span id={`tooltip-${props.id}`} className="cursor-help inline-flex items-center ml-1">
-              {props.tooltip.content !== "" && <HelpCircle className="inline w-4 h-4 text-gray-400" />}
+              {props.tooltip.content !== "" && (
+                <HelpCircle className="inline w-4 h-4 text-gray-400" />
+              )}
             </span>
             <Tooltip anchorSelect={`#tooltip-${props.id}`} content={props.tooltip.content} />
           </>
