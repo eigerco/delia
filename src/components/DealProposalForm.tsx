@@ -1,5 +1,4 @@
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
-import { formatBalance } from "@polkadot/util";
 import { HelpCircle } from "lucide-react";
 import type { ChangeEventHandler, PropsWithChildren } from "react";
 import { Tooltip } from "react-tooltip";
