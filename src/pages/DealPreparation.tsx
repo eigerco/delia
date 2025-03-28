@@ -163,8 +163,8 @@ export function DealPreparation() {
 
   return (
     <>
-      <div className="flex">
-        <div className="bg-white rounded-lg shadow p-6 mb-4">
+      <div className="flex bg-white rounded-lg shadow p-6 mb-4">
+        <div>
           <h2 className="text-xl font-bold mb-4">Deal Creation</h2>
           <DealProposalForm
             dealProposal={dealProposal}

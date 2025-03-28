@@ -1,11 +1,14 @@
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { RefreshCw } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Link, Outlet } from "react-router";
+import { Link, Outlet, useLocation } from "react-router";
 import { GlobalCtxProvider } from "./GlobalCtxProvider";
 import { ConnectWallet } from "./components/ConnectWallet";
 import { COLLATOR_LOCAL_RPC_URL } from "./lib/consts";
 import { setupTypeRegistry } from "./lib/registry";
+
+const DEAL_CREATION_PATH = "/";
+const DOWNLOAD_PATH = "/download";
 
 // TODO: this component should be red if it fails to connect
 function WsAddressInput({ onChange }: { onChange: (newValue: string) => void }) {
@@ -40,6 +43,7 @@ function App() {
   const [selectedAccount, setSelectedAccount] = useState<InjectedAccountWithMeta | null>(null);
   const [wsAddress, setWsAddress] = useState(COLLATOR_LOCAL_RPC_URL);
 
+  const location = useLocation();
   const registry = useMemo(() => setupTypeRegistry(), []);
 
   return (
@@ -48,12 +52,20 @@ function App() {
         <div className="flex mb-4 items-center">
           <h1 className="grow text-xl font-bold">📦 Delia</h1>
           <div className="flex items-center mr-6">
-            <Link to="/" className="mr-4 px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-sm">
-              Deal Creation
-            </Link>
-            <Link to="/download" className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-sm">
-              Download
-            </Link>
+            {location.pathname === DEAL_CREATION_PATH ? (
+              <></>
+            ) : (
+              <Link to="/" className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-sm">
+                Deal Creation
+              </Link>
+            )}
+            {location.pathname === DOWNLOAD_PATH ? (
+              <></>
+            ) : (
+              <Link to="/download" className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-sm">
+                Download
+              </Link>
+            )}
           </div>
           <WsAddressInput onChange={setWsAddress} />
         </div>

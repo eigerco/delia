@@ -10,15 +10,15 @@ import { Download } from "./pages/Download";
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <App />,
+    Component: App,
     children: [
       {
-        path: "/",
-        element: <DealPreparation />,
+        index: true,
+        Component: DealPreparation,
       },
       {
         path: "/download",
-        element: <Download />,
+        Component: Download,
       },
     ],
   },
