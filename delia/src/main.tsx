@@ -4,8 +4,8 @@ import { RouterProvider, createBrowserRouter } from "react-router";
 import "./index.css";
 import "react-tooltip/dist/react-tooltip.css";
 import App from "./App.tsx";
-import { DealPreparation } from "./pages/DealPreparation";
-import { Download } from "./pages/Download";
+import { DealPreparation } from "./pages/DealPreparation.tsx";
+import { Download } from "./pages/Download.tsx";
 
 const router = createBrowserRouter([
   {
