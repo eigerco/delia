@@ -1,0 +1,34 @@
+[package]
+name = "delia-rr"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+cbor4ii = { version = "1.0.0", features = ["serde1"] }
+console_error_panic_hook = "0.1.7"
+js-sys = "0.3.77"
+libp2p = { version = "0.55.0", features = [
+    "websocket-websys",
+    "kad",
+    "noise",
+    "yamux",
+    "serde",
+    "macros",
+    "cbor",
+    "wasm-bindgen",
+    "request-response",
+] }
+serde = { version = "1.0.219", features = ["derive"] }
+thiserror = "2.0.12"
+time = { version = "0.3.41", features = ["wasm-bindgen"] }
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = ["time"] }
+tracing-web = "0.1.3"
+wasm-bindgen = "0.2.100"
+wasm-bindgen-futures = "0.4.50"
+
+[package.metadata.docs.rs]
+targets = ["wasm32-unknown-unknown"]
