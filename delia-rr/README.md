@@ -2,5 +2,5 @@
 
 For Node.js:
 ```
-wasm-pack build --out-name index --target nodejs
+wasm-pack build --out-name index --target bundler
 ```

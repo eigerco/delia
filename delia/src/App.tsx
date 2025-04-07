@@ -1,11 +1,12 @@
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { RefreshCw } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import { GlobalCtxProvider } from "./GlobalCtxProvider";
 import { ConnectWallet } from "./components/ConnectWallet";
 import { COLLATOR_LOCAL_RPC_URL } from "./lib/consts";
 import { setupTypeRegistry } from "./lib/registry";
+import { setupLogging } from "delia-rr";
 
 const DEAL_CREATION_PATH = "/";
 const DOWNLOAD_PATH = "/download";
@@ -45,6 +46,14 @@ function App() {
 
   const location = useLocation();
   const registry = useMemo(() => setupTypeRegistry(), []);
+
+  useEffect(() => {
+    try {
+      setupLogging();
+    } catch (error) {
+      console.warn(error);
+    }
+  })
 
   return (
     <GlobalCtxProvider registry={registry} wsAddress={wsAddress}>

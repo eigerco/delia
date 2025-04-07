@@ -1,6 +1,7 @@
 use libp2p::{
     core,
     futures::{channel::oneshot, select, StreamExt},
+    identify,
     identity::{self, Keypair},
     noise,
     request_response::{self, ProtocolSupport},
@@ -8,19 +9,16 @@ use libp2p::{
     websocket_websys as websocket, yamux, Multiaddr, PeerId, StreamProtocol, Transport,
 };
 use serde::{Deserialize, Serialize};
-use std::{result, str::FromStr};
+use std::str::FromStr;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{
-    fmt::{format, time::UtcTime},
-    layer::SubscriberExt,
-    util::SubscriberInitExt,
-    Layer,
+    fmt::time::UtcTime, layer::SubscriberExt, util::SubscriberInitExt, Layer,
 };
 use wasm_bindgen::prelude::*;
 
 /// Setup browser logging.
-#[wasm_bindgen]
-pub fn setup_logging() {
+#[wasm_bindgen(js_name = "setupLogging")]
+pub fn setup_logging() -> Result<(), JsError> {
     console_error_panic_hook::set_once();
 
     let fmt_layer = tracing_subscriber::fmt::layer()
@@ -29,39 +27,39 @@ pub fn setup_logging() {
         .with_writer(tracing_web::MakeConsoleWriter) // write events to the console
         .with_filter(LevelFilter::DEBUG);
 
-    let _ = tracing_subscriber::registry().with(fmt_layer).try_init();
+    tracing_subscriber::registry()
+        .with(fmt_layer)
+        .try_init()
+        .map_err(|err| JsError::new(err.to_string().as_str()))
 }
 
 /// Resolve a provided PeerId by connecting to the provided bootnodes.
-#[wasm_bindgen]
-pub async fn resolve_peer_id(bootnodes: Vec<String>, query: String) -> Result<String, String> {
+#[wasm_bindgen(js_name = "resolvePeerId")]
+pub async fn resolve_peer_id(
+    bootnodes: Vec<String>,
+    query: String,
+) -> Result<Vec<String>, JsError> {
     let bootnodes = bootnodes
         .into_iter()
         .map(|s| Multiaddr::from_str(&s))
-        .collect::<Result<Vec<Multiaddr>, _>>()
-        .map_err(|err| err.to_string())?;
+        .collect::<Result<Vec<Multiaddr>, _>>()?;
 
-    let query = PeerId::from_str(&query).map_err(|err| err.to_string())?;
-
+    let query = PeerId::from_str(&query)?;
     tracing::info!("Query: {}", query);
 
-    perform_query_inner(bootnodes, query)
-        .await
-        .map(|maddrs| maddrs.iter().map(ToString::to_string).collect())
-}
-
-async fn perform_query_inner(
-    bootnodes: Vec<Multiaddr>,
-    query: PeerId,
-) -> Result<Vec<Multiaddr>, String> {
     // This node is ephemeral so we don't care for the actual identity
     // we can read it from the user selected account but to query the DHT it doesn't make a difference
     let identity = identity::Keypair::generate_ed25519();
 
-    let swarm = inner_create_swarm(&identity, bootnodes);
-    let mut state = State { swarm };
-
-    state.event_loop(query).await
+    match Swarm::new(&identity, query)?.start(bootnodes).await? {
+        Response::Found { maddrs } => Ok(maddrs
+            .into_iter()
+            .map(|maddr| Multiaddr::to_string(&maddr))
+            .collect()),
+        Response::NotFound { peer } => Err(JsError::new(
+            format!("Could not resolve peer's {peer} multiaddresses").as_str(),
+        )),
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -104,7 +102,7 @@ impl Swarm {
                     .authenticate(noise_config)
                     .multiplex(muxer_config)
                     .boxed(),
-                Behaviour::new(),
+                Behaviour::new(identity.public()),
                 local_peer_id,
                 swarm::Config::with_wasm_executor(),
             ),
@@ -134,10 +132,14 @@ impl Swarm {
     fn on_swarm_event(&mut self, event: SwarmEvent<BehaviourEvent>) {
         match event {
             SwarmEvent::ConnectionEstablished { peer_id, .. } => {
+                let request = Request { peer: self.query };
+                tracing::debug!(
+                    "Connection to peer {peer_id} was established, sending request: {request:?}"
+                );
                 self.inner
                     .behaviour_mut()
                     .rr
-                    .send_request(&peer_id, Request { peer: self.query });
+                    .send_request(&peer_id, request);
             }
             SwarmEvent::Behaviour(event) => self.on_behaviour_event(event),
             _ => tracing::trace!("Unhandled swarm event: {event:?}"),
@@ -147,6 +149,9 @@ impl Swarm {
     fn on_behaviour_event(&mut self, event: BehaviourEvent) {
         match event {
             BehaviourEvent::Rr(event) => self.on_rr_event(event),
+            BehaviourEvent::Identify(event) => {
+                tracing::trace!("Unhandled identify behaviour event: {event:?}")
+            }
         }
     }
 
@@ -180,11 +185,7 @@ impl Swarm {
         connection_id: ConnectionId,
         message: request_response::Message<Request, Response>,
     ) {
-        let request_response::Message::Response {
-            request_id,
-            response,
-        } = message
-        else {
+        let request_response::Message::Response { response, .. } = message else {
             unreachable!("The protocol is outbound only, no request messages can be received")
         };
 
@@ -208,112 +209,37 @@ pub struct Request {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Response {
-    Found {
-        peer: PeerId,
-        maddrs: Vec<Multiaddr>,
-    },
-    NotFound {
-        peer: PeerId,
-    },
+    Found { maddrs: Vec<Multiaddr> },
+    NotFound { peer: PeerId },
 }
+
+/// The request-response protocol name.
+const RESOLVE_PEER_ID_PROTOCOL_NAME: &str = "/polka-storage/rr/resolve-peer-id/1.0.0";
+/// The request-response [`StreamProtocol`].
+const RESOLVE_PEER_ID_STREAM_PROTOCOL: StreamProtocol =
+    StreamProtocol::new(RESOLVE_PEER_ID_PROTOCOL_NAME);
+/// The request-response protocol supported by this "end" — the client.
+const RESOLVE_PEER_ID_PROTOCOL: (StreamProtocol, ProtocolSupport) =
+    (RESOLVE_PEER_ID_STREAM_PROTOCOL, ProtocolSupport::Outbound);
 
 #[derive(NetworkBehaviour)]
 struct Behaviour {
+    identify: identify::Behaviour,
     rr: request_response::cbor::Behaviour<Request, Response>,
 }
 
 impl Behaviour {
-    fn new() -> Self {
-        let rr = request_response::cbor::Behaviour::new(
-            [(StreamProtocol::new("/rr/1.0.0"), ProtocolSupport::Full)],
-            Default::default(),
-        );
-
-        Self { rr }
-    }
-}
-
-struct State {
-    swarm: Swarm<Behaviour>,
-}
-
-impl State {
-    async fn event_loop(&mut self, query: PeerId) -> Result<Vec<Multiaddr>, String> {
-        loop {
-            let event = self.swarm.select_next_some().await;
-            match self.on_swarm_event(event, query) {
-                Some(result) => return result,
-                None => continue,
-            }
-        }
-    }
-
-    fn on_swarm_event(
-        &mut self,
-        event: SwarmEvent<BehaviourEvent>,
-        query: PeerId,
-    ) -> Option<Result<Vec<Multiaddr>, String>> {
-        match event {
-            SwarmEvent::Behaviour(event) => self.on_behaviour_event(event),
-            SwarmEvent::ConnectionEstablished { peer_id, .. } => {
-                self.swarm
-                    .behaviour_mut()
-                    .rr
-                    .send_request(&peer_id, Request { peer: query });
-
-                tracing::debug!("Sent request");
-                None
-            }
-            _ => {
-                tracing::debug!("Received unhandled event: {event:?}");
-                None
-            }
-        }
-    }
-
-    fn on_behaviour_event(
-        &mut self,
-        event: BehaviourEvent,
-    ) -> Option<Result<Vec<Multiaddr>, String>> {
-        match event {
-            BehaviourEvent::Rr(event) => match event {
-                request_response::Event::Message {
-                    peer,
-                    connection_id,
-                    message,
-                } => match message {
-                    request_response::Message::Response {
-                        request_id,
-                        response,
-                    } => match response {
-                        Response::Found { peer, maddrs } => {
-                            tracing::info!("Found! {peer} {maddrs:?}");
-                            return Some(Ok(maddrs));
-                        }
-                        Response::NotFound { peer } => {
-                            tracing::error!("Not found: {response:?}");
-                            return Some(Err("Not found".to_string()));
-                        }
-                    },
-                    message => {
-                        tracing::debug!("Received unhandled request: {message:?}");
-                        None
-                    }
-                },
-                request_response::Event::OutboundFailure { .. }
-                | request_response::Event::InboundFailure { .. } => {
-                    tracing::error!("Received failure event: {event:?}");
-                    Some(Err(format!("{:?}", event)))
-                }
-                _ => {
-                    tracing::debug!("Received unhandled RR event: {event:?}");
-                    None
-                }
-            },
-            _ => {
-                tracing::debug!("Received unhandled behaviour event: {event:?}");
-                None
-            }
+    fn new(local_public_key: identity::PublicKey) -> Self {
+        let identify = identify::Behaviour::new(identify::Config::new(
+            "/polka-storage/id/1.0.0".to_string(),
+            local_public_key,
+        ));
+        Self {
+            identify,
+            rr: request_response::cbor::Behaviour::new(
+                [RESOLVE_PEER_ID_PROTOCOL],
+                Default::default(),
+            ),
         }
     }
 }

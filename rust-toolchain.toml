@@ -12,4 +12,4 @@ components = [
     "rustfmt",
 ]
 profile = "minimal"
-targets = ["aarch64-apple-darwin", "x86_64-unknown-linux-gnu"]
+targets = ["wasm32-unknown-unknown"]

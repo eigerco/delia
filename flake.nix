@@ -17,6 +17,8 @@
 
         buildInputs = with pkgs; [
           git
+          wasm-pack
+          wasm-bindgen-cli
           rustToolchain
           nodejs
           nodePackages.pnpm
