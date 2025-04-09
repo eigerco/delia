@@ -1,10 +1,14 @@
+import type { ApiPromise } from "@polkadot/api";
 import type { TypeRegistry } from "@polkadot/types";
 import { createContext, useContext } from "react";
-import { GlobalCtxProvider } from "./GlobalCtxProvider";
+import { GlobalCtxProvider, type Status } from "./GlobalCtxProvider";
 
 export type Ctx = {
   registry: TypeRegistry;
   wsAddress: string;
+  latestFinalizedBlock: number | null;
+  collatorWsApi: ApiPromise | null;
+  collatorConnectionStatus: Status;
 };
 
 export const GlobalCtx = createContext<Ctx | null>(null);
