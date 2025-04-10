@@ -42,10 +42,10 @@ export function GlobalCtxProvider({
       setStatus({ type: "connected" });
       return unsub;
     } catch (error) {
-      console.error(error);
       if (error instanceof Error) {
         setStatus({ type: "failed", error: error.message });
       } else {
+        console.error(error);
         setStatus({
           type: "failed",
           error: "Failed to connect to the chain, check the logs for more information",
