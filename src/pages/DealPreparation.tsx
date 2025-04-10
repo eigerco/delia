@@ -1,4 +1,5 @@
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
+import type { u64 } from "@polkadot/types";
 import { useCallback, useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import { useOutletContext } from "react-router";
@@ -25,11 +26,32 @@ type OutletContextType = {
   setSelectedAccount: (account: InjectedAccountWithMeta) => void;
 };
 
+// Give user 5 minutes to think before submitting.
+const BLOCKS_IN_MINUTE = 10;
+const OFFSET = BLOCKS_IN_MINUTE * 5;
+const DEFAULT_DEAL_DURATION = 50;
+const DEFAULT_MAX_PROVE_COMMIT_DURATION = 50;
+
 export function DealPreparation() {
   const { accounts, selectedAccount, setSelectedAccount } = useOutletContext<OutletContextType>();
+  const { latestFinalizedBlock, collatorWsApi } = useCtx();
+
+  // This is the minimum amount of blocks it'll take for the deal to be active.
+  const maxProveCommitDuration =
+    (collatorWsApi?.consts.storageProvider.maxProveCommitDuration as u64).toNumber() ||
+    DEFAULT_MAX_PROVE_COMMIT_DURATION;
+
+  const minDealDuration =
+    (collatorWsApi?.consts.market.minDealDuration as u64).toNumber() || DEFAULT_DEAL_DURATION;
 
   const [dealProposal, setDealProposal] = useState<InputFields>({
     ...DEFAULT_INPUT,
+    startBlock: latestFinalizedBlock
+      ? (latestFinalizedBlock + OFFSET + maxProveCommitDuration).toString()
+      : "100",
+    endBlock: latestFinalizedBlock
+      ? (latestFinalizedBlock + OFFSET + maxProveCommitDuration + minDealDuration).toString()
+      : "150",
     client: selectedAccount?.address || null,
   });
 
@@ -174,6 +196,7 @@ export function DealPreparation() {
             accounts={accounts}
             selectedAccount={selectedAccount}
             onSelectAccount={setSelectedAccount}
+            currentBlock={latestFinalizedBlock}
           />
           <Submit />
         </div>

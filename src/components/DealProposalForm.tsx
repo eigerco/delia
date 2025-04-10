@@ -58,12 +58,14 @@ const FormInput = ({
   accounts,
   selectedAccount,
   onSelectAccount,
+  currentBlock,
 }: {
   dealProposal: InputFields;
   onChange: (dealProposal: InputFields) => void;
   accounts: InjectedAccountWithMeta[];
   selectedAccount: InjectedAccountWithMeta | null;
   onSelectAccount: (account: InjectedAccountWithMeta) => void;
+  currentBlock: number | null;
 }) => {
   return (
     <div className="grid grid-cols-1 gap-4 mb-4">
@@ -142,7 +144,7 @@ const FormInput = ({
         tooltip="The block number of when the deal starts"
         onChange={(e) => onChange({ ...dealProposal, startBlock: e.target.value })}
       >
-        Start Block
+        Start Block (current block: {currentBlock})
       </Field>
 
       <Field
@@ -186,8 +188,10 @@ export function DealProposalForm({
   accounts,
   selectedAccount,
   onSelectAccount,
+  currentBlock,
 }: {
   dealProposal: InputFields;
+  currentBlock: number | null;
   onChange: (dealProposal: InputFields) => void;
   onFileSelect: (file: File) => void;
   selectedFile: File | null;
@@ -209,6 +213,7 @@ export function DealProposalForm({
         accounts={accounts}
         selectedAccount={selectedAccount}
         onSelectAccount={onSelectAccount}
+        currentBlock={currentBlock}
       />
 
       {totalPrice > 0 && (

@@ -1,8 +1,7 @@
-import { ApiPromise, WsProvider } from "@polkadot/api";
 import { hexToU8a } from "@polkadot/util";
 import { base58Encode } from "@polkadot/util-crypto";
 import { AlertCircle, Loader2, RefreshCw, Server } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useCtx } from "../GlobalCtx";
 import { COLLATOR_LOCAL_RPC_URL } from "../lib/consts";
 import { type StorageProviderInfo, isStorageProviderInfo } from "../lib/storageProvider";
@@ -51,84 +50,35 @@ export function ProviderSelector({
 }: ProviderSelectorProps) {
   const [status, setStatus] = useState<Status>({ type: "connecting" });
 
-  const apiPromiseRef = useRef<ApiPromise | null>(null);
-  const { wsAddress } = useCtx();
-
-  const handleError = useCallback((error: unknown) => {
-    if (error instanceof Error) {
-      setStatus({ type: "failed", error: error.message });
-    } else {
-      console.error(error);
-      setStatus({
-        type: "failed",
-        error: "Failed to decode error, check the logs for more information",
-      });
-    }
-  }, []);
-
-  const connectPolkadotApi = useCallback(
-    async (wsAddress: string): Promise<ApiPromise | null> => {
-      setStatus({ type: "connecting" });
-
-      if (apiPromiseRef.current) {
-        if (!apiPromiseRef.current.isConnected) {
-          // No clue if this throws an error
-          await apiPromiseRef.current.connect();
-        }
-        return apiPromiseRef.current;
-      }
-
-      try {
-        // This should be parametrizeable
-        const wsProvider = new WsProvider(wsAddress);
-        console.log(`Connecting to ${wsAddress}`);
-        const polkaStorageApi = await ApiPromise.create({
-          provider: wsProvider,
-        });
-        apiPromiseRef.current = polkaStorageApi;
-        console.log(`Connected to ${await polkaStorageApi.rpc.system.chain()}`);
-        setStatus({ type: "connected" });
-        return polkaStorageApi;
-      } catch (err) {
-        handleError(err);
-        console.warn("Unable to connect to the Polkadot API");
-      }
-      return null;
-    },
-    [handleError],
-  );
+  const { collatorWsApi: polkaStorageApi } = useCtx();
 
   // A liveness check before populating (or maybe populating but disabled)
   // would be great UX
-  const getStorageProviders = useCallback(
-    async (wsAddress: string) => {
-      const polkaStorageApi = await connectPolkadotApi(wsAddress);
-      if (!polkaStorageApi) {
-        return;
-      }
+  const getStorageProviders = useCallback(async () => {
+    if (!polkaStorageApi) {
+      return;
+    }
 
-      setStatus({ type: "loading" });
-      const newProviders = new Map();
-      const entries = await polkaStorageApi.query.storageProvider.storageProviders.entries();
-      for (const [key, value] of entries) {
-        const accountId = key.args[0].toString();
-        // biome-ignore lint/suspicious/noExplicitAny: any is a superset of AnyJson and easier to work with
-        const spInfo = anyJsonToSpInfo(accountId, value.toJSON() as any);
-        if (spInfo instanceof String) {
-          console.warn(spInfo);
-          continue;
-        }
-        newProviders.set(key.args[0].toString(), spInfo);
+    setStatus({ type: "loading" });
+    const newProviders = new Map();
+    const entries = await polkaStorageApi.query.storageProvider.storageProviders.entries();
+    for (const [key, value] of entries) {
+      const accountId = key.args[0].toString();
+      // biome-ignore lint/suspicious/noExplicitAny: any is a superset of AnyJson and easier to work with
+      const spInfo = anyJsonToSpInfo(accountId, value.toJSON() as any);
+      if (spInfo instanceof String) {
+        console.warn(spInfo);
+        continue;
       }
-      setProviders(newProviders);
-      setStatus({ type: "loaded" });
-    },
-    [setProviders, connectPolkadotApi],
-  );
+      newProviders.set(key.args[0].toString(), spInfo);
+    }
+    setProviders(newProviders);
+    setStatus({ type: "loaded" });
+  }, [setProviders, polkaStorageApi]);
 
   useEffect(() => {
-    getStorageProviders(wsAddress);
-  }, [getStorageProviders, wsAddress]);
+    getStorageProviders();
+  }, [getStorageProviders]);
 
   const NoProviders = () => {
     return (
@@ -192,7 +142,7 @@ export function ProviderSelector({
         <button
           type="submit"
           className="transition-colors hover:text-blue-400"
-          onClick={(_) => getStorageProviders(wsAddress)}
+          onClick={(_) => getStorageProviders()}
         >
           <RefreshCw />
         </button>

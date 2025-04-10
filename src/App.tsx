@@ -1,7 +1,8 @@
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
-import { RefreshCw } from "lucide-react";
+import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router";
+import { useCtx } from "./GlobalCtx";
 import { GlobalCtxProvider } from "./GlobalCtxProvider";
 import { ConnectWallet } from "./components/ConnectWallet";
 import { COLLATOR_LOCAL_RPC_URL } from "./lib/consts";
@@ -10,7 +11,6 @@ import { setupTypeRegistry } from "./lib/registry";
 const DEAL_CREATION_PATH = "/";
 const DOWNLOAD_PATH = "/download";
 
-// TODO: this component should be red if it fails to connect
 function WsAddressInput({ onChange }: { onChange: (newValue: string) => void }) {
   const [wsAddress, setWsAddress] = useState(COLLATOR_LOCAL_RPC_URL);
   return (
@@ -72,11 +72,40 @@ function App() {
         {accounts.length === 0 ? (
           <ConnectWallet onConnect={setAccounts} />
         ) : (
-          <Outlet context={{ accounts, selectedAccount, setSelectedAccount }} />
+          <Inner context={{ accounts, selectedAccount, setSelectedAccount }} />
         )}
       </div>
     </GlobalCtxProvider>
   );
 }
+
+const Inner = ({ context }: { context: unknown }) => {
+  const { collatorConnectionStatus, wsAddress } = useCtx();
+
+  switch (collatorConnectionStatus.type) {
+    case "loading":
+    case "connecting": {
+      return (
+        <div className="text-center py-8">
+          <Loader2 className="animate-spin mx-auto h-8 w-8 text-blue-500 mb-4" />
+          <p className="text-gray-600">Connecting to the collator at: {wsAddress}...</p>
+        </div>
+      );
+    }
+    case "loaded":
+    case "connected": {
+      return <Outlet context={context} />;
+    }
+
+    case "failed": {
+      return (
+        <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg flex items-center gap-2">
+          <AlertCircle className="h-5 w-5" />
+          <span>{collatorConnectionStatus.error}</span>
+        </div>
+      );
+    }
+  }
+};
 
 export default App;
