@@ -7,6 +7,7 @@ export type Ctx = {
   registry: TypeRegistry;
   wsAddress: string;
   latestFinalizedBlock: number | null;
+  latestFinalizedBlockTimestamp: Date | null;
   collatorWsApi: ApiPromise | null;
   collatorConnectionStatus: Status;
 };

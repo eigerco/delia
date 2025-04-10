@@ -1,5 +1,6 @@
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import type { u64 } from "@polkadot/types";
+import { Loader2 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import { useOutletContext } from "react-router";
@@ -34,7 +35,7 @@ const DEFAULT_MAX_PROVE_COMMIT_DURATION = 50;
 
 export function DealPreparation() {
   const { accounts, selectedAccount, setSelectedAccount } = useOutletContext<OutletContextType>();
-  const { latestFinalizedBlock, collatorWsApi } = useCtx();
+  const { latestFinalizedBlock, latestFinalizedBlockTimestamp, collatorWsApi } = useCtx();
 
   // This is the minimum amount of blocks it'll take for the deal to be active.
   const maxProveCommitDuration =
@@ -183,6 +184,15 @@ export function DealPreparation() {
     );
   };
 
+  if (!latestFinalizedBlock || !latestFinalizedBlockTimestamp) {
+    return (
+      <div className="text-center py-8">
+        <Loader2 className="animate-spin mx-auto h-8 w-8 text-blue-500 mb-4" />
+        <p className="text-gray-600">Loading on-chain data...</p>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="flex bg-white rounded-lg shadow p-6 mb-4">
@@ -197,6 +207,7 @@ export function DealPreparation() {
             selectedAccount={selectedAccount}
             onSelectAccount={setSelectedAccount}
             currentBlock={latestFinalizedBlock}
+            currentBlockTimestamp={latestFinalizedBlockTimestamp}
           />
           <Submit />
         </div>

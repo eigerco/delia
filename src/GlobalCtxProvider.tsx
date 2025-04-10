@@ -1,5 +1,5 @@
 import { ApiPromise, WsProvider } from "@polkadot/api";
-import type { TypeRegistry } from "@polkadot/types";
+import type { TypeRegistry, u64 } from "@polkadot/types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GlobalCtx } from "./GlobalCtx";
 
@@ -18,6 +18,7 @@ export function GlobalCtxProvider({
   const collatorWsRef = useRef<ApiPromise | null>(null);
   const [status, setStatus] = useState<Status>({ type: "connecting" });
   const [latestFinalizedBlock, setLatestFinalizedBlock] = useState<number | null>(null);
+  const [latestBlockTimestamp, setLatestBlockTimestamp] = useState<Date | null>(null);
 
   const connect = useCallback(async () => {
     const wsProvider = new WsProvider(wsAddress);
@@ -35,11 +36,20 @@ export function GlobalCtxProvider({
 
       console.log(`Connected to ${await polkaStorageApi.rpc.system.chain()}`);
 
-      const unsub = await collatorWsRef.current.rpc.chain.subscribeFinalizedHeads((header) => {
-        setLatestFinalizedBlock(header.number.toNumber());
+      const unsub = await polkaStorageApi.rpc.chain.subscribeFinalizedHeads(async (header) => {
+        const blockNumber = header.number.toNumber();
+
+        const blockHash = header.hash.toHex();
+        const apiAt = await polkaStorageApi.at(blockHash);
+        const blockTimestamp = ((await apiAt.query.timestamp.now()) as u64).toNumber();
+        const timestamp = new Date(blockTimestamp);
+
+        setLatestFinalizedBlock(blockNumber);
+        setLatestBlockTimestamp(timestamp);
+
+        setStatus({ type: "connected" });
       });
 
-      setStatus({ type: "connected" });
       return unsub;
     } catch (error) {
       if (error instanceof Error) {
@@ -73,10 +83,11 @@ export function GlobalCtxProvider({
       registry,
       wsAddress,
       latestFinalizedBlock,
+      latestFinalizedBlockTimestamp: latestBlockTimestamp,
       collatorWsApi: collatorWsRef.current,
       collatorConnectionStatus: status,
     }),
-    [registry, wsAddress, latestFinalizedBlock, status],
+    [registry, wsAddress, latestFinalizedBlock, status, latestBlockTimestamp],
   );
 
   return <GlobalCtx.Provider value={value}>{children}</GlobalCtx.Provider>;
