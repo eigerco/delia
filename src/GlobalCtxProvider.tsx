@@ -60,7 +60,7 @@ export function GlobalCtxProvider({
     const cleanup = connect();
 
     return () => {
-      if (cleanup !== undefined) {
+      if (cleanup) {
         cleanup.then((c) => c?.());
       }
       collatorWsRef.current?.disconnect();

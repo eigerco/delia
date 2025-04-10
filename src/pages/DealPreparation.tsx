@@ -36,8 +36,7 @@ export function DealPreparation() {
   const { accounts, selectedAccount, setSelectedAccount } = useOutletContext<OutletContextType>();
   const { latestFinalizedBlock, collatorWsApi } = useCtx();
 
-  console.log(collatorWsApi?.consts);
-  // This is te minimum take it'll take for the deal to be active.
+  // This is the minimum amount of blocks it'll take for the deal to be active.
   const maxProveCommitDuration =
     (collatorWsApi?.consts.storageProvider.maxProveCommitDuration as u64).toNumber() ||
     DEFAULT_MAX_PROVE_COMMIT_DURATION;
