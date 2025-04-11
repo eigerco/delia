@@ -1,7 +1,7 @@
 [package]
 authors = ["aidan46"]
 description = "WASM-based CommP calculation"
-edition = "2024"
+edition = "2021"
 name = "wasm-commp"
 version = "0.1.0"
 
