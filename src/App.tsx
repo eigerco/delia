@@ -1,7 +1,8 @@
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router";
+import { default as initWasm } from "../wasm-commp/pkg/wasm_commp.js";
 import { useCtx } from "./GlobalCtx";
 import { GlobalCtxProvider } from "./GlobalCtxProvider";
 import { ConnectWallet } from "./components/ConnectWallet";
@@ -45,6 +46,17 @@ function App() {
 
   const location = useLocation();
   const registry = useMemo(() => setupTypeRegistry(), []);
+
+  // Initialize WASM module, !VERY IMPORTANT! without this no WASM function will work.
+  useEffect(() => {
+    initWasm()
+      .then(() => {
+        console.log("WASM module initialized");
+      })
+      .catch((err) => {
+        console.error("Failed to initialize WASM module:", err);
+      });
+  }, []);
 
   return (
     <GlobalCtxProvider registry={registry} wsAddress={wsAddress}>
