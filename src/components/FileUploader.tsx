@@ -1,7 +1,7 @@
 import { FileText, Upload } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { commp_from_bytes, padded_piece_size } from "../../wasm-commp/pkg/wasm_commp.js";
+import { commp_from_bytes, padded_piece_size } from "wasm-commp";
 import { generateCar as generateCarV2 } from "../lib/car/v2";
 
 // Props returned by FileUploader.
