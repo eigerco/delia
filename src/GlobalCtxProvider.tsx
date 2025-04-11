@@ -82,8 +82,10 @@ export function GlobalCtxProvider({
     () => ({
       registry,
       wsAddress,
-      latestFinalizedBlock,
-      latestFinalizedBlockTimestamp: latestBlockTimestamp,
+      latestFinalizedBlock:
+        latestFinalizedBlock && latestBlockTimestamp
+          ? { number: latestFinalizedBlock, timestamp: latestBlockTimestamp }
+          : null,
       collatorWsApi: collatorWsRef.current,
       collatorConnectionStatus: status,
     }),

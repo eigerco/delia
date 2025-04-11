@@ -35,7 +35,7 @@ const DEFAULT_MAX_PROVE_COMMIT_DURATION = 50;
 
 export function DealPreparation() {
   const { accounts, selectedAccount, setSelectedAccount } = useOutletContext<OutletContextType>();
-  const { latestFinalizedBlock, latestFinalizedBlockTimestamp, collatorWsApi } = useCtx();
+  const { latestFinalizedBlock, collatorWsApi } = useCtx();
 
   // This is the minimum amount of blocks it'll take for the deal to be active.
   const maxProveCommitDuration =
@@ -48,10 +48,10 @@ export function DealPreparation() {
   const [dealProposal, setDealProposal] = useState<InputFields>({
     ...DEFAULT_INPUT,
     startBlock: latestFinalizedBlock
-      ? (latestFinalizedBlock + OFFSET + maxProveCommitDuration).toString()
+      ? (latestFinalizedBlock.number + OFFSET + maxProveCommitDuration).toString()
       : "100",
     endBlock: latestFinalizedBlock
-      ? (latestFinalizedBlock + OFFSET + maxProveCommitDuration + minDealDuration).toString()
+      ? (latestFinalizedBlock.number + OFFSET + maxProveCommitDuration + minDealDuration).toString()
       : "150",
     client: selectedAccount?.address || null,
   });
@@ -184,7 +184,7 @@ export function DealPreparation() {
     );
   };
 
-  if (!latestFinalizedBlock || !latestFinalizedBlockTimestamp) {
+  if (!latestFinalizedBlock) {
     return (
       <div className="text-center py-8">
         <Loader2 className="animate-spin mx-auto h-8 w-8 text-blue-500 mb-4" />
@@ -206,8 +206,8 @@ export function DealPreparation() {
             accounts={accounts}
             selectedAccount={selectedAccount}
             onSelectAccount={setSelectedAccount}
-            currentBlock={latestFinalizedBlock}
-            currentBlockTimestamp={latestFinalizedBlockTimestamp}
+            currentBlock={latestFinalizedBlock.number}
+            currentBlockTimestamp={latestFinalizedBlock.timestamp}
           />
           <Submit />
         </div>

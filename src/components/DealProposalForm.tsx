@@ -77,12 +77,11 @@ const FormInput = ({
   currentBlock: number;
   currentBlockTimestamp: Date;
 }) => {
-  const startBlockRealTime = blockToTime(
-    +dealProposal.startBlock,
-    currentBlock,
-    currentBlockTimestamp,
-  );
-  const endBlockRealTime = blockToTime(+dealProposal.endBlock, currentBlock, currentBlockTimestamp);
+  const startBlock = Number.parseInt(dealProposal.startBlock);
+  const endBlock = Number.parseInt(dealProposal.endBlock);
+
+  const startBlockRealTime = blockToTime(startBlock, currentBlock, currentBlockTimestamp);
+  const endBlockRealTime = blockToTime(endBlock, currentBlock, currentBlockTimestamp);
 
   return (
     <div className="grid grid-cols-1 gap-4 mb-4">
