@@ -4,11 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "pnpm run build:wasm && vite",
+    "build": "pnpm run build:wasm && tsc -b && vite build",
     "preview": "vite preview",
     "lint": "biome lint ./src",
-    "fmt": "biome format --write ./src"
+    "fmt": "biome format --write ./src",
+    "build:wasm": "wasm-pack build --target web ./wasm-commp"
   },
   "dependencies": {
     "@chainsafe/libp2p-noise": "^16.0.3",
