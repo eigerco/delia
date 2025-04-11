@@ -119,6 +119,9 @@ importers:
       tailwindcss:
         specifier: ^4.0.9
         version: 4.0.9
+      wasm-commp:
+        specifier: link:wasm-commp/pkg
+        version: link:wasm-commp/pkg
     devDependencies:
       '@biomejs/biome':
         specifier: 1.9.4

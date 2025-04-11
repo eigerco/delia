@@ -2,7 +2,7 @@ import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router";
-import { default as initWasm } from "../wasm-commp/pkg/wasm_commp.js";
+import { default as initWasm } from "wasm-commp";
 import { useCtx } from "./GlobalCtx";
 import { GlobalCtxProvider } from "./GlobalCtxProvider";
 import { ConnectWallet } from "./components/ConnectWallet";
