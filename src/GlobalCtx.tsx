@@ -6,7 +6,7 @@ import { GlobalCtxProvider, type Status } from "./GlobalCtxProvider";
 export type Ctx = {
   registry: TypeRegistry;
   wsAddress: string;
-  latestFinalizedBlock: number | null;
+  latestFinalizedBlock: { number: number; timestamp: Date } | null;
   collatorWsApi: ApiPromise | null;
   collatorConnectionStatus: Status;
 };

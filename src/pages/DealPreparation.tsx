@@ -1,6 +1,7 @@
 import type { NodeAddress } from "@multiformats/multiaddr";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import type { u64 } from "@polkadot/types";
+import { Loader2 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import { useOutletContext } from "react-router";
@@ -48,10 +49,10 @@ export function DealPreparation() {
   const [dealProposal, setDealProposal] = useState<InputFields>({
     ...DEFAULT_INPUT,
     startBlock: latestFinalizedBlock
-      ? (latestFinalizedBlock + OFFSET + maxProveCommitDuration).toString()
+      ? (latestFinalizedBlock.number + OFFSET + maxProveCommitDuration).toString()
       : "100",
     endBlock: latestFinalizedBlock
-      ? (latestFinalizedBlock + OFFSET + maxProveCommitDuration + minDealDuration).toString()
+      ? (latestFinalizedBlock.number + OFFSET + maxProveCommitDuration + minDealDuration).toString()
       : "150",
     client: selectedAccount?.address || null,
   });
@@ -198,6 +199,15 @@ export function DealPreparation() {
     );
   };
 
+  if (!latestFinalizedBlock) {
+    return (
+      <div className="text-center py-8">
+        <Loader2 className="animate-spin mx-auto h-8 w-8 text-blue-500 mb-4" />
+        <p className="text-gray-600">Loading on-chain data...</p>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="flex bg-white rounded-lg shadow p-6 mb-4">
@@ -211,7 +221,8 @@ export function DealPreparation() {
             accounts={accounts}
             selectedAccount={selectedAccount}
             onSelectAccount={setSelectedAccount}
-            currentBlock={latestFinalizedBlock}
+            currentBlock={latestFinalizedBlock.number}
+            currentBlockTimestamp={latestFinalizedBlock.timestamp}
           />
           <Submit />
         </div>

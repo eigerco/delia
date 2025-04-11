@@ -2,6 +2,7 @@ import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { HelpCircle } from "lucide-react";
 import type { ChangeEventHandler, PropsWithChildren } from "react";
 import { Tooltip } from "react-tooltip";
+import { BLOCK_TIME } from "../lib/consts";
 import { plank_to_dot } from "../lib/conversion";
 import type { InputFields } from "../lib/dealProposal";
 import { FileUploader } from "./FileUploader";
@@ -52,6 +53,13 @@ function Field({
   );
 }
 
+function blockToTime(block: number, currentBlock: number, currentBlockTimestamp: Date): Date {
+  const timeDifference = (block - currentBlock) * BLOCK_TIME;
+  const realTime = new Date(currentBlockTimestamp.getTime() + timeDifference);
+
+  return realTime;
+}
+
 const FormInput = ({
   dealProposal,
   onChange,
@@ -59,14 +67,22 @@ const FormInput = ({
   selectedAccount,
   onSelectAccount,
   currentBlock,
+  currentBlockTimestamp,
 }: {
   dealProposal: InputFields;
   onChange: (dealProposal: InputFields) => void;
   accounts: InjectedAccountWithMeta[];
   selectedAccount: InjectedAccountWithMeta | null;
   onSelectAccount: (account: InjectedAccountWithMeta) => void;
-  currentBlock: number | null;
+  currentBlock: number;
+  currentBlockTimestamp: Date;
 }) => {
+  const startBlock = Number.parseInt(dealProposal.startBlock);
+  const endBlock = Number.parseInt(dealProposal.endBlock);
+
+  const startBlockRealTime = blockToTime(startBlock, currentBlock, currentBlockTimestamp);
+  const endBlockRealTime = blockToTime(endBlock, currentBlock, currentBlockTimestamp);
+
   return (
     <div className="grid grid-cols-1 gap-4 mb-4">
       <div>
@@ -137,25 +153,36 @@ const FormInput = ({
         Label
       </Field>
 
-      <Field
-        id="start-block"
-        type="number"
-        value={dealProposal.startBlock}
-        tooltip="The block number of when the deal starts"
-        onChange={(e) => onChange({ ...dealProposal, startBlock: e.target.value })}
-      >
-        Start Block (current block: {currentBlock})
-      </Field>
+      <i className="text-sm font-medium">Current block: {currentBlock}</i>
+      <div className="flex flex-row items-center gap-4">
+        <Field
+          id="start-block"
+          type="number"
+          value={dealProposal.startBlock}
+          tooltip="The block number of when the data is guaranteed to be available"
+          onChange={(e) => onChange({ ...dealProposal, startBlock: e.target.value })}
+        >
+          Start Block
+        </Field>
+        <Field id="start-block-date" disabled value={startBlockRealTime.toLocaleString("en-GB")}>
+          Estimated real-time
+        </Field>
+      </div>
 
-      <Field
-        id="end-block"
-        type="number"
-        value={dealProposal.endBlock}
-        tooltip="The block number when the deal will end"
-        onChange={(e) => onChange({ ...dealProposal, endBlock: e.target.value })}
-      >
-        End Block
-      </Field>
+      <div className="flex flex-row items-center gap-4">
+        <Field
+          id="end-block"
+          type="number"
+          value={dealProposal.endBlock}
+          tooltip="The block number when the data ends to be available"
+          onChange={(e) => onChange({ ...dealProposal, endBlock: e.target.value })}
+        >
+          End Block
+        </Field>
+        <Field id="end-block-date" disabled value={endBlockRealTime.toLocaleString("en-GB")}>
+          Estimated real-time
+        </Field>
+      </div>
 
       <Field
         id="price-per-block"
@@ -189,9 +216,11 @@ export function DealProposalForm({
   selectedAccount,
   onSelectAccount,
   currentBlock,
+  currentBlockTimestamp,
 }: {
   dealProposal: InputFields;
-  currentBlock: number | null;
+  currentBlock: number;
+  currentBlockTimestamp: Date;
   onChange: (dealProposal: InputFields) => void;
   onFileSelect: (file: File) => void;
   selectedFile: File | null;
@@ -214,6 +243,7 @@ export function DealProposalForm({
         selectedAccount={selectedAccount}
         onSelectAccount={onSelectAccount}
         currentBlock={currentBlock}
+        currentBlockTimestamp={currentBlockTimestamp}
       />
 
       {totalPrice > 0 && (
