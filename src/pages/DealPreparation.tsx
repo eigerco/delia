@@ -77,6 +77,7 @@ export function DealPreparation() {
 
   const performDeal = async (p: string, validDealProposal: ValidatedFields) => {
     // Inner function to avoid misuse, this should only be used inside the toast.promise
+    // Throws inside this function are acceptable as they will be caught by the toast.promise and shown as such
     const inner = async (p: string, validDealProposal: ValidatedFields) => {
       if (!dealFile) {
         // NOTE: This should never happen unless the "Continue" button is wrong
@@ -100,44 +101,41 @@ export function DealPreparation() {
         throw new Error(`Failed to find multiaddress for PeerId: ${providerPeerId}`);
       }
 
-      let services: Services.Services = {};
-      let nodeAddress: NodeAddress | undefined;
+      let targetStorageProvider:
+        | {
+            services: Services.StorageProviderServices;
+            address: NodeAddress;
+          }
+        | undefined;
       for (const maddr of peerIdMultiaddress) {
         const response = await Services.sendRequest("All", maddr);
-        if (
-          Services.hasService(response.services, "upload") &&
-          Services.hasService(response.services, "rpc")
-        ) {
-          services = response.services;
-          nodeAddress = maddr.nodeAddress();
+        if (Services.isStorageProviderService(response.services)) {
+          targetStorageProvider = {
+            services: response.services,
+            address: maddr.nodeAddress(),
+          };
           break;
         }
       }
 
-      if (
-        !nodeAddress ||
-        !services ||
-        // We need this "redundant check" to narrow the previous type into having "ws" and "http" fields.
-        !Services.hasService(services, "upload") ||
-        !Services.hasService(services, "rpc")
-      ) {
+      if (!targetStorageProvider) {
         throw new Error("Could not find an address to upload the files to.");
       }
 
       const proposeDealResponse = await callProposeDeal(toRpc(validDealProposal, p), {
-        ip: nodeAddress.address,
-        port: services.rpc.port,
+        ip: targetStorageProvider.address.address,
+        port: targetStorageProvider.services.rpc.port,
       });
 
       await uploadFile(dealFile, proposeDealResponse, {
-        ip: nodeAddress.address,
-        port: services.upload.port,
+        ip: targetStorageProvider.address.address,
+        port: targetStorageProvider.services.upload.port,
       });
 
       const signedRpc = await createSignedRpc(validDealProposal, p, ctx.registry, selectedAccount);
       await callPublishDeal(signedRpc, {
-        ip: nodeAddress.address,
-        port: services.rpc.port,
+        ip: targetStorageProvider.address.address,
+        port: targetStorageProvider.services.rpc.port,
       });
     };
 
@@ -170,7 +168,6 @@ export function DealPreparation() {
         return;
       }
 
-      // TODO: figure out error handling here
       for (const provider of selectedProviders) {
         // Using Promise.all here spams the user with N popups
         // where N is the number of storage providers the user is uploading deals to

@@ -10,6 +10,10 @@ export namespace Services {
   export type Services = {
     [key: string]: ServiceInfo | undefined;
   };
+  export type StorageProviderServices = {
+    rpc: ServiceInfo;
+    upload: ServiceInfo;
+  } & Services;
 
   export type ServicesRequest = "All";
   export type ServicesResponse = { services: Services };
@@ -30,5 +34,11 @@ export namespace Services {
     key: K,
   ): services is Services & Record<K, ServiceInfo> {
     return key in services;
+  }
+
+  export function isStorageProviderService(
+    services: Services,
+  ): services is StorageProviderServices {
+    return "rpc" in services && "upload" in services;
   }
 }
