@@ -19,7 +19,7 @@ const NUM_BYTES_OUT_BLOCK: usize = NUM_FRS_PER_BLOCK * OUT_BITS_FR / 8;
 
 const NUM_U128S_PER_BLOCK: usize = NUM_BYTES_OUT_BLOCK / size_of::<u128>();
 
-const MASK_SKIP_HIGH_2: u128 = 0b0011_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111;
+const MASK_SKIP_HIGH_2: u128 = !(0b11 << 126);
 
 #[repr(align(16))]
 struct AlignedBuffer([u8; NUM_BYTES_IN_BLOCK + 1]);
@@ -128,13 +128,6 @@ impl<R: Read> Fr32Reader<R> {
     }
 }
 
-/// Division of x by y, rounding up.
-/// x must be > 0
-#[inline]
-const fn div_ceil(x: usize, y: usize) -> usize {
-    1 + ((x - 1) / y)
-}
-
 impl<R: Read> Read for Fr32Reader<R> {
     fn read(&mut self, target: &mut [u8]) -> io::Result<usize> {
         if self.done || target.is_empty() {
@@ -160,7 +153,7 @@ impl<R: Read> Read for Fr32Reader<R> {
                 self.process_block();
 
                 // Update state of how many new Frs are now available.
-                self.available_frs = div_ceil(bytes_read * 8, IN_BITS_FR);
+                self.available_frs = (bytes_read * 8).div_ceil(IN_BITS_FR);
             }
 
             // Write out as many Frs as available and requested
@@ -178,7 +171,7 @@ impl<R: Read> Read for Fr32Reader<R> {
                     .copy_from_slice(&self.out_buffer.as_byte_slice()[out_start..out_end]);
                 bytes_read += len;
                 self.out_offset += len;
-                self.available_frs -= div_ceil(len * 8, OUT_BITS_FR);
+                self.available_frs -= (len * 8).div_ceil(OUT_BITS_FR);
             }
         }
 
