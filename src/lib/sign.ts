@@ -16,8 +16,8 @@ function getSignatureWrapper(signature: HexString, type: KeypairType): Signature
       return { Ed25519: signature };
     case "ecdsa":
       return { Ecdsa: signature };
-    case "ethereum":
-      throw new Error('unsupported wrapper type: "ethereum"');
+    default:
+      throw new Error(`unsupported wrapper type: "${type}"`);
   }
 }
 

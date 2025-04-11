@@ -1,3 +1,4 @@
+import type { NodeAddress } from "@multiformats/multiaddr";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import type { u64 } from "@polkadot/types";
 import { useCallback, useState } from "react";
@@ -6,7 +7,6 @@ import { useOutletContext } from "react-router";
 import { useCtx } from "../GlobalCtx";
 import { DealProposalForm } from "../components/DealProposalForm";
 import { ProviderSelector } from "../components/ProviderSelector";
-import { DEFAULT_LOCAL_RPC_ADDRESS, DEFAULT_LOCAL_STORAGE_ADDRESS } from "../lib/consts";
 import {
   DEFAULT_INPUT,
   type InputFields,
@@ -17,7 +17,8 @@ import {
 } from "../lib/dealProposal";
 import { uploadFile } from "../lib/fileUpload";
 import { callProposeDeal, callPublishDeal } from "../lib/jsonRpc";
-import { queryPeerId } from "../lib/requestResponse";
+import { queryPeerId } from "../lib/p2p/bootstrapRequestResponse";
+import { Services } from "../lib/p2p/servicesRequestResponse";
 import type { StorageProviderInfo } from "../lib/storageProvider";
 
 type OutletContextType = {
@@ -75,64 +76,88 @@ export function DealPreparation() {
   const ctx = useCtx();
 
   const performDeal = async (p: string, validDealProposal: ValidatedFields) => {
-    if (!dealFile) {
-      // NOTE: This should never happen unless the "Continue" button is wrong
-      toast.error("No file was selected");
-      return;
-    }
-
-    // We can make a function out of this and use Promise.all for more efficiency
-    const provider = providers.get(p);
-    if (!provider) {
-      // NOTE: this shouldn't really happen unless state management is wrong
-      throw new Error("Selected provider does not exist");
-    }
-
-    const providerPeerId = provider.peerId;
-    const peerIdMultiaddress = await queryPeerId(providerPeerId);
-    if (!peerIdMultiaddress) {
-      toast.error(`Failed to find multiaddress for PeerId: ${providerPeerId}`);
-      return;
-    }
-
-    const nodeAddress = peerIdMultiaddress.nodeAddress();
-    const address = {
-      ip: nodeAddress.address,
-      port: nodeAddress.port,
-    };
-
-    try {
-      const proposeDealResponse = await callProposeDeal(toRpc(validDealProposal, p), {
-        ...address,
-        port: DEFAULT_LOCAL_RPC_ADDRESS.port, // We can't hardcode this but we can't do anything about it *right now*
-      });
-
-      await uploadFile(
-        dealFile,
-        proposeDealResponse,
-        { ...address, port: DEFAULT_LOCAL_STORAGE_ADDRESS.port }, // We can't hardcode this but we can't do anything about it *right now*
-      );
+    // Inner function to avoid misuse, this should only be used inside the toast.promise
+    // Throws inside this function are acceptable as they will be caught by the toast.promise and shown as such
+    const inner = async (p: string, validDealProposal: ValidatedFields) => {
+      if (!dealFile) {
+        // NOTE: This should never happen unless the "Continue" button is wrong
+        throw new Error("No file was selected");
+      }
 
       if (!selectedAccount) {
-        toast.error("No account selected");
-        return;
+        throw new Error("No account selected");
       }
 
-      const signedRpc = await createSignedRpc(validDealProposal, p, ctx.registry, selectedAccount);
-      await callPublishDeal(
-        signedRpc,
-        { ...address, port: DEFAULT_LOCAL_RPC_ADDRESS.port }, // We can't hardcode this but we can't do anything about it *right now*
-      );
-    } catch (error) {
-      if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error("Unable to decode error message, check console for details.");
-        console.error(error);
+      // We can make a function out of this and use Promise.all for more efficiency
+      const provider = providers.get(p);
+      if (!provider) {
+        // NOTE: this shouldn't really happen unless state management is wrong
+        throw new Error("Selected provider does not exist");
       }
-      return;
-    }
-    toast.success(`Successfully uploaded file to ${p}`);
+
+      const providerPeerId = provider.peerId;
+      const peerIdMultiaddress = await queryPeerId(providerPeerId);
+      if (!peerIdMultiaddress) {
+        throw new Error(`Failed to find multiaddress for PeerId: ${providerPeerId}`);
+      }
+
+      let targetStorageProvider:
+        | {
+            services: Services.StorageProviderServices;
+            address: NodeAddress;
+          }
+        | undefined;
+      for (const maddr of peerIdMultiaddress) {
+        const response = await Services.sendRequest("All", maddr);
+        if (Services.isStorageProviderService(response.services)) {
+          targetStorageProvider = {
+            services: response.services,
+            address: maddr.nodeAddress(),
+          };
+          break;
+        }
+      }
+
+      if (!targetStorageProvider) {
+        throw new Error("Could not find an address to upload the files to.");
+      }
+
+      const proposeDealResponse = await callProposeDeal(toRpc(validDealProposal, p), {
+        ip: targetStorageProvider.address.address,
+        port: targetStorageProvider.services.rpc.port,
+      });
+
+      await uploadFile(dealFile, proposeDealResponse, {
+        ip: targetStorageProvider.address.address,
+        port: targetStorageProvider.services.upload.port,
+      });
+
+      const signedRpc = await createSignedRpc(validDealProposal, p, ctx.registry, selectedAccount);
+      await callPublishDeal(signedRpc, {
+        ip: targetStorageProvider.address.address,
+        port: targetStorageProvider.services.rpc.port,
+      });
+    };
+
+    await toast.promise(
+      async () => {
+        setLoading(true);
+        await inner(p, validDealProposal);
+        setLoading(false);
+      },
+      {
+        loading: `Uploading deal to provider ${p}`,
+        error: (err) => `Failed to upload deal to provider ${p} with error: ${err}`,
+        success: `Successfully uploaded deal to provider ${p}`,
+      },
+      {
+        success: {
+          // Extend the duration to match the others
+          // so the user has more time to check successes
+          duration: 4000,
+        },
+      },
+    );
   };
 
   const Submit = () => {
@@ -143,21 +168,11 @@ export function DealPreparation() {
         return;
       }
 
-      // TODO: figure out error handling here
-      toast.promise(
-        async () => {
-          setLoading(true);
-          await Promise.allSettled(
-            Array.from(selectedProviders).map((provider) =>
-              performDeal(provider, validDealProposal),
-            ),
-          );
-          setLoading(false);
-        },
-        {
-          loading: "Uploading deals",
-        },
-      );
+      for (const provider of selectedProviders) {
+        // Using Promise.all here spams the user with N popups
+        // where N is the number of storage providers the user is uploading deals to
+        await performDeal(provider, validDealProposal);
+      }
     };
 
     const submitDisabled =

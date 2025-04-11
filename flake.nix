@@ -4,6 +4,6 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
-        buildInputs = with pkgs; [ nodejs nodePackages.pnpm biome ];
+        buildInputs = with pkgs; [ git nodejs nodePackages.pnpm biome ];
       in with pkgs; { devShells.default = mkShell { inherit buildInputs; }; });
 }
