@@ -25,6 +25,10 @@ export function GlobalCtxProvider({
     const wsProvider = new WsProvider(wsAddress);
     wsProvider.on("connected", () => {
       console.log("WS ready!");
+
+      // The reason for setting `connecting` instead of connected is:
+      // When it's reconnected to ws, it isn't reconnected to the whole thing yet.
+      // subscribeFinalizedHeads method will execute and set to 'connected' when it's finished querying for the last block & friends.
       setStatus({ type: "connecting" });
     });
 
