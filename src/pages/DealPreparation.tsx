@@ -17,7 +17,7 @@ import {
   validateInput,
 } from "../lib/dealProposal";
 import { uploadFile } from "../lib/fileUpload";
-import { PolkaCollatorRpc, StorageProviderRpc } from "../lib/jsonRpc";
+import { callProposeDeal, callPublishDeal } from "../lib/jsonRpc";
 import { queryPeerId } from "../lib/p2p/bootstrapRequestResponse";
 import { Services } from "../lib/p2p/servicesRequestResponse";
 import type { StorageProviderInfo } from "../lib/storageProvider";
@@ -36,7 +36,7 @@ const DEFAULT_MAX_PROVE_COMMIT_DURATION = 50;
 
 export function DealPreparation() {
   const { accounts, selectedAccount, setSelectedAccount } = useOutletContext<OutletContextType>();
-  const { latestFinalizedBlock, collatorWsApi, wsAddress, registry } = useCtx();
+  const { latestFinalizedBlock, collatorWsApi, collatorWsProvider, wsAddress, registry } = useCtx();
 
   // This is the minimum amount of blocks it'll take for the deal to be active.
   const maxProveCommitDuration =
@@ -94,7 +94,13 @@ export function DealPreparation() {
         throw new Error("Selected provider does not exist");
       }
 
-      const collatorMaddrs = await PolkaCollatorRpc.getP2PMultiaddrs(wsAddress);
+      if (!collatorWsProvider) {
+        throw new Error("Failed to connect to collator");
+      }
+      const collatorMaddrs: string[] = await collatorWsProvider.send(
+        "polkaStorage_getP2pMultiaddrs",
+        [],
+      );
       const wsMaddrs = collatorMaddrs
         .filter((maddr) => maddr.includes("ws"))
         .map(multiaddr)
@@ -139,13 +145,10 @@ export function DealPreparation() {
         throw new Error("Could not find an address to upload the files to.");
       }
 
-      const proposeDealResponse = await StorageProviderRpc.callProposeDeal(
-        toRpc(validDealProposal, p),
-        {
-          ip: targetStorageProvider.address.address,
-          port: targetStorageProvider.services.rpc.port,
-        },
-      );
+      const proposeDealResponse = await callProposeDeal(toRpc(validDealProposal, p), {
+        ip: targetStorageProvider.address.address,
+        port: targetStorageProvider.services.rpc.port,
+      });
 
       await uploadFile(dealFile, proposeDealResponse, {
         ip: targetStorageProvider.address.address,
@@ -153,7 +156,7 @@ export function DealPreparation() {
       });
 
       const signedRpc = await createSignedRpc(validDealProposal, p, registry, selectedAccount);
-      await StorageProviderRpc.callPublishDeal(signedRpc, {
+      await callPublishDeal(signedRpc, {
         ip: targetStorageProvider.address.address,
         port: targetStorageProvider.services.rpc.port,
       });
