@@ -8,6 +8,7 @@ export type Status =
   | { type: "connected" }
   | { type: "loading" }
   | { type: "loaded" }
+  | { type: "disconnected" }
   | { type: "failed"; error: string };
 
 export function GlobalCtxProvider({
@@ -22,6 +23,15 @@ export function GlobalCtxProvider({
 
   const connect = useCallback(async () => {
     const wsProvider = new WsProvider(wsAddress);
+    wsProvider.on("connected", () => {
+      console.log("WS ready!");
+      setStatus({ type: "connecting" });
+    });
+
+    wsProvider.on("disconnected", () => {
+      console.error("WS disconnected!");
+      setStatus({ type: "disconnected" });
+    });
 
     try {
       setStatus({ type: "connecting" });
