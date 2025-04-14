@@ -92,6 +92,14 @@ const Inner = ({ context }: { context: unknown }) => {
         </div>
       );
     }
+    case "disconnected": {
+      return (
+        <div className="bg-orange-50 text-center py-8 rounded-lg">
+          <Loader2 className="animate-spin mx-auto h-8 w-8 text-blue-500 mb-4" />
+          <p className="text-gray-600">Reconnecting to the collator at: {wsAddress}...</p>
+        </div>
+      );
+    }
     case "loaded":
     case "connected": {
       return <Outlet context={context} />;
