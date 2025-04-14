@@ -42,6 +42,7 @@ function WsAddressInput({ onChange }: { onChange: (newValue: string) => void }) 
 function App() {
   const [accounts, setAccounts] = useState<InjectedAccountWithMeta[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<InjectedAccountWithMeta | null>(null);
+  const [loaded, setLoaded] = useState<boolean>(false);
   const [wsAddress, setWsAddress] = useState(COLLATOR_LOCAL_RPC_URL);
 
   const location = useLocation();
@@ -52,11 +53,20 @@ function App() {
     initWasm()
       .then(() => {
         console.log("WASM module initialized");
+        setLoaded(true);
       })
       .catch((err) => {
         console.error("Failed to initialize WASM module:", err);
       });
   }, []);
+
+  if (!loaded)
+    return (
+      <div className="text-center py-8">
+        <Loader2 className="animate-spin mx-auto h-8 w-8 text-blue-500 mb-4" />
+        <p className="text-gray-600">Initializing WASM...</p>
+      </div>
+    );
 
   return (
     <GlobalCtxProvider registry={registry} wsAddress={wsAddress}>

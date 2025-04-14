@@ -15,40 +15,49 @@ export async function writeCarFileWithOffsets(
 ): Promise<{ carBytes: Uint8Array; indexEntries: IndexEntry[] }> {
   const { writer, out } = await CarWriter.create([rootCID]);
   let offset = CarBufferWriter.headerLength({ roots: [rootCID] });
-  const carChunks: Uint8Array[] = [];
-  const indexEntries: IndexEntry[] = [];
 
-  const blockQueue: [string, CID][] = Array.from(nodes.keys()).map((cidStr) => {
-    const cid = CID.parse(cidStr);
-    return [cidStr, cid];
-  });
-
+  const numBlocks = nodes.size;
+  const blockQueue = new Array<[string, CID]>(numBlocks);
+  const indexEntries = new Array<IndexEntry>(numBlocks);
   const writtenBlocks = new Set<string>();
 
+  // Pre-fill blockQueue
+  let i = 0;
+  for (const key of nodes.keys()) {
+    const cid = CID.parse(key);
+    blockQueue[i++] = [key, cid];
+  }
+
+  const carChunks: Uint8Array[] = [];
+
   const collect = (async () => {
+    let blockIndex = 0;
+
     for await (const chunk of out) {
       carChunks.push(chunk);
 
-      // Attempt to match written block by order
-      for (const [cidStr, cid] of blockQueue) {
+      // Record offset for the next unwritten CID in blockQueue
+      while (blockIndex < blockQueue.length) {
+        const [cidStr, cid] = blockQueue[blockIndex];
         if (!writtenBlocks.has(cidStr)) {
           writtenBlocks.add(cidStr);
 
-          indexEntries.push({
+          indexEntries[blockIndex] = {
             multihash: cid.multihash.bytes,
             offset,
-          });
+          };
 
-          blockQueue.shift();
+          blockIndex++;
           break;
         }
+        blockIndex++;
       }
 
       offset += chunk.length;
     }
   })();
 
-  for (const [cidStr, bytes] of Array.from(nodes.entries())) {
+  for (const [cidStr, bytes] of nodes.entries()) {
     const cid = CID.parse(cidStr);
     await writer.put({ cid, bytes });
   }
@@ -56,8 +65,18 @@ export async function writeCarFileWithOffsets(
   await writer.close();
   await collect;
 
+  // Calculate total size and merge carChunks efficiently
+  const totalLength = carChunks.reduce((sum, chunk) => sum + chunk.length, 0);
+  const carBytes = new Uint8Array(totalLength);
+
+  let position = 0;
+  for (const chunk of carChunks) {
+    carBytes.set(chunk, position);
+    position += chunk.length;
+  }
+
   return {
-    carBytes: concatUint8Arrays(carChunks),
+    carBytes,
     indexEntries,
   };
 }

@@ -21,27 +21,33 @@ export function FileUploader({ onMetadataReady }: FileUploaderProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const onDrop = useCallback(
-    async (acceptedFiles: File[]) => {
-      const file = acceptedFiles[0];
-      if (!file) return;
+    (acceptedFiles: File[]) => {
+      return new Promise<void>((resolve, reject) => {
+        const file = acceptedFiles[0];
+        if (!file) return;
 
-      setSelectedFile(file);
+        setSelectedFile(file);
 
-      const reader = new FileReader();
+        const reader = new FileReader();
 
-      reader.onloadend = async (e) => {
-        if (e.target?.result) {
-          const content = new Uint8Array(e.target.result as ArrayBuffer);
-          const v2Bytes = await generateCarV2(content);
+        reader.onloadend = async (e) => {
+          if (e.target?.result) {
+            try {
+              const content = new Uint8Array(e.target.result as ArrayBuffer);
+              const v2Bytes = await generateCarV2(content);
 
-          const piece_size = padded_piece_size(v2Bytes);
-          const cid = commp_from_bytes(v2Bytes);
+              const piece_size = padded_piece_size(v2Bytes);
+              const cid = commp_from_bytes(v2Bytes);
+              onMetadataReady({ pieceSize: piece_size, cid }, file);
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
+          }
+        };
 
-          onMetadataReady({ pieceSize: piece_size, cid }, file);
-        }
-      };
-
-      reader.readAsArrayBuffer(file);
+        reader.readAsArrayBuffer(file);
+      });
     },
     [onMetadataReady],
   );
