@@ -1,8 +1,8 @@
 import { CarBufferWriter, CarWriter } from "@ipld/car";
-import { u8aConcat } from "@polkadot/util";
+import { u8aCmp, u8aConcat } from "@polkadot/util";
 import { CID } from "multiformats/cid";
 import { encode } from "uint8-varint";
-import { compareUint8Arrays, numberToU32LE, numberToU64LE } from "./bytes";
+import { numberToU32LE, numberToU64LE } from "./bytes";
 import { MULTIHASH_INDEX_SORTED_CODE, SHA_256_CODE } from "./consts";
 
 export interface IndexEntry {
@@ -90,7 +90,7 @@ export function buildMultihashIndexSorted(
   }
 
   // Sort entries by multihash bytes
-  entries.sort((a, b) => compareUint8Arrays(a.multihash, b.multihash));
+  entries.sort((a, b) => u8aCmp(a.multihash, b.multihash));
 
   const parts: Uint8Array[] = [];
 

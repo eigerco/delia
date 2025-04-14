@@ -9,11 +9,3 @@ export function numberToU32LE(n: number): Uint8Array {
   new DataView(buffer).setUint32(0, n, true);
   return new Uint8Array(buffer);
 }
-
-export function compareUint8Arrays(a: Uint8Array, b: Uint8Array): number {
-  const len = Math.min(a.length, b.length);
-  for (let i = 0; i < len; i++) {
-    if (a[i] !== b[i]) return a[i] - b[i];
-  }
-  return a.length - b.length;
-}
