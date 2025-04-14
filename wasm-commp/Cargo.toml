@@ -10,12 +10,17 @@ crate-type = ["cdylib"]
 
 [dependencies]
 byte-slice-cast = "1.2.3"
-primitives = { git = "https://github.com/eigerco/polka-storage/", package = "primitives", default-features = false }
 rs_merkle = "1.5.0"
 serde-wasm-bindgen = "0.6.5"
 sha2 = "0.10.8"
 wasm-bindgen = "0.2.100"
 wasm-bindgen-futures = "0.4.50"
+
+[dependencies.primitives]
+git = "https://github.com/eigerco/polka-storage/"
+package = "primitives"
+rev = "65ff48241c8df1d0083985d5f35acd2e65758899"
+default-features = false
 
 [patch.'https://github.com/w3f/fflonk']
 # Patch needed because of some renaming issue with fflonk
