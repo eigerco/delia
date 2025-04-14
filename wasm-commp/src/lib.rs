@@ -19,16 +19,30 @@ extern "C" {
     fn log(s: &str);
 }
 
-/// Generates the padded piece size and the CID for the given file bytes.
-/// Returns the CommP
+/// Generates the CommP (piece commitment) from the input file bytes.
+///
+/// This function:
+/// 1. Calculates the padded piece size.
+/// 2. Applies zero-padding to the original bytes.
+/// 3. Applies Fr32 padding.
+/// 4. Builds a Merkle tree from 32-byte nodes.
+/// 5. Returns the Merkle root (CommP) as a CID.
+///
+/// # Arguments
+/// * `data` - The original unpadded file bytes.
+///
+/// # Returns
+/// A JS string containing the CID.
 #[wasm_bindgen(js_name = "commpFromBytes")]
 pub fn commp_from_bytes(data: &[u8]) -> Result<JsValue, JsValue> {
     let file_size = data.len() as u64;
     let padded_piece_size = PaddedPieceSize::from_arbitrary_size(file_size);
-    // how many zeroes we need to add, so after Fr32 padding it'll be a power of two
+
+    // Compute unpadded size, apply zero-padding accordingly
     let padded_with_zeroes = *padded_piece_size.unpadded();
     let buffered = Cursor::new(data);
     let mut zero_padding_reader = ZeroPaddingReader::new(buffered, padded_with_zeroes);
+
     let commitment =
         calculate_piece_commitment(&mut zero_padding_reader, padded_piece_size).unwrap();
 
@@ -37,8 +51,13 @@ pub fn commp_from_bytes(data: &[u8]) -> Result<JsValue, JsValue> {
     Ok(JsValue::from_str(&commitment.cid().to_string()))
 }
 
-/// Computes the padded piece size of the given CAR file data.
-/// Returns the padded piece size
+/// Computes the padded piece size of a CAR file buffer according to Filecoin specs.
+///
+/// # Arguments
+/// * `data` - The full file buffer (e.g. a CAR file).
+///
+/// # Returns
+/// A JS string representing the padded piece size in bytes.
 #[wasm_bindgen(js_name = "paddedPieceSize")]
 pub fn padded_piece_size(data: &[u8]) -> Result<JsValue, JsValue> {
     let file_size = data.len() as u64;
@@ -52,30 +71,35 @@ pub fn padded_piece_size(data: &[u8]) -> Result<JsValue, JsValue> {
     Ok(JsValue::from_str(&padded_piece_size.to_string()))
 }
 
-/// Calculate the piece commitment for a given data source.
+/// Calculates the piece commitment (CommP) for a data stream with a given padded piece size.
 ///
-///  Reference — <https://spec.filecoin.io/systems/filecoin_files/piece/#section-systems.filecoin_files.piece.data-representation>
+/// This function:
+/// - Wraps the input in an `Fr32Reader` to apply Fr32 bit-padding.
+/// - Splits data into `NODE_SIZE` chunks to generate Merkle tree leaves.
+/// - Constructs a Merkle tree using `Sha256` (masked).
+/// - Returns the root hash as a `Commitment<CommP>`.
+///
+/// # Arguments
+/// * `source` - A reader over the padded input data.
+/// * `piece_size` - The padded piece size in bytes.
+///
+/// # Returns
+/// A `Commitment<CommP>` containing the Merkle root.
 pub fn calculate_piece_commitment<R: Read>(
     source: R,
     piece_size: PaddedPieceSize,
 ) -> Result<Commitment<CommP>, JsValue> {
-    // This reader adds two zero bits to each 254 bits of data read from the source.
     let mut fr32_reader = Fr32Reader::new(source);
-
-    // Buffer used for reading data used for leafs.
     let mut buffer = [0; NODE_SIZE];
-    // Number of leafs
     let num_leafs = piece_size.div_ceil(NODE_SIZE as u64) as usize;
 
-    // WASM compatible sha256 hasher and a BinaryMerkleTree.
-    // Elements iterator used by the MerkleTree. The elements returned by the
-    // iterator represent leafs of the tree
     let leaves = (0..num_leafs)
         .map(|_| {
             fr32_reader.read_exact(&mut buffer).unwrap();
             buffer
         })
         .collect::<Vec<[u8; 32]>>();
+
     let tree = MerkleTree::<Sha256>::from_leaves(&leaves);
     let raw = tree.root().unwrap();
 
