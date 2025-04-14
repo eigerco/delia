@@ -56,7 +56,7 @@ function App() {
         setLoaded(true);
       })
       .catch((err) => {
-        console.error("Failed to initialize WASM module:", err);
+        console.error("Failed to initialize WASM module", err);
       });
   }, []);
 
