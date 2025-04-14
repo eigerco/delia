@@ -25,7 +25,7 @@ export async function writeCarFileWithOffsets(
   rootCID: CID,
 ): Promise<{ carBytes: Uint8Array; indexEntries: IndexEntry[] }> {
   const { writer, out } = await CarWriter.create([rootCID]);
-  let offset = CarBufferWriter.headerLength({ roots: [rootCID] });
+  const offset = CarBufferWriter.headerLength({ roots: [rootCID] });
 
   const blockQueue = createBlockQueue(nodes);
   const indexEntries = new Array<IndexEntry>(blockQueue.length);
@@ -38,10 +38,7 @@ export async function writeCarFileWithOffsets(
     writtenBlocks,
     indexEntries,
     carChunks,
-    () => offset,
-    (len) => {
-      offset += len;
-    },
+    offset,
   );
 
   for (const [cidStr, bytes] of nodes.entries()) {
@@ -83,8 +80,7 @@ function createBlockQueue(nodes: Map<string, Uint8Array>): [string, CID][] {
  * @param writtenBlocks - A Set tracking which blocks have been indexed already.
  * @param indexEntries - The array to store offset information for each block.
  * @param carChunks - Accumulator array for CAR chunks.
- * @param getOffset - Function returning the current byte offset.
- * @param advanceOffset - Function to advance the byte offset after each chunk.
+ * @param offset - The current byte offset.
  */
 async function collectChunksAndOffsets(
   out: AsyncIterable<Uint8Array>,
@@ -92,31 +88,27 @@ async function collectChunksAndOffsets(
   writtenBlocks: Set<string>,
   indexEntries: IndexEntry[],
   carChunks: Uint8Array[],
-  getOffset: () => number,
-  advanceOffset: (len: number) => void,
+  offset: number,
 ): Promise<void> {
   let blockIndex = 0;
+  let current_offset = offset;
 
   for await (const chunk of out) {
     carChunks.push(chunk);
 
-    while (blockIndex < blockQueue.length) {
+    for (; blockIndex < blockQueue.length; blockIndex++) {
       const [cidStr, cid] = blockQueue[blockIndex];
       if (!writtenBlocks.has(cidStr)) {
         writtenBlocks.add(cidStr);
 
         indexEntries[blockIndex] = {
           multihash: cid.multihash.bytes,
-          offset: getOffset(),
+          offset,
         };
-
-        blockIndex++;
         break;
       }
-      blockIndex++;
     }
-
-    advanceOffset(chunk.length);
+    current_offset += chunk.length;
   }
 }
 
