@@ -1,7 +1,8 @@
 import { CarBufferWriter, CarWriter } from "@ipld/car";
+import { u8aConcat } from "@polkadot/util";
 import { CID } from "multiformats/cid";
 import { encode } from "uint8-varint";
-import { compareUint8Arrays, concatUint8Arrays, numberToU32LE, numberToU64LE } from "./bytes";
+import { compareUint8Arrays, numberToU32LE, numberToU64LE } from "./bytes";
 import { MULTIHASH_INDEX_SORTED_CODE, SHA_256_CODE } from "./consts";
 
 export interface IndexEntry {
@@ -76,7 +77,7 @@ export async function writeCarFileWithOffsets(
   }
 
   return {
-    carBytes,
+    carBytes: u8aConcat(...carChunks),
     indexEntries,
   };
 }
@@ -106,16 +107,16 @@ export function buildMultihashIndexSorted(
     parts.push(entry);
   }
 
-  return concatUint8Arrays(parts);
+  return u8aConcat(...parts);
 }
 
 export function indexHeader(entriesCount: number): Uint8Array {
-  return concatUint8Arrays([
+  return u8aConcat(
     encode(MULTIHASH_INDEX_SORTED_CODE), // multicodec varint
     numberToU32LE(0x01), // digest bucket length
     numberToU64LE(SHA_256_CODE), // multihash code
     numberToU32LE(entriesCount), // entries amount
     numberToU32LE(0x28), // digest + offset length
     numberToU64LE(0x28 * entriesCount), // total length ((digest + offset) * entries)
-  ]);
+  );
 }

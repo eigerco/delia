@@ -1,4 +1,5 @@
-import { concatUint8Arrays, numberToU64LE } from "./bytes";
+import { u8aConcat } from "@polkadot/util";
+import { numberToU64LE } from "./bytes";
 import { chunkFile } from "./chunker";
 import { CARV2_HEADER_SIZE, PRAGMA_SIZE } from "./consts";
 import { buildMultihashIndexSorted, writeCarFileWithOffsets } from "./index";
@@ -14,17 +15,17 @@ export async function generateCar(bytes: Uint8Array): Promise<Uint8Array> {
   const indexOffset = dataOffset + dataSize;
   const indexBytes = buildMultihashIndexSorted(indexEntries);
 
-  const header = concatUint8Arrays([
+  const header = u8aConcat(
     CARv2Pragma(),
     characteristics(),
     numberToU64LE(dataOffset),
     numberToU64LE(dataSize),
     numberToU64LE(indexOffset),
-  ]);
+  );
 
   console.log("Root CID:", rootCID.toString());
 
-  const carBytes = concatUint8Arrays([header, carV1Bytes, indexBytes]);
+  const carBytes = u8aConcat(header, carV1Bytes, indexBytes);
 
   return carBytes;
 }
@@ -46,5 +47,5 @@ function CARv2Pragma(): Uint8Array {
 }
 
 function characteristics(): Uint8Array {
-  return concatUint8Arrays([numberToU64LE(0), numberToU64LE(0)]);
+  return u8aConcat(numberToU64LE(0), numberToU64LE(0));
 }
