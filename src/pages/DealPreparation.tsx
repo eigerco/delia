@@ -1,4 +1,4 @@
-import type { NodeAddress } from "@multiformats/multiaddr";
+import { type NodeAddress, multiaddr } from "@multiformats/multiaddr";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import type { u64 } from "@polkadot/types";
 import { Loader2 } from "lucide-react";
@@ -17,7 +17,7 @@ import {
   validateInput,
 } from "../lib/dealProposal";
 import { uploadFile } from "../lib/fileUpload";
-import { callProposeDeal, callPublishDeal } from "../lib/jsonRpc";
+import { PolkaCollatorRpc, StorageProviderRpc } from "../lib/jsonRpc";
 import { queryPeerId } from "../lib/p2p/bootstrapRequestResponse";
 import { Services } from "../lib/p2p/servicesRequestResponse";
 import type { StorageProviderInfo } from "../lib/storageProvider";
@@ -36,7 +36,7 @@ const DEFAULT_MAX_PROVE_COMMIT_DURATION = 50;
 
 export function DealPreparation() {
   const { accounts, selectedAccount, setSelectedAccount } = useOutletContext<OutletContextType>();
-  const { latestFinalizedBlock, collatorWsApi } = useCtx();
+  const { latestFinalizedBlock, collatorWsApi, wsAddress, registry } = useCtx();
 
   // This is the minimum amount of blocks it'll take for the deal to be active.
   const maxProveCommitDuration =
@@ -74,8 +74,6 @@ export function DealPreparation() {
     });
   }, []);
 
-  const ctx = useCtx();
-
   const performDeal = async (p: string, validDealProposal: ValidatedFields) => {
     // Inner function to avoid misuse, this should only be used inside the toast.promise
     // Throws inside this function are acceptable as they will be caught by the toast.promise and shown as such
@@ -96,8 +94,26 @@ export function DealPreparation() {
         throw new Error("Selected provider does not exist");
       }
 
+      const collatorMaddrs = await PolkaCollatorRpc.getP2PMultiaddrs(wsAddress);
+      const wsMaddrs = collatorMaddrs
+        .filter((maddr) => maddr.includes("ws"))
+        .map(multiaddr)
+        .at(0);
+      if (!wsMaddrs) {
+        throw new Error("Could not find the services required to resolve the peer id");
+      }
+
+      // Hack: since there's no way to replace parts of multiaddrs, we need to do it by hand
+      // we convert to a string, replace the "0.0.0.0" which is what we're expecting and recreate the multiaddr
+      const queryAddr = multiaddr(
+        wsMaddrs
+          .toString()
+          // biome-ignore lint/style/noNonNullAssertion: wsAddress should be valid at this point
+          .replace("0.0.0.0", URL.parse(wsAddress)!.hostname),
+      );
+
       const providerPeerId = provider.peerId;
-      const peerIdMultiaddress = await queryPeerId(providerPeerId);
+      const peerIdMultiaddress = await queryPeerId(providerPeerId, queryAddr);
       if (!peerIdMultiaddress) {
         throw new Error(`Failed to find multiaddress for PeerId: ${providerPeerId}`);
       }
@@ -123,18 +139,21 @@ export function DealPreparation() {
         throw new Error("Could not find an address to upload the files to.");
       }
 
-      const proposeDealResponse = await callProposeDeal(toRpc(validDealProposal, p), {
-        ip: targetStorageProvider.address.address,
-        port: targetStorageProvider.services.rpc.port,
-      });
+      const proposeDealResponse = await StorageProviderRpc.callProposeDeal(
+        toRpc(validDealProposal, p),
+        {
+          ip: targetStorageProvider.address.address,
+          port: targetStorageProvider.services.rpc.port,
+        },
+      );
 
       await uploadFile(dealFile, proposeDealResponse, {
         ip: targetStorageProvider.address.address,
         port: targetStorageProvider.services.upload.port,
       });
 
-      const signedRpc = await createSignedRpc(validDealProposal, p, ctx.registry, selectedAccount);
-      await callPublishDeal(signedRpc, {
+      const signedRpc = await createSignedRpc(validDealProposal, p, registry, selectedAccount);
+      await StorageProviderRpc.callPublishDeal(signedRpc, {
         ip: targetStorageProvider.address.address,
         port: targetStorageProvider.services.rpc.port,
       });
