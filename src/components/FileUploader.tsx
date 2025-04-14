@@ -1,7 +1,7 @@
 import { FileText, Upload } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { commp_from_bytes, padded_piece_size } from "wasm-commp";
+import { commpFromBytes, paddedPieceSize } from "wasm-commp";
 import { generateCar as generateCarV2 } from "../lib/car/v2";
 
 // Props returned by FileUploader.
@@ -36,8 +36,8 @@ export function FileUploader({ onMetadataReady }: FileUploaderProps) {
               const content = new Uint8Array(e.target.result as ArrayBuffer);
               const v2Bytes = await generateCarV2(content);
 
-              const piece_size = padded_piece_size(v2Bytes);
-              const cid = commp_from_bytes(v2Bytes);
+              const piece_size = paddedPieceSize(v2Bytes);
+              const cid = commpFromBytes(v2Bytes);
               onMetadataReady({ pieceSize: piece_size, cid }, file);
               resolve();
             } catch (err) {

@@ -21,7 +21,7 @@ extern "C" {
 
 /// Generates the padded piece size and the CID for the given file bytes.
 /// Returns the CommP
-#[wasm_bindgen]
+#[wasm_bindgen(js_name = "commpFromBytes")]
 pub fn commp_from_bytes(data: &[u8]) -> Result<JsValue, JsValue> {
     let file_size = data.len() as u64;
     let padded_piece_size = PaddedPieceSize::from_arbitrary_size(file_size);
@@ -39,7 +39,7 @@ pub fn commp_from_bytes(data: &[u8]) -> Result<JsValue, JsValue> {
 
 /// Computes the padded piece size of the given CAR file data.
 /// Returns the padded piece size
-#[wasm_bindgen]
+#[wasm_bindgen(js_name = "paddedPieceSize")]
 pub fn padded_piece_size(data: &[u8]) -> Result<JsValue, JsValue> {
     let file_size = data.len() as u64;
     let padded_piece_size = PaddedPieceSize::from_arbitrary_size(file_size);
