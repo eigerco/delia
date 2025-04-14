@@ -18,4 +18,6 @@ wasm-bindgen = "0.2.100"
 wasm-bindgen-futures = "0.4.50"
 
 [patch.'https://github.com/w3f/fflonk']
+# Patch needed because of some renaming issue with fflonk
+# Reference to the issue: https://github.com/paritytech/polkadot-sdk/issues/7653#issuecomment-2674485339
 fflonk = { git = "https://www.github.com/w3f/fflonk", rev = "eda051ea3b80042e844a3ebd17c2f60536e6ee3f" }
