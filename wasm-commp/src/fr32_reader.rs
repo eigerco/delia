@@ -1,3 +1,5 @@
+//! This code is taken from the [fr32](https://docs.rs/fr32/latest/fr32/) library contained in
+//! [rust-fil-proofs](https://github.com/filecoin-project/rust-fil-proofs) and adapted to work in a WASM environment.
 use std::cmp::min;
 use std::io::{self, Read};
 use std::mem::size_of;
