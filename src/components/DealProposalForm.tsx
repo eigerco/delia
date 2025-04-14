@@ -60,6 +60,18 @@ function blockToTime(block: number, currentBlock: number, currentBlockTimestamp:
   return realTime;
 }
 
+type FormInputProps = {
+  dealProposal: InputFields;
+  onChange: (dealProposal: InputFields) => void;
+  accounts: InjectedAccountWithMeta[];
+  selectedAccount: InjectedAccountWithMeta | null;
+  onSelectAccount: (account: InjectedAccountWithMeta) => void;
+  currentBlock: number;
+  currentBlockTimestamp: Date;
+  onFileSelect: (file: File) => void;
+  selectedFile: File | null;
+};
+
 const FormInput = ({
   dealProposal,
   onChange,
@@ -68,15 +80,9 @@ const FormInput = ({
   onSelectAccount,
   currentBlock,
   currentBlockTimestamp,
-}: {
-  dealProposal: InputFields;
-  onChange: (dealProposal: InputFields) => void;
-  accounts: InjectedAccountWithMeta[];
-  selectedAccount: InjectedAccountWithMeta | null;
-  onSelectAccount: (account: InjectedAccountWithMeta) => void;
-  currentBlock: number;
-  currentBlockTimestamp: Date;
-}) => {
+  onFileSelect,
+  selectedFile,
+}: FormInputProps) => {
   const startBlock = Number.parseInt(dealProposal.startBlock);
   const endBlock = Number.parseInt(dealProposal.endBlock);
 
@@ -120,6 +126,8 @@ const FormInput = ({
           ))}
         </select>
       </div>
+
+      <FileUploader onFileSelect={onFileSelect} selectedFile={selectedFile} />
 
       {/* TODO: add CID validation */}
       <Field
@@ -244,6 +252,8 @@ export function DealProposalForm({
         onSelectAccount={onSelectAccount}
         currentBlock={currentBlock}
         currentBlockTimestamp={currentBlockTimestamp}
+        onFileSelect={onFileSelect}
+        selectedFile={selectedFile}
       />
 
       {totalPrice > 0 && (
@@ -257,8 +267,6 @@ export function DealProposalForm({
           </p>
         </div>
       )}
-
-      <FileUploader onFileSelect={onFileSelect} selectedFile={selectedFile} />
     </div>
   );
 }
