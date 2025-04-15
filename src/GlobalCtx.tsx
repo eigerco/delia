@@ -1,4 +1,4 @@
-import type { ApiPromise } from "@polkadot/api";
+import type { ApiPromise, WsProvider } from "@polkadot/api";
 import type { TypeRegistry } from "@polkadot/types";
 import { createContext, useContext } from "react";
 import { GlobalCtxProvider, type Status } from "./GlobalCtxProvider";
@@ -7,6 +7,7 @@ export type Ctx = {
   registry: TypeRegistry;
   wsAddress: string;
   latestFinalizedBlock: { number: number; timestamp: Date } | null;
+  collatorWsProvider: WsProvider | null;
   collatorWsApi: ApiPromise | null;
   collatorConnectionStatus: Status;
 };

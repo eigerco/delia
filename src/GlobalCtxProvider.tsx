@@ -16,6 +16,7 @@ export function GlobalCtxProvider({
   registry,
   children,
 }: React.PropsWithChildren<{ registry: TypeRegistry; wsAddress: string }>) {
+  const collatorWsProviderRef = useRef<WsProvider | null>(null);
   const collatorWsRef = useRef<ApiPromise | null>(null);
   const [status, setStatus] = useState<Status>({ type: "connecting" });
   const [latestFinalizedBlock, setLatestFinalizedBlock] = useState<number | null>(null);
@@ -23,6 +24,8 @@ export function GlobalCtxProvider({
 
   const connect = useCallback(async () => {
     const wsProvider = new WsProvider(wsAddress);
+    collatorWsProviderRef.current = wsProvider;
+
     wsProvider.on("connected", () => {
       console.log("WS ready!");
 
@@ -100,6 +103,7 @@ export function GlobalCtxProvider({
         latestFinalizedBlock && latestBlockTimestamp
           ? { number: latestFinalizedBlock, timestamp: latestBlockTimestamp }
           : null,
+      collatorWsProvider: collatorWsProviderRef.current,
       collatorWsApi: collatorWsRef.current,
       collatorConnectionStatus: status,
     }),
