@@ -1,4 +1,4 @@
-import { CarBufferWriter, CarWriter } from "@ipld/car";
+import { CarIndexer, CarWriter } from "@ipld/car";
 import { u8aCmp, u8aConcat } from "@polkadot/util";
 import { CID } from "multiformats/cid";
 import { encode } from "uint8-varint";
@@ -10,6 +10,7 @@ import { MULTIHASH_INDEX_SORTED_CODE, SHA_256_CODE } from "./consts";
  */
 export interface IndexEntry {
   multihash: Uint8Array;
+  digest: Uint8Array;
   offset: number;
 }
 
@@ -25,21 +26,15 @@ export async function writeCarFileWithOffsets(
   rootCID: CID,
 ): Promise<{ carBytes: Uint8Array; indexEntries: IndexEntry[] }> {
   const { writer, out } = await CarWriter.create([rootCID]);
-  const offset = CarBufferWriter.headerLength({ roots: [rootCID] });
 
-  const blockQueue = createBlockQueue(nodes);
-  const indexEntries = new Array<IndexEntry>(blockQueue.length);
-  const writtenBlocks = new Set<string>();
   const carChunks: Uint8Array[] = [];
 
-  const collectPromise = collectChunksAndOffsets(
-    out,
-    blockQueue,
-    writtenBlocks,
-    indexEntries,
-    carChunks,
-    offset,
-  );
+  // Actively drain the writer output
+  const drain = (async () => {
+    for await (const chunk of out) {
+      carChunks.push(chunk);
+    }
+  })();
 
   for (const [cidStr, bytes] of nodes.entries()) {
     const cid = CID.parse(cidStr);
@@ -47,69 +42,25 @@ export async function writeCarFileWithOffsets(
   }
 
   await writer.close();
-  await collectPromise;
+  await drain;
 
   const carBytes = concatChunks(carChunks);
+
+  const indexer = await CarIndexer.fromBytes(carBytes);
+  const indexEntries: IndexEntry[] = [];
+  for await (const blockIndex of indexer) {
+    console.log(JSON.stringify(blockIndex));
+    indexEntries.push({
+      multihash: blockIndex.cid.multihash.bytes,
+      offset: blockIndex.offset,
+      digest: blockIndex.cid.multihash.digest,
+    });
+  }
 
   return {
     carBytes,
     indexEntries,
   };
-}
-
-/**
- * Constructs a block queue from the input node map, preserving insertion order.
- *
- * @param nodes - A map of CID string to block data.
- * @returns An array of [CID string, CID] pairs.
- */
-function createBlockQueue(nodes: Map<string, Uint8Array>): [string, CID][] {
-  const blockQueue = new Array<[string, CID]>(nodes.size);
-  let i = 0;
-  for (const key of nodes.keys()) {
-    blockQueue[i++] = [key, CID.parse(key)];
-  }
-  return blockQueue;
-}
-
-/**
- * Collects chunks emitted from the CAR writer output and tracks block offsets to build an index.
- *
- * @param out - The async iterable stream of CAR chunks.
- * @param blockQueue - Array of [CID string, CID] representing the expected block write order.
- * @param writtenBlocks - A Set tracking which blocks have been indexed already.
- * @param indexEntries - The array to store offset information for each block.
- * @param carChunks - Accumulator array for CAR chunks.
- * @param offset - The current byte offset.
- */
-async function collectChunksAndOffsets(
-  out: AsyncIterable<Uint8Array>,
-  blockQueue: [string, CID][],
-  writtenBlocks: Set<string>,
-  indexEntries: IndexEntry[],
-  carChunks: Uint8Array[],
-  offset: number,
-): Promise<void> {
-  let blockIndex = 0;
-  let current_offset = offset;
-
-  for await (const chunk of out) {
-    carChunks.push(chunk);
-
-    for (; blockIndex < blockQueue.length; blockIndex++) {
-      const [cidStr, cid] = blockQueue[blockIndex];
-      if (!writtenBlocks.has(cidStr)) {
-        writtenBlocks.add(cidStr);
-
-        indexEntries[blockIndex] = {
-          multihash: cid.multihash.bytes,
-          offset,
-        };
-        break;
-      }
-    }
-    current_offset += chunk.length;
-  }
 }
 
 /**
@@ -141,7 +92,7 @@ export function buildMultihashIndexSorted(entries: IndexEntry[]): Uint8Array {
     throw new Error("Cannot build index from 0 entries.");
   }
 
-  entries.sort((a, b) => u8aCmp(a.multihash, b.multihash));
+  entries.sort((a, b) => u8aCmp(a.digest, b.digest));
 
   const parts: Uint8Array[] = [];
   parts.push(indexHeader(entries.length));
