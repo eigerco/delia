@@ -5,6 +5,10 @@ use primitives::{
     NODE_SIZE,
 };
 use rs_merkle::MerkleTree;
+use tracing::info;
+use tracing_subscriber::fmt::format::Pretty;
+use tracing_subscriber::prelude::*;
+use tracing_web::{performance_layer, MakeWebConsoleWriter};
 use wasm_bindgen::prelude::*;
 
 use crate::{fr32_reader::Fr32Reader, hasher::Sha256, zero_reader::ZeroPaddingReader};
@@ -17,6 +21,25 @@ mod zero_reader;
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
     fn log(s: &str);
+}
+
+/// Set up a logging layer that direct logs to the browser's console.
+#[wasm_bindgen(start)]
+pub fn setup_logging() {
+    log(&format!("Initializing logging..."));
+
+    let fmt_layer = tracing_subscriber::fmt::layer()
+        .with_ansi(false) // Only partially supported across browsers
+        .without_time() // std::time is not available in browsers
+        .with_writer(MakeWebConsoleWriter::new()); // write events to the console
+    let perf_layer = performance_layer().with_details_from_fields(Pretty::default());
+
+    tracing_subscriber::registry()
+        .with(fmt_layer)
+        .with(perf_layer)
+        .init();
+
+    info!("Logging initialized");
 }
 
 /// Generates the CommP (piece commitment) from the input file bytes.
@@ -46,7 +69,7 @@ pub fn commp_from_bytes(data: &[u8]) -> Result<JsValue, JsValue> {
     let commitment =
         calculate_piece_commitment(&mut zero_padding_reader, padded_piece_size).unwrap();
 
-    log(&format!("CID from Rust: {}", commitment.cid()));
+    info!("CID from Rust: {}", commitment.cid());
 
     Ok(JsValue::from_str(&commitment.cid().to_string()))
 }
@@ -63,10 +86,7 @@ pub fn padded_piece_size(data: &[u8]) -> Result<JsValue, JsValue> {
     let file_size = data.len() as u64;
     let padded_piece_size = PaddedPieceSize::from_arbitrary_size(file_size);
 
-    log(&format!(
-        "Padded Piece Size from Rust: {}",
-        padded_piece_size
-    ));
+    info!("Padded Piece Size from Rust: {}", padded_piece_size);
 
     Ok(JsValue::from_str(&padded_piece_size.to_string()))
 }
