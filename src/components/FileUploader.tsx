@@ -1,26 +1,58 @@
 import { FileText, Upload } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
+import { commpFromBytes, paddedPieceSize } from "wasm-commp";
+import { generateCar as generateCarV2 } from "../lib/car/v2";
 
-export function FileUploader({
-  onFileSelect,
-  selectedFile,
-}: {
-  onFileSelect: (file: File) => void;
-  selectedFile: File | null;
-}) {
+// Props returned by FileUploader.
+// Includes the !ORIGINAL! file and the CAR metadata.
+type FileUploaderProps = {
+  onMetadataReady: (meta: CarMetadata, file: File) => void;
+};
+
+// CAR metadata returned by the FileUploader
+type CarMetadata = {
+  pieceSize: number;
+  // CommP
+  cid: string;
+};
+
+export function FileUploader({ onMetadataReady }: FileUploaderProps) {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
-      if (acceptedFiles.length > 0) {
-        onFileSelect(acceptedFiles[0]);
-      }
+      return new Promise<void>((resolve, reject) => {
+        const file = acceptedFiles[0];
+        if (!file) return;
+
+        setSelectedFile(file);
+
+        const reader = new FileReader();
+
+        reader.onloadend = async (e) => {
+          if (e.target?.result) {
+            try {
+              const content = new Uint8Array(e.target.result as ArrayBuffer);
+              const v2Bytes = await generateCarV2(content);
+
+              const piece_size = paddedPieceSize(v2Bytes);
+              const cid = commpFromBytes(v2Bytes);
+              onMetadataReady({ pieceSize: piece_size, cid }, file);
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
+          }
+        };
+
+        reader.readAsArrayBuffer(file);
+      });
     },
-    [onFileSelect],
+    [onMetadataReady],
   );
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-  });
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
   return (
     <>

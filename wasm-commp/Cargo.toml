@@ -1,0 +1,31 @@
+[package]
+authors = ["aidan46"]
+description = "WASM-based CommP calculation"
+edition = "2021"
+name = "wasm-commp"
+version = "0.1.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+byte-slice-cast = "1.2.3"
+rs_merkle = "1.5.0"
+serde-wasm-bindgen = "0.6.5"
+sha2 = "0.10.8"
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19" }
+tracing-web = "0.1.3"
+wasm-bindgen = "0.2.100"
+wasm-bindgen-futures = "0.4.50"
+
+[dependencies.primitives]
+git = "https://github.com/eigerco/polka-storage/"
+package = "primitives"
+rev = "65ff48241c8df1d0083985d5f35acd2e65758899"
+default-features = false
+
+[patch.'https://github.com/w3f/fflonk']
+# Patch needed because of some renaming issue with fflonk
+# Reference to the issue: https://github.com/paritytech/polkadot-sdk/issues/7653#issuecomment-2674485339
+fflonk = { git = "https://www.github.com/w3f/fflonk", rev = "eda051ea3b80042e844a3ebd17c2f60536e6ee3f" }

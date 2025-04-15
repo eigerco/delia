@@ -25,3 +25,6 @@ dist-ssr
 
 # reproducible local environment
 .direnv
+
+# cargo target folder
+*target/

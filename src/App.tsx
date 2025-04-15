@@ -1,7 +1,8 @@
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router";
+import { default as initWasm } from "wasm-commp";
 import { useCtx } from "./GlobalCtx";
 import { GlobalCtxProvider } from "./GlobalCtxProvider";
 import { ConnectWallet } from "./components/ConnectWallet";
@@ -41,10 +42,31 @@ function WsAddressInput({ onChange }: { onChange: (newValue: string) => void }) 
 function App() {
   const [accounts, setAccounts] = useState<InjectedAccountWithMeta[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<InjectedAccountWithMeta | null>(null);
+  const [loaded, setLoaded] = useState<boolean>(false);
   const [wsAddress, setWsAddress] = useState(COLLATOR_LOCAL_RPC_URL);
 
   const location = useLocation();
   const registry = useMemo(() => setupTypeRegistry(), []);
+
+  // Initialize WASM module, !VERY IMPORTANT! without this no WASM function will work.
+  useEffect(() => {
+    initWasm()
+      .then(() => {
+        console.log("WASM module initialized");
+        setLoaded(true);
+      })
+      .catch((err) => {
+        console.error("Failed to initialize WASM module", err);
+      });
+  }, []);
+
+  if (!loaded)
+    return (
+      <div className="text-center py-8">
+        <Loader2 className="animate-spin mx-auto h-8 w-8 text-blue-500 mb-4" />
+        <p className="text-gray-600">Initializing WASM...</p>
+      </div>
+    );
 
   return (
     <GlobalCtxProvider registry={registry} wsAddress={wsAddress}>

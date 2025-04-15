@@ -239,7 +239,6 @@ export function DealPreparation() {
             dealProposal={dealProposal}
             onChange={setDealProposal}
             onFileSelect={setDealFile}
-            selectedFile={dealFile}
             accounts={accounts}
             selectedAccount={selectedAccount}
             onSelectAccount={setSelectedAccount}

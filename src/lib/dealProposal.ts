@@ -25,8 +25,8 @@ export type InputFields = {
 
 // Default values — based on Spaceglenda
 export const DEFAULT_INPUT: InputFields = {
-  pieceCid: "baga6ea4seaqmif7wqwq23pg2megbycbuxav4x4yw7fqfbxcihduqsupciaguspq",
-  pieceSize: "1048576",
+  pieceCid: "",
+  pieceSize: "",
   client: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
   label: "Spaceglenda!",
   startBlock: "100",
