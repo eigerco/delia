@@ -186,7 +186,7 @@ export function indexHeader(entriesCount: number): Uint8Array {
     encode(MULTIHASH_INDEX_SORTED_CODE), // multicodec varint
     numberToU32LE(0x01), // digest bucket length
     numberToU64LE(SHA_256_CODE), // multihash code
-    numberToU32LE(entriesCount), // entries amount
+    numberToU32LE(0x01), // unique digest lengths in the same mulithash code (always 1 for SHA256)
     numberToU32LE(entrySize), // digest + offset length
     numberToU64LE(entrySize * entriesCount), // total length ((digest + offset) * entries)
   );
