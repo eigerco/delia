@@ -71,7 +71,6 @@ type FormInputProps = {
   currentBlock: number;
   currentBlockTimestamp: Date;
   onFileSelect: (file: File) => void;
-  selectedFile: File | null;
 };
 
 const FormInput = ({
