@@ -23,37 +23,40 @@ export function FileUploader({
   });
 
   return (
-    <div
-      {...getRootProps()}
-      className={`flex flex-col items-center p-6 border-2 border-dashed rounded-lg transition-colors cursor-pointer hover:border-blue-400 ${
-        isDragActive
-          ? "border-blue-400 bg-blue-50"
-          : selectedFile
-            ? "border-green-500 bg-green-50"
-            : "border-gray-300"
-      } `}
-    >
-      <input {...getInputProps()} />
+    <>
+      <div
+        {...getRootProps()}
+        className={`flex items-center p-4 border-2 border-dashed rounded-lg transition-colors cursor-pointer hover:border-blue-400 ${
+          isDragActive
+            ? "border-blue-400 bg-blue-50"
+            : selectedFile
+              ? "border-green-500 bg-green-50"
+              : "border-gray-300"
+        } `}
+      >
+        <input {...getInputProps()} />
 
-      {selectedFile ? (
-        <>
-          <FileText className="w-12 h-12 text-green-500 mb-2" />
-          <p className="text-sm font-medium text-green-600">File processed successfully!</p>
-          <p className="text-sm text-green-600 font-mono mt-1">
-            {selectedFile.name} with {selectedFile.size} bytes
-          </p>
-          <p className="text-xs text-green-600 mt-2">Drop another file to replace</p>
-        </>
-      ) : (
-        <>
-          <Upload className="w-12 h-12 text-gray-400 mb-2" />
-          <p className="text-sm text-gray-600">
-            {isDragActive
-              ? "Drop the file here..."
-              : "Drag and drop a file here, or click to select"}
-          </p>
-        </>
-      )}
-    </div>
+        {selectedFile ? (
+          <>
+            <FileText className="w-12 h-12 text-green-500 mr-2" />
+            <div className="flex flex-col">
+              <p className="text-sm text-green-600 font-mono">
+                {selectedFile.name} ({selectedFile.size} bytes)
+              </p>
+              <p className="text-xs text-green-600">Drop another file to replace</p>
+            </div>
+          </>
+        ) : (
+          <>
+            <Upload className="w-12 h-12 text-gray-400 mr-2" />
+            <p className="text-sm text-gray-600">
+              {isDragActive
+                ? "Drop the file here..."
+                : "Drag and drop a file here, or click to select"}
+            </p>
+          </>
+        )}
+      </div>
+    </>
   );
 }
