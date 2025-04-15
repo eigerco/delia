@@ -150,10 +150,13 @@ export function DealPreparation() {
         port: targetStorageProvider.services.rpc.port,
       });
 
-      await uploadFile(dealFile, proposeDealResponse, {
+      const response = await uploadFile(dealFile, proposeDealResponse, {
         ip: targetStorageProvider.address.address,
         port: targetStorageProvider.services.upload.port,
       });
+      if (!response.ok) {
+        throw new Error(response.statusText);
+      }
 
       const signedRpc = await createSignedRpc(validDealProposal, p, registry, selectedAccount);
       await callPublishDeal(signedRpc, {
@@ -165,12 +168,15 @@ export function DealPreparation() {
     await toast.promise(
       async () => {
         setLoading(true);
-        await inner(p, validDealProposal);
-        setLoading(false);
+        try {
+          await inner(p, validDealProposal);
+        } finally {
+          setLoading(false);
+        }
       },
       {
         loading: `Uploading deal to provider ${p}`,
-        error: (err) => `Failed to upload deal to provider ${p} with error: ${err}`,
+        error: (err) => <p>{`Failed to upload deal to provider ${p} with error: ${err}`}</p>,
         success: `Successfully uploaded deal to provider ${p}`,
       },
       {
