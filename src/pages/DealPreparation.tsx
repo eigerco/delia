@@ -43,8 +43,8 @@ export function DealPreparation() {
     (collatorWsApi?.consts.storageProvider.maxProveCommitDuration as u64).toNumber() ||
     DEFAULT_MAX_PROVE_COMMIT_DURATION;
 
-  const minDealDuration =
-    (collatorWsApi?.consts.market.minDealDuration as u64).toNumber() || DEFAULT_DEAL_DURATION;
+  // It's not in pallet metadata anymore, because of the benchmarks.
+  const minDealDuration = DEFAULT_DEAL_DURATION;
 
   const [dealProposal, setDealProposal] = useState<InputFields>({
     ...DEFAULT_INPUT,
