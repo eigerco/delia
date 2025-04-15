@@ -149,7 +149,6 @@ const FormInput = ({
 
       <Field
         id="piece-size"
-        type="number"
         value={dealProposal.pieceSize}
         disabled={true}
         tooltip="Piece size in bytes. This value is automatically computed after uploading your file. It is the length of the CARv2 archive after necessary padding."
