@@ -1,9 +1,9 @@
-import { CarBufferWriter, CarWriter } from "@ipld/car";
+import { CarBufferWriter, CarIndexer } from "@ipld/car";
 import { u8aCmp, u8aConcat } from "@polkadot/util";
 import { CID } from "multiformats/cid";
 import { encode } from "uint8-varint";
 import { numberToU32LE, numberToU64LE } from "./bytes";
-import { MULTIHASH_INDEX_SORTED_CODE, SHA_256_CODE } from "./consts";
+import { CHUNK_SIZE, MULTIHASH_INDEX_SORTED_CODE, SHA_256_CODE } from "./consts";
 
 /**
  * Represents a mapping from a multihash to its byte offset in the CAR file.
@@ -24,109 +24,25 @@ export async function writeCarFileWithOffsets(
   nodes: Map<string, Uint8Array>,
   rootCID: CID,
 ): Promise<{ carBytes: Uint8Array; indexEntries: IndexEntry[] }> {
-  const { writer, out } = await CarWriter.create([rootCID]);
-  const offset = CarBufferWriter.headerLength({ roots: [rootCID] });
-
-  const blockQueue = createBlockQueue(nodes);
-  const indexEntries = new Array<IndexEntry>(blockQueue.length);
-  const writtenBlocks = new Set<string>();
-  const carChunks: Uint8Array[] = [];
-
-  const collectPromise = collectChunksAndOffsets(
-    out,
-    blockQueue,
-    writtenBlocks,
-    indexEntries,
-    carChunks,
-    offset,
-  );
+  const buffer = new ArrayBuffer(nodes.size * CHUNK_SIZE);
+  const writer = CarBufferWriter.createWriter(buffer, { roots: [rootCID] });
 
   for (const [cidStr, bytes] of nodes.entries()) {
     const cid = CID.parse(cidStr);
-    await writer.put({ cid, bytes });
+    writer.write({ cid, bytes });
   }
 
-  await writer.close();
-  await collectPromise;
-
-  const carBytes = concatChunks(carChunks);
+  const carBytes = writer.close();
+  const indexReader = await CarIndexer.fromBytes(carBytes);
+  const indexEntries = [];
+  for await (const index of indexReader) {
+    indexEntries.push({ multihash: index.cid.multihash.bytes, offset: index.offset });
+  }
 
   return {
     carBytes,
     indexEntries,
   };
-}
-
-/**
- * Constructs a block queue from the input node map, preserving insertion order.
- *
- * @param nodes - A map of CID string to block data.
- * @returns An array of [CID string, CID] pairs.
- */
-function createBlockQueue(nodes: Map<string, Uint8Array>): [string, CID][] {
-  const blockQueue = new Array<[string, CID]>(nodes.size);
-  let i = 0;
-  for (const key of nodes.keys()) {
-    blockQueue[i++] = [key, CID.parse(key)];
-  }
-  return blockQueue;
-}
-
-/**
- * Collects chunks emitted from the CAR writer output and tracks block offsets to build an index.
- *
- * @param out - The async iterable stream of CAR chunks.
- * @param blockQueue - Array of [CID string, CID] representing the expected block write order.
- * @param writtenBlocks - A Set tracking which blocks have been indexed already.
- * @param indexEntries - The array to store offset information for each block.
- * @param carChunks - Accumulator array for CAR chunks.
- * @param offset - The current byte offset.
- */
-async function collectChunksAndOffsets(
-  out: AsyncIterable<Uint8Array>,
-  blockQueue: [string, CID][],
-  writtenBlocks: Set<string>,
-  indexEntries: IndexEntry[],
-  carChunks: Uint8Array[],
-  offset: number,
-): Promise<void> {
-  let blockIndex = 0;
-  let current_offset = offset;
-
-  for await (const chunk of out) {
-    carChunks.push(chunk);
-
-    for (; blockIndex < blockQueue.length; blockIndex++) {
-      const [cidStr, cid] = blockQueue[blockIndex];
-      if (!writtenBlocks.has(cidStr)) {
-        writtenBlocks.add(cidStr);
-
-        indexEntries[blockIndex] = {
-          multihash: cid.multihash.bytes,
-          offset,
-        };
-        break;
-      }
-    }
-    current_offset += chunk.length;
-  }
-}
-
-/**
- * Concatenates an array of Uint8Arrays into a single contiguous Uint8Array.
- *
- * @param chunks - The list of byte chunks to merge.
- * @returns The merged Uint8Array.
- */
-function concatChunks(chunks: Uint8Array[]): Uint8Array {
-  const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-  const result = new Uint8Array(totalLength);
-  let position = 0;
-  for (const chunk of chunks) {
-    result.set(chunk, position);
-    position += chunk.length;
-  }
-  return result;
 }
 
 /**
