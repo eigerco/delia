@@ -10,6 +10,7 @@ import { useOutletContext } from "react-router";
 import { useCtx } from "../GlobalCtx";
 import { DealProposalForm } from "../components/DealProposalForm";
 import { ProviderSelector } from "../components/ProviderSelector";
+import { HookDealProposalForm } from "../components/deal-proposal-form/HookDealProposalForm";
 import {
   DEFAULT_INPUT,
   type InputFields,
@@ -380,7 +381,12 @@ export function DealPreparation() {
       <div className="flex bg-white rounded-lg shadow p-6 mb-4">
         <div>
           <h2 className="text-xl font-bold mb-4">Deal Creation</h2>
-          <DealProposalForm
+          <HookDealProposalForm
+            currentBlock={latestFinalizedBlock.number}
+            currentBlockTimestamp={latestFinalizedBlock.timestamp}
+            accounts={accounts}
+          />
+          {/* <DealProposalForm
             dealProposal={dealProposal}
             onChange={setDealProposal}
             onFileSelect={setDealFile}
@@ -388,8 +394,7 @@ export function DealPreparation() {
             selectedAccount={selectedAccount}
             onSelectAccount={setSelectedAccount}
             currentBlock={latestFinalizedBlock.number}
-            currentBlockTimestamp={latestFinalizedBlock.timestamp}
-          />
+            currentBlockTimestamp={latestFinalizedBlock.timestamp} */}
           <Submit />
         </div>
         <div className="bg-black mx-8 min-w-px max-w-px" />

@@ -39,7 +39,8 @@ export function HookDealProposalForm({
         piece: yup
           .object()
           .shape({
-            cid: yup.string().required(),
+            pieceCid: yup.string().required(),
+            payloadCid: yup.string().required(),
             size: yup.number().required(),
             file: yup
               .mixed<File>()
@@ -125,7 +126,11 @@ export function HookDealProposalForm({
           <HookAccountSelector id="client" register={register} accounts={accounts} />
           <HookPieceUploader
             error={
-              errors.piece?.root || errors.piece?.file || errors.piece?.size || errors.piece?.cid
+              errors.piece?.root ||
+              errors.piece?.file ||
+              errors.piece?.size ||
+              errors.piece?.payloadCid ||
+              errors.piece?.pieceCid
             }
             name="piece"
             control={control}

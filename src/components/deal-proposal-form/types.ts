@@ -1,5 +1,6 @@
 export interface Piece {
-  cid: string;
+  pieceCid: string;
+  payloadCid: string;
   size: number;
   file: File;
 }
