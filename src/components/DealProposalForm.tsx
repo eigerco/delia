@@ -128,15 +128,25 @@ const FormInput = ({
       </div>
 
       <FileUploader
-        onMetadataReady={({ pieceSize, cid }, file) => {
+        onMetadataReady={({ payloadCid, pieceSize, pieceCid: cid }, file) => {
           onChange({
             ...dealProposal,
+            payloadCid: payloadCid,
             pieceSize: pieceSize.toString(),
             pieceCid: cid,
           });
           onFileSelect(file);
         }}
       />
+
+      <Field
+        id="payload-cid"
+        value={dealProposal.payloadCid.toString()}
+        disabled={true}
+        tooltip="Content Identifier - root of the your file after being converted into the CAR format."
+      >
+        Payload CID
+      </Field>
 
       <Field
         id="piece-cid"

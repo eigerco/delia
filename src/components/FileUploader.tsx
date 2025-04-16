@@ -12,9 +12,10 @@ type FileUploaderProps = {
 
 // CAR metadata returned by the FileUploader
 type CarMetadata = {
+  payloadCid: string;
   pieceSize: number;
   // CommP
-  cid: string;
+  pieceCid: string;
 };
 
 export function FileUploader({ onMetadataReady }: FileUploaderProps) {
@@ -34,11 +35,14 @@ export function FileUploader({ onMetadataReady }: FileUploaderProps) {
           if (e.target?.result) {
             try {
               const content = new Uint8Array(e.target.result as ArrayBuffer);
-              const v2Bytes = await generateCarV2(content);
+              const [rootCid, v2Bytes] = await generateCarV2(content);
 
               const piece_size = paddedPieceSize(v2Bytes);
               const cid = commpFromBytes(v2Bytes);
-              onMetadataReady({ pieceSize: piece_size, cid }, file);
+              onMetadataReady(
+                { payloadCid: rootCid.toString(), pieceSize: piece_size, pieceCid: cid },
+                file,
+              );
               resolve();
             } catch (err) {
               reject(err);

@@ -13,6 +13,7 @@ function encodeLabel(label: string): string {
 }
 
 export type InputFields = {
+  payloadCid: string;
   pieceCid: string;
   pieceSize: string;
   client: string | null; // AccountId32
@@ -25,6 +26,7 @@ export type InputFields = {
 
 // Default values — based on Spaceglenda
 export const DEFAULT_INPUT: InputFields = {
+  payloadCid: "",
   pieceCid: "",
   pieceSize: "",
   client: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
