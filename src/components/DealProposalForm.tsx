@@ -3,7 +3,7 @@ import { HelpCircle } from "lucide-react";
 import type { ChangeEventHandler, PropsWithChildren } from "react";
 import { Tooltip } from "react-tooltip";
 import { BLOCK_TIME } from "../lib/consts";
-import { plank_to_dot } from "../lib/conversion";
+import { planckToDot } from "../lib/conversion";
 import type { InputFields } from "../lib/dealProposal";
 import type { FileWithMetadata } from "../pages/DealPreparation";
 import { FileUploader } from "./FileUploader";
@@ -277,7 +277,7 @@ export function DealProposalForm({
         <div className="p-3 mb-4 bg-blue-50 border border-blue-200 rounded">
           <p className="font-semibold text-sm">
             Total Deal Price: <span className="text-blue-600">{totalPrice}</span> Planck (
-            <span className="text-blue-600">{plank_to_dot(totalPrice)}</span> DOT)
+            <span className="text-blue-600">{planckToDot(totalPrice)}</span> DOT)
           </p>
           <p className="text-xs text-gray-500">
             ({endBlock - startBlock} blocks × {pricePerBlock} per block)
