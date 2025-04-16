@@ -60,9 +60,12 @@ export function Download() {
       setIsDownloading(true);
       toast.success("Downloading file");
       const payloadCid = CID.parse(carCid);
-      const provider = multiaddr(providerMultiaddr);
+      const providers = providerMultiaddr
+        .split(",")
+        .map((s) => s.trim())
+        .map(multiaddr);
 
-      const { title, contents } = await retrieveContent(payloadCid, provider, shouldExtract);
+      const { title, contents } = await retrieveContent(payloadCid, providers, shouldExtract);
       createDownloadTrigger(title, contents);
     } catch (error) {
       if (error instanceof Error) {
@@ -98,11 +101,12 @@ export function Download() {
         {/* TODO: Validate*/}
         <ValidatedInput
           id="provider-multiaddr-id"
-          label="Provider"
+          label="Providers"
           value={providerMultiaddr}
           onChange={setProviderMultiaddr}
+          helpText="Multiple addresses can be separated by a comma — e.g. /ip4/145.69.4.20/tcp/8000,/ip4/215.69.4.20/tcp/8000"
           tooltip={{
-            content: "The multiaddress of the storage provider that has the content",
+            content: "The multiaddresses of storage providers storing the target file",
           }}
         />
 
@@ -146,7 +150,7 @@ export function Download() {
 
 async function retrieveContent(
   payloadCid: CID,
-  provider: Multiaddr,
+  providers: Multiaddr[],
   extractContents = true,
 ): Promise<{ title: string; contents: Blob }> {
   // enable verbose logging in browser console to view debug logs
@@ -175,10 +179,14 @@ async function retrieveContent(
   });
 
   try {
-    // Connect to the provider
-    console.log("Connecting to provider...");
-    await helia.libp2p.dial(provider);
-    console.log("Connected!");
+    // Connect to the providers
+    await Promise.all(
+      providers.map(async (maddr) => {
+        console.log("Connecting to provider ${provider}...");
+        await helia.libp2p.dial(maddr);
+        console.log("Connected!");
+      }),
+    );
 
     const contents = [];
     let title = payloadCid.toString();
