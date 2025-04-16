@@ -8,8 +8,7 @@ import { DisabledInputInfo } from "./DisabledInputInfo";
 import type { IFormValues, Piece } from "./types";
 
 // TODO(@th7nder,16/04/2025):
-// 1. ProviderSelector
-// 2. Match it with the new fields.
+// 1. ProviderSelector (just a select multi-option component, move downloading providers to the DealPreparation page)
 // 3. Connect it with backend
 // 4. Get rid of the second form
 interface FileUploaderProps extends UseControllerProps<IFormValues> {
@@ -38,7 +37,7 @@ export function HookPieceUploader({ error, ...props }: FileUploaderProps) {
               const pieceSize = paddedPieceSize(v2Bytes);
               const cid = commpFromBytes(v2Bytes);
 
-              onChange({ cid, size: pieceSize, file: file });
+              onChange({ pieceCid: cid, payloadCid: rootCid, size: pieceSize, file: file });
               resolve();
             } catch (err) {
               reject(err);
@@ -92,9 +91,15 @@ export function HookPieceUploader({ error, ...props }: FileUploaderProps) {
         )}
       </div>
       <DisabledInputInfo
+        label="Payload CID"
+        name={`${props.name}-payload-cid`}
+        value={v?.payloadCid || ""}
+        tooltip="Content Identifier - root of the your file after being converted into the CAR format."
+      />
+      <DisabledInputInfo
         label="Piece CID"
         name={`${props.name}-cid`}
-        value={v?.cid || ""}
+        value={v?.pieceCid || ""}
         tooltip="Content Identifier - a unique hash that identifies your data. Commitment after the raw data was pre-processed and put into a CARv2 file. This value is automatically computed after uploading your file."
       />
       <DisabledInputInfo
