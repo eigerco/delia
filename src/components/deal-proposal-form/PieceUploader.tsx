@@ -7,6 +7,11 @@ import { generateCar as generateCarV2 } from "../../lib/car/v2";
 import { DisabledInputInfo } from "./DisabledInputInfo";
 import type { IFormValues, Piece } from "./types";
 
+// TODO(@th7nder,16/04/2025):
+// 1. ProviderSelector
+// 2. Match it with the new fields.
+// 3. Connect it with backend
+// 4. Get rid of the second form
 interface FileUploaderProps extends UseControllerProps<IFormValues> {
   error?: FieldError;
 }
@@ -28,7 +33,7 @@ export function HookPieceUploader({ error, ...props }: FileUploaderProps) {
           if (e.target?.result) {
             try {
               const content = new Uint8Array(e.target.result as ArrayBuffer);
-              const v2Bytes = await generateCarV2(content);
+              const [rootCid, v2Bytes] = await generateCarV2(content);
 
               const pieceSize = paddedPieceSize(v2Bytes);
               const cid = commpFromBytes(v2Bytes);
