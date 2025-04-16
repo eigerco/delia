@@ -1,4 +1,5 @@
 import { u8aConcat } from "@polkadot/util";
+import type { CID } from "multiformats";
 import { numberToU64LE } from "./bytes";
 import { chunkFile } from "./chunker";
 import { CARV2_HEADER_SIZE, PRAGMA_SIZE } from "./consts";
@@ -12,7 +13,7 @@ import { buildBalancedTree } from "./tree";
  * @param bytes - The raw file contents.
  * @returns A Uint8Array representing a valid CARv2 file.
  */
-export async function generateCar(bytes: Uint8Array): Promise<Uint8Array> {
+export async function generateCar(bytes: Uint8Array): Promise<[CID, Uint8Array]> {
   const leafChunks = await chunkFile(bytes);
   const { allNodes, rootCID } = await buildBalancedTree(leafChunks);
   const { carBytes: carV1Bytes, indexEntries } = await writeCarFileWithOffsets(allNodes, rootCID);
@@ -33,7 +34,7 @@ export async function generateCar(bytes: Uint8Array): Promise<Uint8Array> {
 
   console.log("Root CID:", rootCID.toString());
 
-  return u8aConcat(header, carV1Bytes, indexBytes);
+  return [rootCID, u8aConcat(header, carV1Bytes, indexBytes)];
 }
 
 /**
