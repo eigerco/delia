@@ -4,6 +4,7 @@ import { useDropzone } from "react-dropzone";
 import { type FieldError, type UseControllerProps, useController } from "react-hook-form";
 import { commpFromBytes, paddedPieceSize } from "wasm-commp";
 import { generateCar as generateCarV2 } from "../../lib/car/v2";
+import Collapsible from "../Collapsible";
 import { DisabledInputInfo } from "./DisabledInputInfo";
 import type { IFormValues, Piece } from "./types";
 
@@ -90,24 +91,30 @@ export function HookPieceUploader({ error, ...props }: FileUploaderProps) {
           </>
         )}
       </div>
-      <DisabledInputInfo
-        label="Payload CID"
-        name={`${props.name}-payload-cid`}
-        value={v?.payloadCid || ""}
-        tooltip="Content Identifier - root of the your file after being converted into the CAR format."
-      />
-      <DisabledInputInfo
-        label="Piece CID"
-        name={`${props.name}-cid`}
-        value={v?.pieceCid || ""}
-        tooltip="Content Identifier - a unique hash that identifies your data. Commitment after the raw data was pre-processed and put into a CARv2 file. This value is automatically computed after uploading your file."
-      />
-      <DisabledInputInfo
-        label="Piece Size"
-        name={`${props.name}-size`}
-        value={v?.size.toString() || ""}
-        tooltip="Piece size in bytes. This value is automatically computed after uploading your file. It is the length of the CARv2 archive after necessary padding."
-      />
+      {v?.payloadCid && (
+        <Collapsible title={"Processed file metadata"}>
+          <div className="flex flex-col gap-4">
+            <DisabledInputInfo
+              label="Payload CID"
+              name={`${props.name}-payload-cid`}
+              value={v?.payloadCid || ""}
+              tooltip="Content Identifier - root of the your file after being converted into the CAR format."
+            />
+            <DisabledInputInfo
+              label="Piece CID"
+              name={`${props.name}-cid`}
+              value={v?.pieceCid || ""}
+              tooltip="Content Identifier - a unique hash that identifies your data. Commitment after the raw data was pre-processed and put into a CARv2 file. This value is automatically computed after uploading your file."
+            />
+            <DisabledInputInfo
+              label="Piece Size"
+              name={`${props.name}-size`}
+              value={v?.size.toString() || ""}
+              tooltip="Piece size in bytes. This value is automatically computed after uploading your file. It is the length of the CARv2 archive after necessary padding."
+            />
+          </div>
+        </Collapsible>
+      )}
     </>
   );
 }
