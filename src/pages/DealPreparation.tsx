@@ -1,7 +1,9 @@
-import { type NodeAddress, multiaddr } from "@multiformats/multiaddr";
+import { type Multiaddr, type NodeAddress, multiaddr } from "@multiformats/multiaddr";
+import type { ApiPromise, WsProvider } from "@polkadot/api";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
-import type { u64 } from "@polkadot/types";
+import type { TypeRegistry, u64 } from "@polkadot/types";
 import { Loader2 } from "lucide-react";
+import type { CID } from "multiformats/cid";
 import { useCallback, useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import { useOutletContext } from "react-router";
@@ -16,6 +18,7 @@ import {
   toRpc,
   validateInput,
 } from "../lib/dealProposal";
+import { createDownloadTrigger } from "../lib/download";
 import { uploadFile } from "../lib/fileUpload";
 import { callProposeDeal, callPublishDeal } from "../lib/jsonRpc";
 import { queryPeerId } from "../lib/p2p/bootstrapRequestResponse";
@@ -33,6 +36,148 @@ const BLOCKS_IN_MINUTE = 10;
 const OFFSET = BLOCKS_IN_MINUTE * 5;
 const DEFAULT_DEAL_DURATION = 50;
 const DEFAULT_MAX_PROVE_COMMIT_DURATION = 50;
+
+// This is not great
+type DealResult = {
+  storageProviderPeerId: string;
+  storageProviderAccountId: string;
+  dealId: number;
+};
+
+class SubmissionResult {
+  deals: DealResult[];
+  pieceCid: CID;
+  filename: string;
+  startBlock: number;
+  endBlock: number;
+
+  constructor(
+    deals: DealResult[],
+    pieceCid: CID,
+    filename: string,
+    startBlock: number,
+    endBlock: number,
+  ) {
+    this.deals = deals;
+    this.pieceCid = pieceCid;
+    this.filename = filename;
+    this.startBlock = startBlock;
+    this.endBlock = endBlock;
+  }
+
+  toJSON(): object {
+    return {
+      ...this,
+      pieceCid: this.pieceCid.toString(),
+    };
+  }
+}
+
+type DealInfo = {
+  proposal: ValidatedFields;
+  file: File;
+};
+
+type ProviderInfo = {
+  accountId: string;
+  peerId: string;
+};
+
+type DealId = number;
+
+type Collator = {
+  wsProvider: WsProvider;
+  apiPromise: ApiPromise;
+};
+
+async function resolvePeerIdMultiaddrs(collator: Collator, peerId: string): Promise<Multiaddr[]> {
+  const collatorMaddrs: string[] = await collator.wsProvider.send(
+    "polkaStorage_getP2pMultiaddrs",
+    [],
+  );
+  const wsMaddrs = collatorMaddrs
+    .filter((maddr) => maddr.includes("ws"))
+    .map(multiaddr)
+    .at(0);
+  if (!wsMaddrs) {
+    throw new Error("Could not find the services required to resolve the peer id");
+  }
+
+  // Hack: since there's no way to replace parts of multiaddrs, we need to do it by hand
+  // we convert to a string, replace the "0.0.0.0" which is what we're expecting and recreate the multiaddr
+  const queryAddr = multiaddr(
+    wsMaddrs
+      .toString()
+      // biome-ignore lint/style/noNonNullAssertion: wsAddress should be valid at this point
+      .replace("0.0.0.0", URL.parse(collator.wsProvider.endpoint)!.hostname), // double check this
+  );
+
+  const peerIdMultiaddress = await queryPeerId(peerId, queryAddr);
+  if (!peerIdMultiaddress) {
+    throw new Error(`Failed to find multiaddress for PeerId: ${peerId}`);
+  }
+  return peerIdMultiaddress;
+}
+
+async function executeDeal(
+  providerInfo: ProviderInfo,
+  dealInfo: DealInfo,
+  account: InjectedAccountWithMeta,
+  collator: Collator,
+  registry: TypeRegistry,
+): Promise<DealId> {
+  const peerIdMultiaddress = await resolvePeerIdMultiaddrs(collator, providerInfo.peerId);
+
+  let targetStorageProvider:
+    | {
+        services: Services.StorageProviderServices;
+        address: NodeAddress;
+      }
+    | undefined;
+  for (const maddr of peerIdMultiaddress) {
+    const response = await Services.sendRequest("All", maddr);
+    if (Services.isStorageProviderService(response.services)) {
+      targetStorageProvider = {
+        services: response.services,
+        address: maddr.nodeAddress(),
+      };
+      break;
+    }
+  }
+
+  if (!targetStorageProvider) {
+    throw new Error("Could not find an address to upload the files to.");
+  }
+
+  const proposeDealResponse = await callProposeDeal(
+    toRpc(dealInfo.proposal, providerInfo.accountId),
+    {
+      ip: targetStorageProvider.address.address,
+      port: targetStorageProvider.services.rpc.port,
+    },
+  );
+
+  const response = await uploadFile(dealInfo.file, proposeDealResponse, {
+    ip: targetStorageProvider.address.address,
+    port: targetStorageProvider.services.upload.port,
+  });
+  if (!response.ok) {
+    throw new Error(response.statusText);
+  }
+
+  const signedRpc = await createSignedRpc(
+    dealInfo.proposal,
+    providerInfo.accountId,
+    registry,
+    account,
+  );
+  const dealId = await callPublishDeal(signedRpc, {
+    ip: targetStorageProvider.address.address,
+    port: targetStorageProvider.services.rpc.port,
+  });
+
+  return dealId;
+}
 
 export function DealPreparation() {
   const { accounts, selectedAccount, setSelectedAccount } = useOutletContext<OutletContextType>();
@@ -74,110 +219,44 @@ export function DealPreparation() {
     });
   }, []);
 
-  const performDeal = async (p: string, validDealProposal: ValidatedFields) => {
-    // Inner function to avoid misuse, this should only be used inside the toast.promise
-    // Throws inside this function are acceptable as they will be caught by the toast.promise and shown as such
-    const inner = async (p: string, validDealProposal: ValidatedFields) => {
-      if (!dealFile) {
-        // NOTE: This should never happen unless the "Continue" button is wrong
-        throw new Error("No file was selected");
-      }
+  const performDeal = async (providerInfo: ProviderInfo, dealInfo: DealInfo): Promise<DealId> => {
+    if (!selectedAccount) {
+      throw new Error("No account was selected!");
+    }
 
-      if (!selectedAccount) {
-        throw new Error("No account selected");
-      }
-
-      // We can make a function out of this and use Promise.all for more efficiency
-      const provider = providers.get(p);
-      if (!provider) {
-        // NOTE: this shouldn't really happen unless state management is wrong
-        throw new Error("Selected provider does not exist");
-      }
-
-      if (!collatorWsProvider) {
-        throw new Error("Failed to connect to collator");
-      }
-      const collatorMaddrs: string[] = await collatorWsProvider.send(
-        "polkaStorage_getP2pMultiaddrs",
-        [],
-      );
-      const wsMaddrs = collatorMaddrs
-        .filter((maddr) => maddr.includes("ws"))
-        .map(multiaddr)
-        .at(0);
-      if (!wsMaddrs) {
-        throw new Error("Could not find the services required to resolve the peer id");
-      }
-
-      // Hack: since there's no way to replace parts of multiaddrs, we need to do it by hand
-      // we convert to a string, replace the "0.0.0.0" which is what we're expecting and recreate the multiaddr
-      const queryAddr = multiaddr(
-        wsMaddrs
-          .toString()
-          // biome-ignore lint/style/noNonNullAssertion: wsAddress should be valid at this point
-          .replace("0.0.0.0", URL.parse(wsAddress)!.hostname),
-      );
-
-      const providerPeerId = provider.peerId;
-      const peerIdMultiaddress = await queryPeerId(providerPeerId, queryAddr);
-      if (!peerIdMultiaddress) {
-        throw new Error(`Failed to find multiaddress for PeerId: ${providerPeerId}`);
-      }
-
-      let targetStorageProvider:
-        | {
-            services: Services.StorageProviderServices;
-            address: NodeAddress;
-          }
-        | undefined;
-      for (const maddr of peerIdMultiaddress) {
-        const response = await Services.sendRequest("All", maddr);
-        if (Services.isStorageProviderService(response.services)) {
-          targetStorageProvider = {
-            services: response.services,
-            address: maddr.nodeAddress(),
-          };
-          break;
-        }
-      }
-
-      if (!targetStorageProvider) {
-        throw new Error("Could not find an address to upload the files to.");
-      }
-
-      const proposeDealResponse = await callProposeDeal(toRpc(validDealProposal, p), {
-        ip: targetStorageProvider.address.address,
-        port: targetStorageProvider.services.rpc.port,
-      });
-
-      const response = await uploadFile(dealFile, proposeDealResponse, {
-        ip: targetStorageProvider.address.address,
-        port: targetStorageProvider.services.upload.port,
-      });
-      if (!response.ok) {
-        throw new Error(response.statusText);
-      }
-
-      const signedRpc = await createSignedRpc(validDealProposal, p, registry, selectedAccount);
-      await callPublishDeal(signedRpc, {
-        ip: targetStorageProvider.address.address,
-        port: targetStorageProvider.services.rpc.port,
-      });
+    if (!collatorWsProvider) {
+      throw new Error("Collator WS provider not setup!");
+    }
+    if (!collatorWsApi) {
+      throw new Error("Collator chain connetion not setup!");
+    }
+    const collator: Collator = {
+      wsProvider: collatorWsProvider,
+      apiPromise: collatorWsApi,
     };
 
-    await toast.promise(
+    return await executeDeal(providerInfo, dealInfo, selectedAccount, collator, registry);
+  };
+
+  const performDealToastWrapper = async (
+    providerInfo: ProviderInfo,
+    dealInfo: DealInfo,
+  ): Promise<DealId> => {
+    return await toast.promise(
       async () => {
         setLoading(true);
         try {
-          await inner(p, validDealProposal);
+          return await performDeal(providerInfo, dealInfo);
         } finally {
           setLoading(false);
         }
       },
       {
-        loading: `Uploading deal to provider ${p}`,
-        error: (err) => <p>{`Failed to upload deal to provider ${p} with error: ${err}`}</p>,
-        success: `Successfully uploaded deal to provider ${p}`,
+        loading: `Uploading deal to provider ${providerInfo.accountId}`,
+        error: (err) => (
+          <p>{`Failed to upload deal to provider ${providerInfo.accountId} with error: ${err}`}</p>
+        ),
+        success: `Successfully uploaded deal to provider ${providerInfo.accountId}`,
       },
       {
         success: {
@@ -190,19 +269,57 @@ export function DealPreparation() {
   };
 
   const Submit = () => {
-    const submit = async () => {
-      const validDealProposal = validateInput(dealProposal);
-      if (!validDealProposal) {
-        toast.error("Failed to validate deal proposal");
-        return;
-      }
+    const submit = async () =>
+      await toast.promise(
+        async () => {
+          const validDealProposal = validateInput(dealProposal);
+          if (!validDealProposal) {
+            throw new Error("Failed to validate deal proposal");
+          }
+          if (!dealFile) {
+            throw new Error("No file was provided!");
+          }
+          const dealInfo: DealInfo = {
+            proposal: validDealProposal,
+            file: dealFile,
+          };
 
-      for (const provider of selectedProviders) {
-        // Using Promise.all here spams the user with N popups
-        // where N is the number of storage providers the user is uploading deals to
-        await performDeal(provider, validDealProposal);
-      }
-    };
+          const submissionResults = new SubmissionResult(
+            [],
+            validDealProposal.pieceCid,
+            dealFile?.name,
+            validDealProposal.startBlock,
+            validDealProposal.endBlock,
+          );
+          // Using Promise.all here spams the user with N popups
+          // where N is the number of storage providers the user is uploading deals to
+          for (const providerAccountId of selectedProviders) {
+            const spInfo = providers.get(providerAccountId);
+            if (!spInfo) {
+              throw new Error(`Unable to find information for provider ${providerAccountId}`);
+            }
+            const providerInfo: ProviderInfo = {
+              accountId: providerAccountId,
+              peerId: spInfo.peerId,
+            };
+
+            submissionResults.deals.push({
+              storageProviderAccountId: providerInfo.accountId,
+              storageProviderPeerId: providerInfo.peerId,
+              dealId: await performDealToastWrapper(providerInfo, dealInfo),
+            });
+          }
+
+          createDownloadTrigger(
+            "deal.json",
+            new Blob([JSON.stringify(submissionResults.toJSON())]),
+          );
+        },
+        {
+          loading: "Submitting deals!",
+          success: "Successfully submitted all deals!",
+        },
+      );
 
     const submitDisabled =
       !selectedAccount ||

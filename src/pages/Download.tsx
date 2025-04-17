@@ -16,6 +16,7 @@ import { Toaster, toast } from "react-hot-toast";
 import { Tooltip } from "react-tooltip";
 import { DownloadButton } from "../components/buttons/DownloadButton";
 import { ValidatedInput } from "../components/form/ValidatedInput";
+import { createDownloadTrigger } from "../lib/download";
 import { timeout } from "../lib/timeout";
 
 // TODO: This is temporary. It will be automatically resolved when we start
@@ -232,21 +233,4 @@ async function retrieveContent(
     // Clean up
     await helia.stop();
   }
-}
-
-function createDownloadTrigger(title: string, blob: Blob) {
-  // Create a URL for the blob
-  const url = URL.createObjectURL(blob);
-
-  // Create a temporary anchor element to trigger download
-  const a = document.createElement("a");
-  a.href = url;
-  // Name of the file
-  a.download = title;
-  document.body.appendChild(a);
-  a.click();
-
-  // Clean up
-  URL.revokeObjectURL(url);
-  document.body.removeChild(a);
 }

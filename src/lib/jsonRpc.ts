@@ -21,7 +21,7 @@ export async function callProposeDeal(
 export async function callPublishDeal(
   signed: SignedRpcFields,
   address: RpcAddress = DEFAULT_LOCAL_RPC_ADDRESS,
-): Promise<0> {
+): Promise<number> {
   if (!address.port) {
     address.port = DEFAULT_LOCAL_RPC_ADDRESS.port;
   }
