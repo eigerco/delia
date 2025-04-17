@@ -9,6 +9,7 @@ import { HookAccountSelector } from "./AccountSelector";
 import { DisabledInputInfo } from "./DisabledInputInfo";
 import { HookInput } from "./Input";
 import { HookPieceUploader } from "./PieceUploader";
+import { ProviderSelector } from "./ProviderSelector";
 import type { IFormValues } from "./types";
 
 const BLOCKS_IN_MINUTE = 10;
@@ -87,6 +88,11 @@ export function HookDealProposalForm({
         pricePerBlock: yup.number().positive().integer().required(),
         providerCollateral: yup.number().positive().integer().required(),
         client: yup.string().required(),
+        providers: yup
+          .array()
+          .of(yup.string().required())
+          .min(1, "There must be at least 1 Storage Provider selected")
+          .required("There must be at least 1 Storage Provider selected"),
       })
       .required();
 
@@ -233,9 +239,16 @@ export function HookDealProposalForm({
             </div>
           </div>
         </div>
+        <div className="bg-black mx-8 min-w-px max-w-px" />
+        <div>
+          <ProviderSelector
+            providers={new Map()}
+            name="providers"
+            control={control}
+            errors={errors.providers}
+          />
+        </div>
       </div>
-      <div className="bg-black mx-8 min-w-px max-w-px" />
-      <div />
       <Toaster position="bottom-right" reverseOrder={true} />
     </form>
   );

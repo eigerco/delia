@@ -13,4 +13,5 @@ export interface IFormValues {
   pricePerBlock: number;
   providerCollateral: number;
   client: string;
+  providers: string[];
 }
