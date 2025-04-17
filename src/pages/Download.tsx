@@ -4,12 +4,11 @@ import { bitswap } from "@helia/block-brokers";
 import { car } from "@helia/car";
 import { libp2pRouting } from "@helia/routers";
 import { unixfs } from "@helia/unixfs";
-import { identify } from "@libp2p/identify";
-import { enable } from "@libp2p/logger";
+import { type Identify, identify } from "@libp2p/identify";
 import { webSockets } from "@libp2p/websockets";
 import { type Multiaddr, multiaddr } from "@multiformats/multiaddr";
-import { createHelia } from "helia";
-import { createLibp2p } from "libp2p";
+import { type HeliaLibp2p, createHelia } from "helia";
+import { type Libp2p, createLibp2p } from "libp2p";
 import { HelpCircle } from "lucide-react";
 import { CID } from "multiformats/cid";
 import { useRef, useState } from "react";
@@ -17,6 +16,7 @@ import { Toaster, toast } from "react-hot-toast";
 import { Tooltip } from "react-tooltip";
 import { DownloadButton } from "../components/buttons/DownloadButton";
 import { ValidatedInput } from "../components/form/ValidatedInput";
+import { timeout } from "../lib/timeout";
 
 // TODO: This is temporary. It will be automatically resolved when we start
 // accepting deal ids.
@@ -148,13 +148,9 @@ export function Download() {
   );
 }
 
-async function retrieveContent(
-  payloadCid: CID,
-  providers: Multiaddr[],
-  extractContents = true,
-): Promise<{ title: string; contents: Blob }> {
+async function setupHelia(): Promise<HeliaLibp2p<Libp2p<{ identify: Identify }>>> {
   // enable verbose logging in browser console to view debug logs
-  enable("ui*,libp2p*,-libp2p:connection-manager*,helia*,helia*:trace,-*:trace");
+  // enable("ui*,libp2p*,-libp2p:connection-manager*,helia*,helia*:trace,-*:trace");
 
   // Create a libp2p node
   const libp2p = await createLibp2p({
@@ -172,47 +168,63 @@ async function retrieveContent(
   });
 
   // Create Helia wrapper around the libp2p node
-  const helia = await createHelia({
+  return await createHelia({
     libp2p,
     blockBrokers: [bitswap()],
     routers: [libp2pRouting(libp2p)],
   });
+}
 
-  try {
-    // Connect to the providers
-    await Promise.all(
-      providers.map(async (maddr) => {
+async function retrieveContentInner(
+  helia: HeliaLibp2p<Libp2p<{ identify: Identify }>>,
+  payloadCid: CID,
+  providers: Multiaddr[],
+  extractContents: boolean,
+) {
+  // Connect to the providers
+  await Promise.all(
+    providers.map(async (maddr) => {
+      try {
         console.log("Connecting to provider ${provider}...");
         await helia.libp2p.dial(maddr);
         console.log("Connected!");
-      }),
-    );
+      } catch {
+        console.error(`Failed to connect to ${maddr}`);
+      }
+    }),
+  );
 
+  const downloadContents = async () => {
     const contents = [];
-    let title = payloadCid.toString();
-
-    // If extraction is enabled, use fs.cat to extract the content
-    if (extractContents) {
-      console.log("Fetching blocks and extracting contents...");
-
-      const fs = unixfs(helia);
-      for await (const buf of fs.cat(payloadCid)) {
-        contents.push(buf);
-      }
-    } else {
-      console.log("Fetching car file...");
-
-      title += ".car";
-      const heliaCar = car(helia);
-      for await (const buf of heliaCar.stream(payloadCid)) {
-        contents.push(buf);
-      }
+    const extractor = extractContents ? unixfs(helia).cat : car(helia).stream;
+    console.log("Fetching blocks and extracting contents...");
+    for await (const buf of extractor(payloadCid)) {
+      contents.push(buf);
     }
+    return contents;
+  };
 
-    return {
-      title,
-      contents: new Blob(contents),
-    };
+  const contents = await timeout(
+    downloadContents(),
+    10000,
+    new Error("Timed out while attempting to download the file!"),
+  );
+
+  return {
+    title: extractContents ? payloadCid.toString() : `${payloadCid.toString()}.car`,
+    contents: new Blob(contents),
+  };
+}
+
+async function retrieveContent(
+  payloadCid: CID,
+  providers: Multiaddr[],
+  extractContents = true,
+): Promise<{ title: string; contents: Blob }> {
+  const helia = await setupHelia();
+
+  try {
+    return await retrieveContentInner(helia, payloadCid, providers, extractContents);
   } catch (err) {
     console.error("Error retrieving CAR file:", err);
     throw err;
