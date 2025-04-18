@@ -1,5 +1,6 @@
 import { CheckCircle2, Circle, HelpCircle } from "lucide-react";
 import { Tooltip } from "react-tooltip";
+import { planckToDot } from "../../lib/conversion";
 import type { StorageProviderInfo } from "../../lib/storageProvider";
 
 type ProviderButtonProps = {
@@ -47,6 +48,16 @@ export function ProviderButton({ accountId, provider, isSelected, onSelect }: Pr
               <Tooltip
                 anchorSelect="#tooltip-sector-size"
                 content="Maximum amount of data that can be stored in a single sector by this provider"
+              />
+            </span>
+            <span>
+              Price Per Block: {planckToDot(provider.dealParams.minimumPricePerBlock)} DOT
+              <span id="tooltip-sector-size" className="cursor-help inline-flex items-center ml-1">
+                <HelpCircle className="inline w-4 h-4 text-gray-400" />
+              </span>
+              <Tooltip
+                anchorSelect="#tooltip-sector-size"
+                content="Price for data storage for 1 block (~6s)"
               />
             </span>
           </div>
