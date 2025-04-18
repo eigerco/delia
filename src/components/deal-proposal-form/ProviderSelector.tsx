@@ -124,7 +124,7 @@ export function ProviderSelector({ control, name, error }: ProviderSelectorProps
                             isSelected={isSelected}
                             onSelect={(accountId) => {
                               const newValue = isSelected
-                                ? v.filter((sp) => sp.accountId === accountId)
+                                ? v.filter((sp) => sp.accountId !== accountId)
                                 : [...v, provider];
                               field.onChange(newValue);
                             }}
