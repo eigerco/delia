@@ -14,7 +14,12 @@ function encodeLabel(label: string): string {
 }
 
 // Convert validated data to RPC format
-export const toRpc = (validated: FormValues, provider: string): RpcFields => ({
+export const toRpc = (
+  validated: IFormValues,
+  provider: string,
+  pricePerBlock: number,
+  collateral: number,
+): RpcFields => ({
   piece_cid: validated.piece.pieceCid,
   piece_size: validated.piece.size,
   client: validated.client,
@@ -22,13 +27,18 @@ export const toRpc = (validated: FormValues, provider: string): RpcFields => ({
   label: validated.label,
   start_block: validated.startBlock,
   end_block: validated.endBlock,
-  storage_price_per_block: validated.pricePerBlock,
-  provider_collateral: validated.providerCollateral,
+  storage_price_per_block: pricePerBlock,
+  provider_collateral: collateral,
   state: "Published",
 });
 
 // Convert validated data to SCALEable format
-export const toSCALEable = (validated: FormValues, provider: string): SCALEableFields => ({
+export const toSCALEable = (
+  validated: IFormValues,
+  provider: string,
+  pricePerBlock: number,
+  collateral: number,
+): SCALEableFields => ({
   piece_cid: encodeCid(CID.parse(validated.piece.pieceCid)),
   piece_size: validated.piece.size,
   client: validated.client,
@@ -36,8 +46,8 @@ export const toSCALEable = (validated: FormValues, provider: string): SCALEableF
   label: encodeLabel(validated.label),
   start_block: validated.startBlock,
   end_block: validated.endBlock,
-  storage_price_per_block: validated.pricePerBlock,
-  provider_collateral: validated.providerCollateral,
+  storage_price_per_block: pricePerBlock,
+  provider_collateral: collateral,
   deal_state: { Published: null },
 });
 
@@ -52,11 +62,13 @@ export const encodeSCALEable = (
 export const createSignedRpc = async (
   validated: FormValues,
   provider: string,
+  pricePerBlock: number,
+  collateral: number,
   registry: TypeRegistry,
   account: InjectedAccountWithMeta,
 ): Promise<SignedRpcFields> => {
-  const rpc = toRpc(validated, provider);
-  const scaleable = toSCALEable(validated, provider);
+  const rpc = toRpc(validated, provider, pricePerBlock, collateral);
+  const scaleable = toSCALEable(validated, provider, pricePerBlock, collateral);
   const scale = encodeSCALEable(scaleable, registry);
   const signed = await signRaw(account, u8aToHex(scale));
 

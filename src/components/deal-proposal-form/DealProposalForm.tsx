@@ -48,8 +48,6 @@ function validationSchema(currentBlock: number) {
           message: `Must be at least ${maxProveCommitDuration} blocks in the future`,
         }),
       endBlock: z.coerce.number().int().positive(),
-      pricePerBlock: z.coerce.number().int().positive(),
-      providerCollateral: z.coerce.number().int().positive(),
       client: z.string(),
       providers: z
         .array(storageProviderInfoSchema)
@@ -92,19 +90,19 @@ export function DealProposalForm({
     defaultValues: {
       startBlock: currentBlock + OFFSET + maxProveCommitDuration,
       endBlock: currentBlock + OFFSET + minDealDuration + maxProveCommitDuration,
-      pricePerBlock: 1000,
-      providerCollateral: 100,
       providers: [],
     },
     mode: "onChange",
   });
 
-  const [startBlock, endBlock, pricePerBlock] = watch(["startBlock", "endBlock", "pricePerBlock"]);
+  const [startBlock, endBlock, providers] = watch(["startBlock", "endBlock", "providers"]);
 
   const duration = endBlock - startBlock;
   const startBlockRealTime = blockToTime(startBlock, currentBlock, currentBlockTimestamp);
   const endBlockRealTime = blockToTime(endBlock, currentBlock, currentBlockTimestamp);
-  const totalPrice = duration * pricePerBlock;
+  const totalPrice = providers
+    .map((p) => p.dealParams.minimumPricePerBlock * duration)
+    .reduce((a, b) => a + b, 0);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
@@ -169,40 +167,23 @@ export function DealProposalForm({
                   label="Estimated real-time"
                 />
               </div>
-
-              <div className="flex flex-row items-center gap-4">
-                <div className="w-1/2">
-                  <HookInput
-                    id="pricePerBlock"
-                    register={register}
-                    error={errors.pricePerBlock}
-                    type="number"
-                    tooltip="The amount you'll pay for each block your data is stored"
-                  >
-                    Price-per-Block*
-                  </HookInput>
-                </div>
-
-                <HookInput
-                  id="providerCollateral"
-                  register={register}
-                  error={errors.providerCollateral}
-                  type="number"
-                  tooltip="Amount the storage provider must stake as collateral to ensure they fulfill the deal"
-                >
-                  Provider Collateral*
-                </HookInput>
-              </div>
             </div>
 
             {totalPrice > 0 && (
               <div className="p-3 mb-4 bg-blue-50 border border-blue-200 rounded">
+                <ul className="list-disc pb-2">
+                  {providers.map((p) => (
+                    <li key={p.accountId} className="ml-2 text-xs text-gray-500">
+                      Provider: {p.accountId} {duration * p.dealParams.minimumPricePerBlock}
+                      {" Planck"} = {duration} blocks × {p.dealParams.minimumPricePerBlock} per
+                      block
+                    </li>
+                  ))}
+                </ul>
+
                 <p className="font-semibold text-sm">
                   Total Deal Price: <span className="text-blue-600">{totalPrice}</span> Planck (
                   <span className="text-blue-600">{planckToDot(totalPrice)}</span> DOT)
-                </p>
-                <p className="text-xs text-gray-500">
-                  ({duration} blocks × {pricePerBlock} per block)
                 </p>
               </div>
             )}

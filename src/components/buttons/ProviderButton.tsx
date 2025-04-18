@@ -52,11 +52,11 @@ export function ProviderButton({ accountId, provider, isSelected, onSelect }: Pr
             </span>
             <span>
               Price Per Block: {planckToDot(provider.dealParams.minimumPricePerBlock)} DOT
-              <span id="tooltip-sector-size" className="cursor-help inline-flex items-center ml-1">
+              <span id="tooltip-price" className="cursor-help inline-flex items-center ml-1">
                 <HelpCircle className="inline w-4 h-4 text-gray-400" />
               </span>
               <Tooltip
-                anchorSelect="#tooltip-sector-size"
+                anchorSelect="#tooltip-price"
                 content="Price for data storage for 1 block (~6s)"
               />
             </span>

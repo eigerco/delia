@@ -68,6 +68,7 @@ type DealInfo = {
 type ProviderInfo = {
   accountId: string;
   peerId: string;
+  pricePerBlock: number;
 };
 
 type DealId = number;
@@ -115,6 +116,12 @@ async function executeDeal(
 ): Promise<DealId> {
   const peerIdMultiaddress = await resolvePeerIdMultiaddrs(collator, providerInfo.peerId);
 
+  // TODO(@th7nder,18/04/2025):
+  // Collateral hardcoded as 2 * total deal price.
+  // It should be set on-chain not here.
+  const collateral =
+    2 * (dealInfo.proposal.endBlock - dealInfo.proposal.startBlock) * providerInfo.pricePerBlock;
+
   let targetStorageProvider:
     | {
         services: Services.StorageProviderServices;
@@ -142,7 +149,7 @@ async function executeDeal(
   }
 
   const proposeDealResponse = await callProposeDeal(
-    toRpc(dealInfo.proposal, providerInfo.accountId),
+    toRpc(dealInfo.proposal, providerInfo.accountId, providerInfo.pricePerBlock, collateral),
     {
       ip: targetStorageProvider.address.address,
       port: targetStorageProvider.services.rpc.port,
@@ -160,6 +167,8 @@ async function executeDeal(
   const signedRpc = await createSignedRpc(
     dealInfo.proposal,
     providerInfo.accountId,
+    providerInfo.pricePerBlock,
+    collateral,
     registry,
     clientAccount,
   );
@@ -237,6 +246,7 @@ export function DealPreparation() {
           const providerInfo: ProviderInfo = {
             accountId: spInfo.accountId,
             peerId: spInfo.peerId,
+            pricePerBlock: spInfo.dealParams.minimumPricePerBlock,
           };
 
           submissionResults.deals.push({
