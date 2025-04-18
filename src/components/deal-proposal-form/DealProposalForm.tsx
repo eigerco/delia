@@ -206,7 +206,7 @@ export function DealProposalForm({
               <input
                 type="submit"
                 disabled={isSubmitting}
-                className={`px-4 py-2 bg-blue-200 rounded-sm hover:bg-blue-600 ${isSubmitting ? "cursor-progress" : ""}`}
+                className={`px-4 py-2 bg-blue-200 rounded-sm  ${isSubmitting ? "bg-grey-200 cursor-progress" : "hover:bg-blue-600"}`}
                 value="Continue"
               />
             </div>
