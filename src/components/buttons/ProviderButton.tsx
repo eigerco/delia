@@ -11,7 +11,6 @@ type ProviderButtonProps = {
 
 export function ProviderButton({ accountId, provider, isSelected, onSelect }: ProviderButtonProps) {
   const peerId = provider.peerId;
-
   return (
     <button
       type="button"
