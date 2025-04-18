@@ -1,0 +1,17 @@
+import type { StorageProviderInfo } from "../../lib/storageProvider";
+
+export interface Piece {
+  pieceCid: string;
+  payloadCid: string;
+  size: number;
+  file: File;
+}
+
+export interface IFormValues {
+  piece: Piece;
+  label: string;
+  startBlock: number;
+  endBlock: number;
+  client: string;
+  providers: StorageProviderInfo[];
+}

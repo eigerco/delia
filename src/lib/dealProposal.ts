@@ -2,6 +2,7 @@ import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import type { TypeRegistry } from "@polkadot/types";
 import { stringToU8a, u8aToHex } from "@polkadot/util";
 import { CID } from "multiformats";
+import type { IFormValues } from "../components/deal-proposal-form/types";
 import { type SignatureWrapper, signRaw } from "./sign";
 
 function encodeCid(cid: CID): string {
@@ -12,77 +13,41 @@ function encodeLabel(label: string): string {
   return u8aToHex(stringToU8a(label));
 }
 
-export type InputFields = {
-  payloadCid: string;
-  pieceCid: string;
-  pieceSize: string;
-  client: string | null; // AccountId32
-  label: string;
-  startBlock: string;
-  endBlock: string;
-  storagePricePerBlock: string;
-  providerCollateral: string;
-};
-
-// Default values — based on Spaceglenda
-export const DEFAULT_INPUT: InputFields = {
-  payloadCid: "",
-  pieceCid: "",
-  pieceSize: "",
-  client: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-  label: "Spaceglenda!",
-  startBlock: "100",
-  endBlock: "150",
-  storagePricePerBlock: "1000",
-  providerCollateral: "100",
-};
-
-// Validation function
-export const validateInput = (input: InputFields): ValidatedFields | null => {
-  try {
-    const pieceCid = CID.parse(input.pieceCid);
-    if (!pieceCid || !input.client) return null;
-
-    return {
-      pieceCid,
-      pieceSize: Number.parseInt(input.pieceSize, 10),
-      client: input.client,
-      label: input.label,
-      startBlock: Number.parseInt(input.startBlock, 10),
-      endBlock: Number.parseInt(input.endBlock, 10),
-      storagePricePerBlock: Number.parseInt(input.storagePricePerBlock, 10),
-      providerCollateral: Number.parseInt(input.providerCollateral, 10),
-    };
-  } catch {
-    return null;
-  }
-};
-
 // Convert validated data to RPC format
-export const toRpc = (validated: ValidatedFields, provider: string): RpcFields => ({
-  piece_cid: validated.pieceCid.toString(),
-  piece_size: validated.pieceSize,
+export const toRpc = (
+  validated: IFormValues,
+  provider: string,
+  pricePerBlock: number,
+  collateral: number,
+): RpcFields => ({
+  piece_cid: validated.piece.pieceCid,
+  piece_size: validated.piece.size,
   client: validated.client,
   provider,
   label: validated.label,
   start_block: validated.startBlock,
   end_block: validated.endBlock,
-  storage_price_per_block: validated.storagePricePerBlock,
-  provider_collateral: validated.providerCollateral,
+  storage_price_per_block: pricePerBlock,
+  provider_collateral: collateral,
   state: "Published",
 });
 
 // Convert validated data to SCALEable format
-export const toSCALEable = (validated: ValidatedFields, provider: string): SCALEableFields => ({
-  piece_cid: encodeCid(validated.pieceCid),
-  piece_size: validated.pieceSize,
+export const toSCALEable = (
+  validated: IFormValues,
+  provider: string,
+  pricePerBlock: number,
+  collateral: number,
+): SCALEableFields => ({
+  piece_cid: encodeCid(CID.parse(validated.piece.pieceCid)),
+  piece_size: validated.piece.size,
   client: validated.client,
   provider,
   label: encodeLabel(validated.label),
   start_block: validated.startBlock,
   end_block: validated.endBlock,
-  storage_price_per_block: validated.storagePricePerBlock,
-  provider_collateral: validated.providerCollateral,
+  storage_price_per_block: pricePerBlock,
+  provider_collateral: collateral,
   deal_state: { Published: null },
 });
 
@@ -95,13 +60,15 @@ export const encodeSCALEable = (
 };
 
 export const createSignedRpc = async (
-  validated: ValidatedFields,
+  validated: IFormValues,
   provider: string,
+  pricePerBlock: number,
+  collateral: number,
   registry: TypeRegistry,
   account: InjectedAccountWithMeta,
 ): Promise<SignedRpcFields> => {
-  const rpc = toRpc(validated, provider);
-  const scaleable = toSCALEable(validated, provider);
+  const rpc = toRpc(validated, provider, pricePerBlock, collateral);
+  const scaleable = toSCALEable(validated, provider, pricePerBlock, collateral);
   const scale = encodeSCALEable(scaleable, registry);
   const signed = await signRaw(account, u8aToHex(scale));
 
@@ -109,17 +76,6 @@ export const createSignedRpc = async (
     client_signature: signed,
     deal_proposal: rpc,
   };
-};
-
-export type ValidatedFields = {
-  pieceCid: CID;
-  pieceSize: number;
-  client: string;
-  label: string;
-  startBlock: number;
-  endBlock: number;
-  storagePricePerBlock: number;
-  providerCollateral: number;
 };
 
 export type RpcFields = {
