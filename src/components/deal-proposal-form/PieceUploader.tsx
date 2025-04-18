@@ -1,5 +1,5 @@
-import { FileText, Upload } from "lucide-react";
-import { useCallback } from "react";
+import { FileText, Loader2, Upload } from "lucide-react";
+import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { type FieldError, type UseControllerProps, useController } from "react-hook-form";
 import { commpFromBytes, paddedPieceSize } from "wasm-commp";
@@ -20,6 +20,8 @@ export function HookPieceUploader({ error, ...props }: FileUploaderProps) {
     field: { onChange, value },
   } = useController(props);
 
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       return new Promise<void>((resolve, reject) => {
@@ -27,6 +29,7 @@ export function HookPieceUploader({ error, ...props }: FileUploaderProps) {
         if (!file) return;
 
         const reader = new FileReader();
+        setIsProcessing(true);
 
         reader.onloadend = async (e) => {
           if (e.target?.result) {
@@ -41,6 +44,8 @@ export function HookPieceUploader({ error, ...props }: FileUploaderProps) {
               resolve();
             } catch (err) {
               reject(err);
+            } finally {
+              setIsProcessing(false);
             }
           }
         };
@@ -51,7 +56,10 @@ export function HookPieceUploader({ error, ...props }: FileUploaderProps) {
     [onChange],
   );
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    disabled: isProcessing,
+  });
 
   const v = value as unknown as Piece | null;
 
@@ -69,7 +77,9 @@ export function HookPieceUploader({ error, ...props }: FileUploaderProps) {
       >
         <input {...getInputProps()} />
 
-        {v ? (
+        {isProcessing ? (
+          <Loader2 className="animate-spin mx-auto h-8 w-8 text-blue-500 mb-4" />
+        ) : v ? (
           <>
             <FileText className="w-12 h-12 text-green-500 mr-2" />
             <div className="flex flex-col">
@@ -90,6 +100,12 @@ export function HookPieceUploader({ error, ...props }: FileUploaderProps) {
           </>
         )}
       </div>
+      {error && (
+        <p className="mt-1 text-sm text-red-600">
+          {error.message?.toString() || "This field is required"}
+        </p>
+      )}
+
       {v?.payloadCid && (
         <Collapsible title={"Processed file metadata"}>
           <div className="flex flex-col gap-4">
