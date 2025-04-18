@@ -9,7 +9,7 @@ import { type StorageProviderInfo, isStorageProviderInfo } from "../../lib/stora
 import { HookAccountSelector } from "./AccountSelector";
 import { DisabledInputInfo } from "./DisabledInputInfo";
 import { HookInput } from "./Input";
-import { HookPieceUploader } from "./PieceUploader";
+import { PieceUploader } from "./PieceUploader";
 import { ProviderSelector } from "./ProviderSelector";
 import type { IFormValues } from "./types";
 
@@ -69,7 +69,7 @@ function validationSchema(currentBlock: number) {
     });
 }
 
-export function HookDealProposalForm({
+export function DealProposalForm({
   currentBlock,
   currentBlockTimestamp,
   accounts,
@@ -116,7 +116,7 @@ export function HookDealProposalForm({
           <div className="flex flex-col min-w-md max-w-md">
             <div className="grid grid-cols-1 gap-4 mb-4">
               <HookAccountSelector id="client" register={register} accounts={accounts} />
-              <HookPieceUploader error={errors.piece?.message} name="piece" control={control} />
+              <PieceUploader error={errors.piece?.message} name="piece" control={control} />
 
               <HookInput
                 id="label"

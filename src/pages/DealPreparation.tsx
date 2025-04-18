@@ -7,7 +7,7 @@ import { CID } from "multiformats/cid";
 import { toast } from "react-hot-toast";
 import { useOutletContext } from "react-router";
 import { useCtx } from "../GlobalCtx";
-import { HookDealProposalForm } from "../components/deal-proposal-form/HookDealProposalForm";
+import { DealProposalForm } from "../components/deal-proposal-form/DealProposalForm";
 import type { IFormValues } from "../components/deal-proposal-form/types";
 import { createSignedRpc, toRpc } from "../lib/dealProposal";
 import { createDownloadTrigger } from "../lib/download";
@@ -259,7 +259,7 @@ export function DealPreparation() {
   }
 
   return (
-    <HookDealProposalForm
+    <DealProposalForm
       currentBlock={latestFinalizedBlock.number}
       currentBlockTimestamp={latestFinalizedBlock.timestamp}
       accounts={accounts}

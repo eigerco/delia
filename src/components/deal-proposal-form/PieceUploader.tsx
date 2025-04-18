@@ -8,14 +8,11 @@ import Collapsible from "../Collapsible";
 import { DisabledInputInfo } from "./DisabledInputInfo";
 import type { IFormValues, Piece } from "./types";
 
-// TODO(@th7nder,16/04/2025):
-// 3. Connect it with backend
-// 4. Get rid of the second form
 interface FileUploaderProps extends UseControllerProps<IFormValues> {
   error?: string;
 }
 
-export function HookPieceUploader({ error, ...props }: FileUploaderProps) {
+export function PieceUploader({ error, ...props }: FileUploaderProps) {
   const {
     field: { onChange, value },
   } = useController(props);
