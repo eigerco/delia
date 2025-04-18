@@ -9,7 +9,6 @@ import { DisabledInputInfo } from "./DisabledInputInfo";
 import type { IFormValues, Piece } from "./types";
 
 // TODO(@th7nder,16/04/2025):
-// 1. ProviderSelector (just a select multi-option component, move downloading providers to the DealPreparation page)
 // 3. Connect it with backend
 // 4. Get rid of the second form
 interface FileUploaderProps extends UseControllerProps<IFormValues> {
