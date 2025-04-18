@@ -2,7 +2,7 @@ import { hexToU8a } from "@polkadot/util";
 import { base58Encode } from "@polkadot/util-crypto";
 import { AlertCircle, Loader2, RefreshCw, Server } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { type Control, Controller, type FieldError, type Merge, type Path } from "react-hook-form";
+import { type Control, Controller, type Path } from "react-hook-form";
 import { useCtx } from "../../GlobalCtx";
 import { COLLATOR_LOCAL_RPC_URL } from "../../lib/consts";
 import { type StorageProviderInfo, isStorageProviderInfo } from "../../lib/storageProvider";
@@ -33,6 +33,7 @@ const anyJsonToSpInfo = (key: string, value: any): StorageProviderInfo | string 
   if (!isStorageProviderInfo(spInfo)) {
     return `Provider ${key} "info" field is not valid, skipping...`;
   }
+  spInfo.accountId = key;
   spInfo.peerId = base58Encode(hexToU8a(spInfo.peerId));
   return spInfo;
 };
@@ -40,7 +41,7 @@ const anyJsonToSpInfo = (key: string, value: any): StorageProviderInfo | string 
 type ProviderSelectorProps = {
   control: Control<IFormValues>;
   name: Path<IFormValues>;
-  errors?: Merge<FieldError, (FieldError | undefined)[]>;
+  error?: string;
 };
 
 const NoProviders = () => {
@@ -56,7 +57,7 @@ const NoProviders = () => {
   );
 };
 
-export function ProviderSelector({ control, name, errors }: ProviderSelectorProps) {
+export function ProviderSelector({ control, name, error }: ProviderSelectorProps) {
   const [status, setStatus] = useState<Status>({ type: "connecting" });
   const [providers, setProviders] = useState<Map<string, StorageProviderInfo>>(new Map());
   const { collatorWsApi: polkaStorageApi } = useCtx();
@@ -111,20 +112,20 @@ export function ProviderSelector({ control, name, errors }: ProviderSelectorProp
                     <NoProviders />
                   ) : (
                     Array.from(providers.entries()).map(([accountId, provider]) => {
-                      // TODO: not sure how to make sure field is string[] at the type level
-                      const v = (field.value as string[]) || [];
-                      const isSelected = v.includes(accountId);
+                      // not sure if/how to make sure field is string[] at the type level
+                      const v = (field.value as StorageProviderInfo[]) || [];
+                      const isSelected = v.some((sp) => sp.peerId === provider.peerId);
 
                       return (
                         <li key={`${accountId}`} style={{ listStyleType: "none" }}>
                           <ProviderButton
                             accountId={accountId}
                             provider={provider}
-                            isSelected={v.includes(accountId)}
+                            isSelected={isSelected}
                             onSelect={(accountId) => {
                               const newValue = isSelected
-                                ? v.filter((id) => id !== accountId)
-                                : [...v, accountId];
+                                ? v.filter((sp) => sp.accountId === accountId)
+                                : [...v, provider];
                               field.onChange(newValue);
                             }}
                           />
@@ -132,11 +133,7 @@ export function ProviderSelector({ control, name, errors }: ProviderSelectorProp
                       );
                     })
                   )}
-                  {errors && (
-                    <p className="mt-1 text-sm text-red-600">
-                      {errors.message?.toString() || "This field is required"}
-                    </p>
-                  )}
+                  {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
                 </div>
               )}
             />

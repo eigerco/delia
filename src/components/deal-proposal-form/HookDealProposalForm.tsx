@@ -1,10 +1,11 @@
-import { yupResolver } from "@hookform/resolvers/yup";
+import { zodResolver } from "@hookform/resolvers/zod";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { Toaster } from "react-hot-toast";
-import * as yup from "yup";
+import { z } from "zod";
 import { blockToTime, planckToDot } from "../../lib/conversion";
+import { type StorageProviderInfo, isStorageProviderInfo } from "../../lib/storageProvider";
 import { HookAccountSelector } from "./AccountSelector";
 import { DisabledInputInfo } from "./DisabledInputInfo";
 import { HookInput } from "./Input";
@@ -25,78 +26,62 @@ const maxProveCommitDuration = DEFAULT_MAX_PROVE_COMMIT_DURATION;
 const minDealDuration = DEFAULT_DEAL_DURATION;
 const maxDealDuration = DEFAULT_MAX_DEAL_DURATION;
 
+const storageProviderInfoSchema = z.custom<StorageProviderInfo>(isStorageProviderInfo);
+
+function validationSchema(currentBlock: number) {
+  return z
+    .object({
+      piece: z.object({
+        pieceCid: z.string(),
+        payloadCid: z.string(),
+        size: z.number(),
+        file: z.instanceof(File).refine((file: File) => file.size <= 8 * 1024 * 1024, {
+          message: "File must be under 8MB",
+        }),
+      }),
+      label: z.string().max(128),
+      startBlock: z.coerce
+        .number()
+        .int()
+        .positive()
+        .refine((value) => value > currentBlock + maxProveCommitDuration, {
+          message: `Must be at least ${maxProveCommitDuration} blocks in the future`,
+        }),
+      endBlock: z.coerce.number().int().positive(),
+      pricePerBlock: z.coerce.number().int().positive(),
+      providerCollateral: z.coerce.number().int().positive(),
+      client: z.string(),
+      providers: z
+        .array(storageProviderInfoSchema)
+        .min(1, "There must be at least 1 Storage Provider selected"),
+    })
+    .refine((data) => data.endBlock > data.startBlock, {
+      message: "End block must be greater than start block",
+      path: ["endDate"],
+    })
+    .refine((data) => data.endBlock - data.startBlock >= minDealDuration, {
+      message: "Must be at least ${minDealDuration} blocks long",
+      path: ["endDate"],
+    })
+    .refine((data) => data.endBlock - data.startBlock <= maxDealDuration, {
+      message: "Must be at max ${maxDealDuration} blocks long",
+      path: ["endDate"],
+    });
+}
+
 export function HookDealProposalForm({
   currentBlock,
   currentBlockTimestamp,
   accounts,
+  onSubmit,
 }: {
   currentBlock: number;
   currentBlockTimestamp: Date;
   accounts: InjectedAccountWithMeta[];
+  onSubmit: (data: IFormValues) => Promise<void>;
 }) {
   const schema = useMemo(() => {
-    const schema = yup
-      .object()
-      .shape({
-        piece: yup
-          .object()
-          .shape({
-            pieceCid: yup.string().required(),
-            payloadCid: yup.string().required(),
-            size: yup.number().required(),
-            file: yup
-              .mixed<File>()
-              .required()
-              .test("file-size", "File must be under 8MB", (value) => {
-                return value && value.size <= 8 * 1024 * 1024;
-              }),
-          })
-          .required(),
-        label: yup.string().required().max(128),
-        startBlock: yup
-          .number()
-          .positive()
-          .integer()
-          .required()
-          .test(
-            "is-late-enough",
-            `Must be at least ${maxProveCommitDuration} blocks in the future`,
-            (value) => value > currentBlock + maxProveCommitDuration,
-          ),
-        endBlock: yup
-          .number()
-          .positive()
-          .integer()
-          .required()
-          .test(
-            "is-greater-than-start",
-            "End block must be greater than start block",
-            function (value) {
-              return !this.parent.startBlock || value > this.parent.startBlock;
-            },
-          )
-          .test(
-            "is-long-enough",
-            `Must be at least ${minDealDuration} blocks long`,
-            function (value) {
-              return !this.parent.startBlock || value - this.parent.startBlock >= minDealDuration;
-            },
-          )
-          .test("is-too-long", `Must be at max ${maxDealDuration} blocks long`, function (value) {
-            return !this.parent.startBlock || value - this.parent.startBlock <= maxDealDuration;
-          }),
-        pricePerBlock: yup.number().positive().integer().required(),
-        providerCollateral: yup.number().positive().integer().required(),
-        client: yup.string().required(),
-        providers: yup
-          .array()
-          .of(yup.string().required())
-          .min(1, "There must be at least 1 Storage Provider selected")
-          .required("There must be at least 1 Storage Provider selected"),
-      })
-      .required();
-
-    return schema;
+    return validationSchema(currentBlock);
   }, [currentBlock]);
 
   const {
@@ -104,19 +89,17 @@ export function HookDealProposalForm({
     control,
     handleSubmit,
     watch,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<IFormValues>({
-    resolver: yupResolver(schema),
+    resolver: zodResolver(schema),
     defaultValues: {
       startBlock: currentBlock + OFFSET + maxProveCommitDuration,
       endBlock: currentBlock + OFFSET + minDealDuration + maxProveCommitDuration,
       pricePerBlock: 1000,
       providerCollateral: 100,
+      providers: [],
     },
   });
-
-  // TODO(@th7nder,16/04/2025): sending this stuff
-  const loading = false;
 
   const [startBlock, endBlock, pricePerBlock] = watch(["startBlock", "endBlock", "pricePerBlock"]);
 
@@ -124,8 +107,6 @@ export function HookDealProposalForm({
   const startBlockRealTime = blockToTime(startBlock, currentBlock, currentBlockTimestamp);
   const endBlockRealTime = blockToTime(endBlock, currentBlock, currentBlockTimestamp);
   const totalPrice = duration * pricePerBlock;
-
-  const onSubmit = (data: IFormValues) => console.log(data);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
@@ -135,17 +116,7 @@ export function HookDealProposalForm({
           <div className="flex flex-col min-w-md max-w-md">
             <div className="grid grid-cols-1 gap-4 mb-4">
               <HookAccountSelector id="client" register={register} accounts={accounts} />
-              <HookPieceUploader
-                error={
-                  errors.piece?.root ||
-                  errors.piece?.file ||
-                  errors.piece?.size ||
-                  errors.piece?.payloadCid ||
-                  errors.piece?.pieceCid
-                }
-                name="piece"
-                control={control}
-              />
+              <HookPieceUploader error={errors.piece?.message} name="piece" control={control} />
 
               <HookInput
                 id="label"
@@ -234,7 +205,8 @@ export function HookDealProposalForm({
             <div className={"pt-4"}>
               <input
                 type="submit"
-                className={`px-4 py-2 bg-blue-200 rounded-sm "hover:bg-blue-600" ${loading ? "cursor-progress" : ""}`}
+                disabled={isSubmitting}
+                className={`px-4 py-2 bg-blue-200 rounded-sm hover:bg-blue-600 ${isSubmitting ? "cursor-progress" : ""}`}
                 value="Continue"
               />
             </div>
@@ -242,10 +214,10 @@ export function HookDealProposalForm({
         </div>
         <div className="bg-black mx-8 min-w-px max-w-px" />
         <div>
-          <ProviderSelector name="providers" control={control} errors={errors.providers} />
+          <ProviderSelector name="providers" control={control} error={errors.providers?.message} />
         </div>
       </div>
-      <Toaster position="bottom-right" reverseOrder={true} />
+      <Toaster position="bottom-left" reverseOrder={true} />
     </form>
   );
 }

@@ -1,7 +1,7 @@
 import { FileText, Loader2, Upload } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { type FieldError, type UseControllerProps, useController } from "react-hook-form";
+import { type UseControllerProps, useController } from "react-hook-form";
 import { commpFromBytes, paddedPieceSize } from "wasm-commp";
 import { generateCar as generateCarV2 } from "../../lib/car/v2";
 import Collapsible from "../Collapsible";
@@ -12,14 +12,13 @@ import type { IFormValues, Piece } from "./types";
 // 3. Connect it with backend
 // 4. Get rid of the second form
 interface FileUploaderProps extends UseControllerProps<IFormValues> {
-  error?: FieldError;
+  error?: string;
 }
 
 export function HookPieceUploader({ error, ...props }: FileUploaderProps) {
   const {
     field: { onChange, value },
   } = useController(props);
-
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
   const onDrop = useCallback(
@@ -37,10 +36,15 @@ export function HookPieceUploader({ error, ...props }: FileUploaderProps) {
               const content = new Uint8Array(e.target.result as ArrayBuffer);
               const [rootCid, v2Bytes] = await generateCarV2(content);
 
-              const pieceSize = paddedPieceSize(v2Bytes);
+              const pieceSize = Number.parseInt(paddedPieceSize(v2Bytes));
               const cid = commpFromBytes(v2Bytes);
 
-              onChange({ pieceCid: cid, payloadCid: rootCid, size: pieceSize, file: file });
+              onChange({
+                pieceCid: cid,
+                payloadCid: rootCid.toString(),
+                size: pieceSize,
+                file: file,
+              });
               resolve();
             } catch (err) {
               reject(err);
@@ -100,11 +104,6 @@ export function HookPieceUploader({ error, ...props }: FileUploaderProps) {
           </>
         )}
       </div>
-      {error && (
-        <p className="mt-1 text-sm text-red-600">
-          {error.message?.toString() || "This field is required"}
-        </p>
-      )}
 
       {v?.payloadCid && (
         <Collapsible title={"Processed file metadata"}>
