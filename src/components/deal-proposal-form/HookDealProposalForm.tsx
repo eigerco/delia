@@ -98,6 +98,7 @@ export function HookDealProposalForm({
 
     return schema;
   }, [currentBlock]);
+
   const {
     register,
     control,
@@ -241,12 +242,7 @@ export function HookDealProposalForm({
         </div>
         <div className="bg-black mx-8 min-w-px max-w-px" />
         <div>
-          <ProviderSelector
-            providers={new Map()}
-            name="providers"
-            control={control}
-            errors={errors.providers}
-          />
+          <ProviderSelector name="providers" control={control} errors={errors.providers} />
         </div>
       </div>
       <Toaster position="bottom-right" reverseOrder={true} />
