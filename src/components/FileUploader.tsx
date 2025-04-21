@@ -3,19 +3,12 @@ import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { commpFromBytes, paddedPieceSize } from "wasm-commp";
 import { generateCar as generateCarV2 } from "../lib/car/v2";
+import type { FileWithMetadata } from "../pages/DealPreparation";
 
 // Props returned by FileUploader.
 // Includes the !ORIGINAL! file and the CAR metadata.
 type FileUploaderProps = {
-  onMetadataReady: (meta: CarMetadata, file: File) => void;
-};
-
-// CAR metadata returned by the FileUploader
-type CarMetadata = {
-  payloadCid: string;
-  pieceSize: number;
-  // CommP
-  pieceCid: string;
+  onMetadataReady: (file: FileWithMetadata) => void;
 };
 
 export function FileUploader({ onMetadataReady }: FileUploaderProps) {
@@ -39,10 +32,10 @@ export function FileUploader({ onMetadataReady }: FileUploaderProps) {
 
               const piece_size = paddedPieceSize(v2Bytes);
               const cid = commpFromBytes(v2Bytes);
-              onMetadataReady(
-                { payloadCid: rootCid.toString(), pieceSize: piece_size, pieceCid: cid },
+              onMetadataReady({
+                metadata: { payloadCid: rootCid.toString(), pieceSize: piece_size, pieceCid: cid },
                 file,
-              );
+              });
               resolve();
             } catch (err) {
               reject(err);

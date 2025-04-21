@@ -3,7 +3,7 @@ import type { ApiPromise, WsProvider } from "@polkadot/api";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import type { TypeRegistry, u64 } from "@polkadot/types";
 import { Loader2 } from "lucide-react";
-import type { CID } from "multiformats/cid";
+import { CID } from "multiformats/cid";
 import { useCallback, useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import { useOutletContext } from "react-router";
@@ -46,6 +46,7 @@ type DealResult = {
 
 class SubmissionResult {
   deals: DealResult[];
+  payloadCid: CID;
   pieceCid: CID;
   filename: string;
   startBlock: number;
@@ -53,12 +54,14 @@ class SubmissionResult {
 
   constructor(
     deals: DealResult[],
+    payloadCid: CID,
     pieceCid: CID,
     filename: string,
     startBlock: number,
     endBlock: number,
   ) {
     this.deals = deals;
+    this.payloadCid = payloadCid;
     this.pieceCid = pieceCid;
     this.filename = filename;
     this.startBlock = startBlock;
@@ -68,6 +71,7 @@ class SubmissionResult {
   toJSON(): object {
     return {
       ...this,
+      payloadCid: this.payloadCid.toString(),
       pieceCid: this.pieceCid.toString(),
     };
   }
@@ -88,6 +92,19 @@ type DealId = number;
 type Collator = {
   wsProvider: WsProvider;
   apiPromise: ApiPromise;
+};
+
+// CAR metadata returned by the FileUploader
+export type CarMetadata = {
+  payloadCid: string;
+  pieceSize: number;
+  // CommP
+  pieceCid: string;
+};
+
+export type FileWithMetadata = {
+  file: File;
+  metadata: CarMetadata;
 };
 
 async function resolvePeerIdMultiaddrs(collator: Collator, peerId: string): Promise<Multiaddr[]> {
@@ -181,7 +198,7 @@ async function executeDeal(
 
 export function DealPreparation() {
   const { accounts, selectedAccount, setSelectedAccount } = useOutletContext<OutletContextType>();
-  const { latestFinalizedBlock, collatorWsApi, collatorWsProvider, wsAddress, registry } = useCtx();
+  const { latestFinalizedBlock, collatorWsApi, collatorWsProvider, registry } = useCtx();
 
   // This is the minimum amount of blocks it'll take for the deal to be active.
   const maxProveCommitDuration =
@@ -202,7 +219,7 @@ export function DealPreparation() {
     client: selectedAccount?.address || null,
   });
 
-  const [dealFile, setDealFile] = useState<File | null>(null);
+  const [dealFile, setDealFile] = useState<FileWithMetadata | null>(null);
   const [providers, setProviders] = useState(new Map<string, StorageProviderInfo>());
   const [selectedProviders, selectProviders] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
@@ -281,13 +298,18 @@ export function DealPreparation() {
           }
           const dealInfo: DealInfo = {
             proposal: validDealProposal,
-            file: dealFile,
+            file: dealFile.file,
           };
+          const payloadCid = CID.parse(dealFile.metadata.payloadCid);
+          if (!payloadCid) {
+            throw new Error("Invalid payload CID");
+          }
 
           const submissionResults = new SubmissionResult(
             [],
+            payloadCid,
             validDealProposal.pieceCid,
-            dealFile?.name,
+            dealFile.file.name,
             validDealProposal.startBlock,
             validDealProposal.endBlock,
           );
