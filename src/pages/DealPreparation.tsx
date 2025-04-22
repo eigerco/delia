@@ -29,6 +29,7 @@ type DealResult = {
 
 class SubmissionResult {
   deals: DealResult[];
+  payloadCid: CID;
   pieceCid: CID;
   filename: string;
   startBlock: number;
@@ -36,12 +37,14 @@ class SubmissionResult {
 
   constructor(
     deals: DealResult[],
+    payloadCid: CID,
     pieceCid: CID,
     filename: string,
     startBlock: number,
     endBlock: number,
   ) {
     this.deals = deals;
+    this.payloadCid = payloadCid;
     this.pieceCid = pieceCid;
     this.filename = filename;
     this.startBlock = startBlock;
@@ -51,6 +54,7 @@ class SubmissionResult {
   toJSON(): object {
     return {
       ...this,
+      payloadCid: this.payloadCid.toString(),
       pieceCid: this.pieceCid.toString(),
     };
   }
@@ -221,6 +225,7 @@ export function DealPreparation() {
 
         const submissionResults = new SubmissionResult(
           [],
+          CID.parse(dealProposal.piece.payloadCid),
           CID.parse(dealProposal.piece.pieceCid),
           dealProposal.piece.file.name,
           dealProposal.startBlock,
