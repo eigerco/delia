@@ -12,7 +12,6 @@ namespace DealResult {
   });
 }
 
-// This is not great
 type DealResult = {
   storageProviderPeerId: string;
   storageProviderAccountId: string;
