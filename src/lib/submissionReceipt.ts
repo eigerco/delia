@@ -80,6 +80,7 @@ export class SubmissionReceipt {
   toJSON(): object {
     return {
       ...this,
+      payloadCid: this.payloadCid.toString(),
       pieceCid: this.pieceCid.toString(),
     };
   }

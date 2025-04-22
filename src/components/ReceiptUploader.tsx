@@ -12,22 +12,27 @@ export function ReceiptUploader({ onFileReady }: FileUploaderProps) {
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       return new Promise<void>((resolve, reject) => {
-        const file = acceptedFiles[0];
-        if (!file) return;
+        const file = acceptedFiles.at(0);
+        if (!file) {
+          reject("No files were passed in.");
+          return;
+        }
 
         setSelectedFile(file);
 
         const reader = new FileReader();
         reader.onerror = async () => reject();
         reader.onloadend = async (e) => {
-          if (e.target?.result) {
-            try {
-              // Type shenanigans
-              onFileReady(file, e.target.result as string);
-              resolve();
-            } catch (err) {
-              reject(err);
-            }
+          if (!e.target?.result) {
+            reject("Failed to load file contents");
+            return;
+          }
+
+          try {
+            onFileReady(file, e.target.result as string);
+            resolve();
+          } catch (err) {
+            reject(err);
           }
         };
         reader.readAsText(file);
