@@ -4,7 +4,7 @@ import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import type { TypeRegistry, u64 } from "@polkadot/types";
 import { Loader2 } from "lucide-react";
 import type { CID } from "multiformats/cid";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import { useOutletContext } from "react-router";
 import { useCtx } from "../GlobalCtx";
@@ -206,6 +206,21 @@ export function DealPreparation() {
   const [providers, setProviders] = useState(new Map<string, StorageProviderInfo>());
   const [selectedProviders, selectProviders] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
+  /**
+   * We use `useRef` instead of `useState` to store the `refreshBalance` callback
+   * because:
+   *
+   * - `useState` would trigger a re-render if updated, which React doesn't allow
+   *   during the render phase of a different component (e.g., setting state in the parent
+   *   while rendering the child triggers a React warning).
+   *
+   * - `useRef` allows us to hold a mutable reference to the latest refresh function
+   *   without causing re-renders or violating React’s render timing rules.
+   *
+   * - This lets the child component (DealProposalForm) register a callback that the parent
+   *   (DealPreparation) can safely call after deal submission to refresh the market balance.
+   */
+  const refreshBalanceRef = useRef<() => Promise<void>>(null);
 
   const updateProviderSelection = useCallback((newProvider: string) => {
     selectProviders((oldState) => {
@@ -228,7 +243,7 @@ export function DealPreparation() {
       throw new Error("Collator WS provider not setup!");
     }
     if (!collatorWsApi) {
-      throw new Error("Collator chain connetion not setup!");
+      throw new Error("Collator chain connection not setup!");
     }
     const collator: Collator = {
       wsProvider: collatorWsProvider,
@@ -310,6 +325,10 @@ export function DealPreparation() {
             });
           }
 
+          if (refreshBalanceRef.current) {
+            await refreshBalanceRef.current();
+          }
+
           createDownloadTrigger(
             "deal.json",
             new Blob([JSON.stringify(submissionResults.toJSON())]),
@@ -367,6 +386,9 @@ export function DealPreparation() {
             onSelectAccount={setSelectedAccount}
             currentBlock={latestFinalizedBlock.number}
             currentBlockTimestamp={latestFinalizedBlock.timestamp}
+            onRequestBalanceRefresh={(refreshFn) => {
+              refreshBalanceRef.current = refreshFn;
+            }}
           />
           <Submit />
         </div>

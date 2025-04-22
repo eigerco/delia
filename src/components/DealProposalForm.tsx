@@ -1,7 +1,7 @@
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { HelpCircle } from "lucide-react";
 import type { ChangeEventHandler, PropsWithChildren } from "react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Tooltip } from "react-tooltip";
 import { useCtx } from "../GlobalCtx";
 import { BLOCK_TIME } from "../lib/consts";
@@ -74,6 +74,7 @@ type FormInputProps = {
   currentBlock: number;
   currentBlockTimestamp: Date;
   onFileSelect: (file: File) => void;
+  onRequestBalanceRefresh?: (refresh: () => Promise<void>) => void;
 };
 
 const FormInput = ({
@@ -85,6 +86,7 @@ const FormInput = ({
   currentBlock,
   currentBlockTimestamp,
   onFileSelect,
+  onRequestBalanceRefresh,
 }: FormInputProps) => {
   const startBlock = Number.parseInt(dealProposal.startBlock);
   const endBlock = Number.parseInt(dealProposal.endBlock);
@@ -95,6 +97,56 @@ const FormInput = ({
   const [marketBalance, setMarketBalance] = useState<string>("");
   const [balanceStatus, setBalanceStatus] = useState<MarketBalanceStatus>(MarketBalanceStatus.Idle);
   const { collatorWsApi: api } = useCtx();
+
+  /**
+   * Fetches the market balance for a given account and updates the component state.
+   *
+   * We wrap this in `useCallback` to ensure:
+   * - The function identity is stable across renders
+   * - We can safely include it in the `useEffect` dependency array
+   *   (so it doesn't trigger the effect unnecessarily or cause linter warnings)
+   *
+   * This makes it safe to use in child callbacks or memoized effects.
+   */
+  const fetchMarketBalance = useCallback(
+    async (account: InjectedAccountWithMeta): Promise<void> => {
+      if (!api) return;
+
+      setBalanceStatus(MarketBalanceStatus.Loading);
+      try {
+        const result = await api.query.market.balanceTable(account.address);
+        const json = result.toJSON() as Record<string, unknown>;
+        const free = (json.free as string) ?? "0";
+        setMarketBalance(free);
+        setBalanceStatus(MarketBalanceStatus.Fetched);
+      } catch (err) {
+        console.error("Error fetching market balance:", err);
+        setMarketBalance("");
+        setBalanceStatus(MarketBalanceStatus.Error);
+      }
+    },
+    [api],
+  );
+
+  useEffect(() => {
+    /**
+     * We register a callback with the parent component (via onRequestBalanceRefresh)
+     * so it can trigger a market balance refresh after deal submission.
+     *
+     * This must be done inside useEffect because:
+     * - React does not allow calling setState (via props) during render
+     * - Registering the callback after render avoids "setState in render" warnings
+     *
+     * Dependencies:
+     * - selectedAccount: so we bind the refresh to the currently selected account
+     * - onRequestBalanceRefresh: this function is passed from the parent
+     * - fetchMarketBalance: memoized with useCallback
+     */
+    if (onRequestBalanceRefresh && selectedAccount) {
+      // Defer the callback registration to the next tick
+      onRequestBalanceRefresh(() => fetchMarketBalance(selectedAccount));
+    }
+  }, [onRequestBalanceRefresh, selectedAccount, fetchMarketBalance]);
 
   return (
     <div className="grid grid-cols-1 gap-4 mb-4">
@@ -121,20 +173,7 @@ const FormInput = ({
               onSelectAccount(account);
               onChange({ ...dealProposal, client: account.address });
 
-              if (api) {
-                setBalanceStatus(MarketBalanceStatus.Loading);
-                try {
-                  const result = await api.query.market.balanceTable(account.address);
-                  const json = result.toJSON() as Record<string, unknown>;
-                  const free = (json.free as string) ?? "0";
-                  setMarketBalance(free);
-                  setBalanceStatus(MarketBalanceStatus.Fetched);
-                } catch (err) {
-                  console.error("Error fetching market balance:", err);
-                  setMarketBalance("");
-                  setBalanceStatus(MarketBalanceStatus.Error);
-                }
-              }
+              await fetchMarketBalance(account);
             }
           }}
           className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
@@ -266,6 +305,7 @@ export function DealProposalForm({
   currentBlock,
   currentBlockTimestamp,
   onFileSelect,
+  onRequestBalanceRefresh,
 }: {
   dealProposal: InputFields;
   currentBlock: number;
@@ -275,6 +315,7 @@ export function DealProposalForm({
   selectedAccount: InjectedAccountWithMeta | null;
   onSelectAccount: (account: InjectedAccountWithMeta) => void;
   onFileSelect: (file: File) => void;
+  onRequestBalanceRefresh?: (refresh: () => Promise<void>) => void;
 }) {
   // Calculate total price
   const startBlock = Number.parseInt(dealProposal.startBlock) || 0;
@@ -293,6 +334,7 @@ export function DealProposalForm({
         currentBlock={currentBlock}
         currentBlockTimestamp={currentBlockTimestamp}
         onFileSelect={onFileSelect}
+        onRequestBalanceRefresh={onRequestBalanceRefresh}
       />
 
       {totalPrice > 0 && (
