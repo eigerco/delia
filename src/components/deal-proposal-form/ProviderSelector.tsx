@@ -112,7 +112,7 @@ export function ProviderSelector({ control, name, error }: ProviderSelectorProps
                     <NoProviders />
                   ) : (
                     Array.from(providers.entries()).map(([accountId, provider]) => {
-                      // not sure if/how to make sure field is string[] at the type level
+                      // as StorageProviderInfo[], because I can't figure out how to enforce that FormValues[name] passed here will be `StorageProviderInfo[]` typed at typescript level.
                       const v = (field.value as StorageProviderInfo[]) || [];
                       const isSelected = v.some((sp) => sp.peerId === provider.peerId);
 

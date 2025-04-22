@@ -116,14 +116,18 @@ export function DealProposalForm({
           <div className="flex flex-col min-w-md max-w-md">
             <div className="grid grid-cols-1 gap-4 mb-4">
               <HookAccountSelector id="client" register={register} accounts={accounts} />
-              <PieceUploader error={errors.piece?.message} name="piece" control={control} />
+              <PieceUploader
+                error={errors.piece?.message || errors.piece?.file?.message}
+                name="piece"
+                control={control}
+              />
 
               <HookInput
                 id="label"
                 register={register}
                 error={errors.label}
                 tooltip="A human-readable label for this storage deal"
-                placeholder="a photo of my kitty"
+                placeholder="A photo of my kitty"
               >
                 Label
               </HookInput>
@@ -135,7 +139,7 @@ export function DealProposalForm({
                     id="startBlock"
                     register={register}
                     error={errors.startBlock}
-                    type="number "
+                    type="number"
                     tooltip="The block number of when the data is guaranteed to be available"
                   >
                     Start Block*
@@ -169,15 +173,17 @@ export function DealProposalForm({
               </div>
 
               <div className="flex flex-row items-center gap-4">
-                <HookInput
-                  id="pricePerBlock"
-                  register={register}
-                  error={errors.pricePerBlock}
-                  type="number"
-                  tooltip="The amount you'll pay for each block your data is stored"
-                >
-                  Price-per-Block*
-                </HookInput>
+                <div className="w-1/2">
+                  <HookInput
+                    id="pricePerBlock"
+                    register={register}
+                    error={errors.pricePerBlock}
+                    type="number"
+                    tooltip="The amount you'll pay for each block your data is stored"
+                  >
+                    Price-per-Block*
+                  </HookInput>
+                </div>
 
                 <HookInput
                   id="providerCollateral"

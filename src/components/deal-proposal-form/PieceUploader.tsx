@@ -62,10 +62,12 @@ export function PieceUploader({ error, ...props }: FileUploaderProps) {
     disabled: isProcessing,
   });
 
+  // as unknown, because TypeScript compiler complains.
+  // as Piece | null, because I can't figure out how to enforce that FormValues[name] passed here will be `Piece` typed at typescript level.
   const v = value as unknown as Piece | null;
 
   return (
-    <>
+    <div>
       <div
         {...getRootProps()}
         className={`flex items-center p-4 border-2 border-dashed rounded-lg transition-colors cursor-pointer hover:border-blue-400 ${
@@ -79,7 +81,7 @@ export function PieceUploader({ error, ...props }: FileUploaderProps) {
         <input {...getInputProps()} />
 
         {isProcessing ? (
-          <Loader2 className="animate-spin mx-auto h-8 w-8 text-blue-500 mb-4" />
+          <Loader2 className="animate-spin mx-auto h-8 w-8 text-blue-500" />
         ) : v ? (
           <>
             <FileText className="w-12 h-12 text-green-500 mr-2" />
@@ -101,6 +103,8 @@ export function PieceUploader({ error, ...props }: FileUploaderProps) {
           </>
         )}
       </div>
+
+      {error && <p className="mt-1 text-sm text-red-600">{error || "This field is invalid"}</p>}
 
       {v?.payloadCid && (
         <Collapsible title={"Processed file metadata"}>
@@ -126,6 +130,6 @@ export function PieceUploader({ error, ...props }: FileUploaderProps) {
           </div>
         </Collapsible>
       )}
-    </>
+    </div>
   );
 }

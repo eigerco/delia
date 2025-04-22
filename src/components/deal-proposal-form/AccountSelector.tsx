@@ -1,6 +1,5 @@
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { HelpCircle } from "lucide-react";
-import type { PropsWithChildren } from "react";
 import type { Path, UseFormRegister } from "react-hook-form";
 import { Tooltip } from "react-tooltip";
 import type { FormValues } from "./types";
@@ -11,11 +10,7 @@ type HookAccountSelectorProps = {
   accounts: InjectedAccountWithMeta[];
 };
 
-export const HookAccountSelector = ({
-  id,
-  register,
-  accounts,
-}: PropsWithChildren<HookAccountSelectorProps>) => (
+export const HookAccountSelector = ({ id, register, accounts }: HookAccountSelectorProps) => (
   <div>
     <label
       htmlFor={id}
@@ -32,7 +27,7 @@ export const HookAccountSelector = ({
     </label>
     <select
       id={id}
-      className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+      className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
       {...register(id)}
     >
       <option value="" disabled>

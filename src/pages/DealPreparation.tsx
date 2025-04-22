@@ -134,7 +134,7 @@ async function executeDeal(
 
   const clientAccount = accounts.find((v) => v.address === dealInfo.proposal.client);
   if (!clientAccount) {
-    throw new Error("Could not find a client accoutn address");
+    throw new Error("Could not find a client account address");
   }
 
   const proposeDealResponse = await callProposeDeal(
