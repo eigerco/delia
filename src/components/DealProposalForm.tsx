@@ -1,13 +1,14 @@
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { HelpCircle } from "lucide-react";
-import { type ChangeEventHandler, type PropsWithChildren } from "react";
+import type { ChangeEventHandler, PropsWithChildren } from "react";
+import { useState } from "react";
 import { Tooltip } from "react-tooltip";
 import { useCtx } from "../GlobalCtx";
 import { BLOCK_TIME } from "../lib/consts";
 import { plank_to_dot } from "../lib/conversion";
 import type { InputFields } from "../lib/dealProposal";
 import { FileUploader } from "./FileUploader";
-import { MarketBalance } from "./MarketBalance";
+import { MarketBalance, MarketBalanceStatus } from "./MarketBalance";
 
 type FieldProps = {
   id: string;
@@ -91,6 +92,10 @@ const FormInput = ({
   const startBlockRealTime = blockToTime(startBlock, currentBlock, currentBlockTimestamp);
   const endBlockRealTime = blockToTime(endBlock, currentBlock, currentBlockTimestamp);
 
+  const [marketBalance, setMarketBalance] = useState<string>("");
+  const [balanceStatus, setBalanceStatus] = useState<MarketBalanceStatus>(MarketBalanceStatus.Idle);
+  const { collatorWsApi: api } = useCtx();
+
   return (
     <div className="grid grid-cols-1 gap-4 mb-4">
       <div>
@@ -110,11 +115,26 @@ const FormInput = ({
         <select
           id="account-selector"
           value={selectedAccount?.address || ""}
-          onChange={(e) => {
+          onChange={async (e) => {
             const account = accounts.find((acc) => acc.address === e.target.value);
             if (account) {
               onSelectAccount(account);
               onChange({ ...dealProposal, client: account.address });
+
+              if (api) {
+                setBalanceStatus(MarketBalanceStatus.Loading);
+                try {
+                  const result = await api.query.market.balanceTable(account.address);
+                  const json = result.toJSON() as Record<string, unknown>;
+                  const free = (json.free as string) ?? "0";
+                  setMarketBalance(free);
+                  setBalanceStatus(MarketBalanceStatus.Fetched);
+                } catch (err) {
+                  console.error("Error fetching market balance:", err);
+                  setMarketBalance("");
+                  setBalanceStatus(MarketBalanceStatus.Error);
+                }
+              }
             }
           }}
           className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
@@ -127,7 +147,7 @@ const FormInput = ({
           ))}
         </select>
 
-        <MarketBalance account={selectedAccount} api={useCtx().collatorWsApi} />
+        <MarketBalance value={marketBalance} status={balanceStatus} />
       </div>
 
       <FileUploader
