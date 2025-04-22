@@ -57,15 +57,12 @@ function validationSchema(currentBlock: number) {
     })
     .refine((data) => data.endBlock > data.startBlock, {
       message: "End block must be greater than start block",
-      path: ["endDate"],
     })
     .refine((data) => data.endBlock - data.startBlock >= minDealDuration, {
       message: "Must be at least ${minDealDuration} blocks long",
-      path: ["endDate"],
     })
     .refine((data) => data.endBlock - data.startBlock <= maxDealDuration, {
       message: "Must be at max ${maxDealDuration} blocks long",
-      path: ["endDate"],
     });
 }
 
@@ -99,6 +96,7 @@ export function DealProposalForm({
       providerCollateral: 100,
       providers: [],
     },
+    mode: "onChange",
   });
 
   const [startBlock, endBlock, pricePerBlock] = watch(["startBlock", "endBlock", "pricePerBlock"]);
