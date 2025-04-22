@@ -3,11 +3,11 @@ import { HelpCircle } from "lucide-react";
 import type { PropsWithChildren } from "react";
 import type { Path, UseFormRegister } from "react-hook-form";
 import { Tooltip } from "react-tooltip";
-import type { IFormValues } from "./types";
+import type { FormValues } from "./types";
 
 type HookAccountSelectorProps = {
-  id: Path<IFormValues>;
-  register: UseFormRegister<IFormValues>;
+  id: Path<FormValues>;
+  register: UseFormRegister<FormValues>;
   accounts: InjectedAccountWithMeta[];
 };
 

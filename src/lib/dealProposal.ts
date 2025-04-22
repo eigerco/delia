@@ -2,7 +2,7 @@ import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import type { TypeRegistry } from "@polkadot/types";
 import { stringToU8a, u8aToHex } from "@polkadot/util";
 import { CID } from "multiformats";
-import type { IFormValues } from "../components/deal-proposal-form/types";
+import type { FormValues } from "../components/deal-proposal-form/types";
 import { type SignatureWrapper, signRaw } from "./sign";
 
 function encodeCid(cid: CID): string {
@@ -14,7 +14,7 @@ function encodeLabel(label: string): string {
 }
 
 // Convert validated data to RPC format
-export const toRpc = (validated: IFormValues, provider: string): RpcFields => ({
+export const toRpc = (validated: FormValues, provider: string): RpcFields => ({
   piece_cid: validated.piece.pieceCid,
   piece_size: validated.piece.size,
   client: validated.client,
@@ -28,7 +28,7 @@ export const toRpc = (validated: IFormValues, provider: string): RpcFields => ({
 });
 
 // Convert validated data to SCALEable format
-export const toSCALEable = (validated: IFormValues, provider: string): SCALEableFields => ({
+export const toSCALEable = (validated: FormValues, provider: string): SCALEableFields => ({
   piece_cid: encodeCid(CID.parse(validated.piece.pieceCid)),
   piece_size: validated.piece.size,
   client: validated.client,
@@ -50,7 +50,7 @@ export const encodeSCALEable = (
 };
 
 export const createSignedRpc = async (
-  validated: IFormValues,
+  validated: FormValues,
   provider: string,
   registry: TypeRegistry,
   account: InjectedAccountWithMeta,

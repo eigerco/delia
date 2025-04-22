@@ -11,7 +11,7 @@ import { DisabledInputInfo } from "./DisabledInputInfo";
 import { HookInput } from "./Input";
 import { PieceUploader } from "./PieceUploader";
 import { ProviderSelector } from "./ProviderSelector";
-import type { IFormValues } from "./types";
+import type { FormValues } from "./types";
 
 const BLOCKS_IN_MINUTE = 10;
 const OFFSET = BLOCKS_IN_MINUTE * 5;
@@ -78,7 +78,7 @@ export function DealProposalForm({
   currentBlock: number;
   currentBlockTimestamp: Date;
   accounts: InjectedAccountWithMeta[];
-  onSubmit: (data: IFormValues) => Promise<void>;
+  onSubmit: (data: FormValues) => Promise<void>;
 }) {
   const schema = useMemo(() => {
     return validationSchema(currentBlock);
@@ -90,7 +90,7 @@ export function DealProposalForm({
     handleSubmit,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm<IFormValues>({
+  } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       startBlock: currentBlock + OFFSET + maxProveCommitDuration,

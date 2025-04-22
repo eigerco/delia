@@ -6,9 +6,9 @@ import { commpFromBytes, paddedPieceSize } from "wasm-commp";
 import { generateCar as generateCarV2 } from "../../lib/car/v2";
 import Collapsible from "../Collapsible";
 import { DisabledInputInfo } from "./DisabledInputInfo";
-import type { IFormValues, Piece } from "./types";
+import type { FormValues, Piece } from "./types";
 
-interface FileUploaderProps extends UseControllerProps<IFormValues> {
+interface FileUploaderProps extends UseControllerProps<FormValues> {
   error?: string;
 }
 

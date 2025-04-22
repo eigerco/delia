@@ -8,7 +8,7 @@ import { toast } from "react-hot-toast";
 import { useOutletContext } from "react-router";
 import { useCtx } from "../GlobalCtx";
 import { DealProposalForm } from "../components/deal-proposal-form/DealProposalForm";
-import type { IFormValues } from "../components/deal-proposal-form/types";
+import type { FormValues } from "../components/deal-proposal-form/types";
 import { createSignedRpc, toRpc } from "../lib/dealProposal";
 import { createDownloadTrigger } from "../lib/download";
 import { uploadFile } from "../lib/fileUpload";
@@ -57,7 +57,7 @@ class SubmissionResult {
 }
 
 type DealInfo = {
-  proposal: IFormValues;
+  proposal: FormValues;
   file: File;
 };
 
@@ -211,7 +211,7 @@ export function DealPreparation() {
     );
   };
 
-  const onSubmit = async (dealProposal: IFormValues) =>
+  const onSubmit = async (dealProposal: FormValues) =>
     await toast.promise(
       async () => {
         const dealInfo: DealInfo = {

@@ -7,7 +7,7 @@ export interface Piece {
   file: File;
 }
 
-export interface IFormValues {
+export interface FormValues {
   piece: Piece;
   label: string;
   startBlock: number;

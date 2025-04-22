@@ -7,7 +7,7 @@ import { useCtx } from "../../GlobalCtx";
 import { COLLATOR_LOCAL_RPC_URL } from "../../lib/consts";
 import { type StorageProviderInfo, isStorageProviderInfo } from "../../lib/storageProvider";
 import { ProviderButton } from "../buttons/ProviderButton";
-import type { IFormValues } from "./types";
+import type { FormValues } from "./types";
 
 type Status =
   | { type: "connecting" }
@@ -39,8 +39,8 @@ const anyJsonToSpInfo = (key: string, value: any): StorageProviderInfo | string 
 };
 
 type ProviderSelectorProps = {
-  control: Control<IFormValues>;
-  name: Path<IFormValues>;
+  control: Control<FormValues>;
+  name: Path<FormValues>;
   error?: string;
 };
 
