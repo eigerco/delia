@@ -15,7 +15,7 @@ function encodeLabel(label: string): string {
 
 // Convert validated data to RPC format
 export const toRpc = (
-  validated: IFormValues,
+  validated: FormValues,
   provider: string,
   pricePerBlock: number,
   collateral: number,
@@ -34,7 +34,7 @@ export const toRpc = (
 
 // Convert validated data to SCALEable format
 export const toSCALEable = (
-  validated: IFormValues,
+  validated: FormValues,
   provider: string,
   pricePerBlock: number,
   collateral: number,
