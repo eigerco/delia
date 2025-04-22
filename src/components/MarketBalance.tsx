@@ -16,7 +16,11 @@ export function MarketBalance({
 }) {
   switch (status) {
     case "loading":
-      return <p className="mt-1 text-sm text-gray-400">Loading market balance...</p>;
+      return (
+        <p className="mt-1 text-sm text-gray-400">
+          Market Balance: <span className="italic text-gray-400">(loading...)</span>
+        </p>
+      );
 
     case "error":
       return <p className="mt-1 text-sm text-red-500">Error loading market balance</p>;
