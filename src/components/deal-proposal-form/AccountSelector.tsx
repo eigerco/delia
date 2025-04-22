@@ -27,7 +27,7 @@ export const HookAccountSelector = ({
       </span>
       <Tooltip
         anchorSelect="#tooltip-account-selector"
-        content="Your blockchain account that will be associated with this storage deal"
+        content="The blockchain account that will be associated with (and pay for) this storage deal"
       />
     </label>
     <select
