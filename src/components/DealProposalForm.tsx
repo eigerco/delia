@@ -1,7 +1,9 @@
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
+import { formatBalance } from "@polkadot/util";
 import { HelpCircle } from "lucide-react";
-import type { ChangeEventHandler, PropsWithChildren } from "react";
+import { type ChangeEventHandler, type PropsWithChildren, useEffect, useState } from "react";
 import { Tooltip } from "react-tooltip";
+import { useCtx } from "../GlobalCtx";
 import { BLOCK_TIME } from "../lib/consts";
 import { plank_to_dot } from "../lib/conversion";
 import type { InputFields } from "../lib/dealProposal";
@@ -89,6 +91,33 @@ const FormInput = ({
   const startBlockRealTime = blockToTime(startBlock, currentBlock, currentBlockTimestamp);
   const endBlockRealTime = blockToTime(endBlock, currentBlock, currentBlockTimestamp);
 
+  const [marketBalance, setMarketBalance] = useState<string>("");
+
+  const { collatorWsApi: api } = useCtx();
+
+  // This useEffect fetches market balance for the selected account so it can be displayed when it is selected.
+  useEffect(() => {
+    const fetchMarketBalance = async () => {
+      if (selectedAccount && api) {
+        try {
+          setMarketBalance("(loading...)");
+
+          const result = await api.query.market.balanceTable(selectedAccount.address);
+          const json = result.toJSON() as Record<string, unknown>;
+          const free = (json.free as string) ?? "0";
+          setMarketBalance(free);
+        } catch (err) {
+          console.error("Error fetching market balance:", err);
+          setMarketBalance("Error");
+        }
+      } else {
+        setMarketBalance("");
+      }
+    };
+
+    fetchMarketBalance();
+  }, [selectedAccount, api]);
+
   return (
     <div className="grid grid-cols-1 gap-4 mb-4">
       <div>
@@ -120,11 +149,24 @@ const FormInput = ({
           <option value="">Select an account</option>
           {accounts.map((account) => (
             <option key={account.address} value={account.address}>
-              {account.meta.name} ({account.address.slice(0, 8)}...
-              {account.address.slice(-8)})
+              {account.meta.name} ({account.address.slice(0, 8)}...{account.address.slice(-8)})
             </option>
           ))}
         </select>
+
+        {selectedAccount && /^\d+$/.test(marketBalance) && (
+          <p className="mt-1 text-sm text-gray-500">
+            Market Balance: {formatBalance(marketBalance, {})}
+          </p>
+        )}
+
+        {marketBalance === "Error" && (
+          <p className="mt-1 text-sm text-red-500">Error loading market balance</p>
+        )}
+
+        {marketBalance === "(loading...)" && (
+          <p className="mt-1 text-sm text-gray-400">Loading market balance...</p>
+        )}
       </div>
 
       <FileUploader
