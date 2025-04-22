@@ -34,13 +34,7 @@ namespace InputReceipt {
 
 export function Download() {
   const { collatorWsApi, collatorWsProvider } = useCtx();
-
   const [inputReceipt, setInputReceipt] = useState<InputReceipt | null>(null);
-
-  const [submissionResultFile, setSubmissionResultFile] = useState<File | null>(null);
-  const [submissionReceipt, setSubmissionResult] = useState<SubmissionReceipt | null>(null);
-  const [submissionFailureFilename, setSubmissionFailureFilename] = useState<string | null>(null);
-
   const [shouldExtract, setShouldExtract] = useState<boolean>(true);
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -52,16 +46,9 @@ export function Download() {
       throw new Error("No receipt has been uploaded");
     }
     if (inputReceipt.status === "error") {
+      // No need to throw since we already are showing the error
       return;
     }
-
-    // if (!submissionResultFile) {
-    //   throw new Error("No submission result was uploaded!");
-    // }
-    // if (!submissionReceipt) {
-    //   setSubmissionFailureFilename(submissionResultFile.name);
-    //   return;
-    // }
 
     // This has a bunch of improvements that can be applied,
     // namely, we can make this whole resolution deal batched on the server side
@@ -109,26 +96,22 @@ export function Download() {
         <h2 className="text-xl font-bold">Deal Retrieval</h2>
         <ReceiptUploader
           onFileReady={(file, content) => {
+            // Always clear the receipt just in case
+            setInputReceipt(null);
             // We can't validate the file onDrop because dropzone sucks
             // * It doesn't allow the validation function to be async
             // * It doesn't allow a mapping function to be applied and in turn pass the parsed file forwards
-            // setSubmissionResultFile(file);
             try {
               setInputReceipt(InputReceipt.Ok(file, SubmissionReceipt.new(JSON.parse(content))));
-              // setSubmissionResult(SubmissionReceipt.new(JSON.parse(content)));
             } catch (e) {
               if (e instanceof SyntaxError) {
                 setInputReceipt(InputReceipt.Err("File is not valid JSON!"));
-                // setSubmissionFailureFilename("File is not valid JSON!");
               } else if (e instanceof ZodError) {
                 setInputReceipt(InputReceipt.Err(e.errors.map((err) => err.message).join("\n")));
-                // setSubmissionFailureFilename(e.errors.map((err) => err.message).join("\n"));
               } else if (e instanceof Error) {
                 setInputReceipt(InputReceipt.Err(e.message));
-                // setSubmissionFailureFilename(e.message);
               } else {
                 setInputReceipt(InputReceipt.Err(`Failed to parse file ${file.name}`));
-                // setSubmissionFailureFilename(`Failed to parse file ${file.name}`);
               }
             }
           }}
@@ -138,11 +121,6 @@ export function Download() {
         ) : (
           <></>
         )}
-        {/* {submissionFailureFilename ? (
-          <pre className="text-red-400 text-xs">{submissionFailureFilename}</pre>
-        ) : (
-          <></>
-        )} */}
 
         <Extract extract={shouldExtract} setExtract={setShouldExtract} />
 
