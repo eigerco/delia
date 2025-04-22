@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { Toaster } from "react-hot-toast";
 import { z } from "zod";
-import { blockToTime, planckToDot } from "../../lib/conversion";
+import { blockToTime, formatDot, planckToDot } from "../../lib/conversion";
 import { type StorageProviderInfo, isStorageProviderInfo } from "../../lib/storageProvider";
 import { HookAccountSelector } from "./AccountSelector";
 import { DisabledInputInfo } from "./DisabledInputInfo";
@@ -183,7 +183,7 @@ export function DealProposalForm({
 
                 <p className="font-semibold text-sm">
                   Total Deal Price: <span className="text-blue-600">{totalPrice}</span> Planck (
-                  <span className="text-blue-600">{planckToDot(totalPrice)}</span> DOT)
+                  <span className="text-blue-600">{formatDot(planckToDot(totalPrice))}</span> DOT)
                 </p>
               </div>
             )}

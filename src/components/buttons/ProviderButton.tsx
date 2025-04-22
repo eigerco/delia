@@ -1,6 +1,6 @@
 import { CheckCircle2, Circle, HelpCircle } from "lucide-react";
 import { Tooltip } from "react-tooltip";
-import { planckToDot } from "../../lib/conversion";
+import { formatDot, planckToDot } from "../../lib/conversion";
 import type { StorageProviderInfo } from "../../lib/storageProvider";
 
 type ProviderButtonProps = {
@@ -51,7 +51,8 @@ export function ProviderButton({ accountId, provider, isSelected, onSelect }: Pr
               />
             </span>
             <span>
-              Price Per Block: {planckToDot(provider.dealParams.minimumPricePerBlock)} DOT
+              Price Per Block: {formatDot(planckToDot(provider.dealParams.minimumPricePerBlock))}{" "}
+              DOT
               <span id="tooltip-price" className="cursor-help inline-flex items-center ml-1">
                 <HelpCircle className="inline w-4 h-4 text-gray-400" />
               </span>
