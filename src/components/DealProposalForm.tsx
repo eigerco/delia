@@ -5,6 +5,7 @@ import { Tooltip } from "react-tooltip";
 import { BLOCK_TIME } from "../lib/consts";
 import { plank_to_dot } from "../lib/conversion";
 import type { InputFields } from "../lib/dealProposal";
+import type { FileWithMetadata } from "../pages/DealPreparation";
 import { FileUploader } from "./FileUploader";
 
 type FieldProps = {
@@ -70,7 +71,7 @@ type FormInputProps = {
   onSelectAccount: (account: InjectedAccountWithMeta) => void;
   currentBlock: number;
   currentBlockTimestamp: Date;
-  onFileSelect: (file: File) => void;
+  onFileSelect: (file: FileWithMetadata) => void;
 };
 
 const FormInput = ({
@@ -128,12 +129,12 @@ const FormInput = ({
       </div>
 
       <FileUploader
-        onMetadataReady={({ payloadCid, pieceSize, pieceCid: cid }, file) => {
+        onMetadataReady={(file) => {
           onChange({
             ...dealProposal,
-            payloadCid: payloadCid,
-            pieceSize: pieceSize.toString(),
-            pieceCid: cid,
+            payloadCid: file.metadata.payloadCid,
+            pieceSize: file.metadata.pieceSize.toString(),
+            pieceCid: file.metadata.pieceCid,
           });
           onFileSelect(file);
         }}
@@ -251,7 +252,7 @@ export function DealProposalForm({
   accounts: InjectedAccountWithMeta[];
   selectedAccount: InjectedAccountWithMeta | null;
   onSelectAccount: (account: InjectedAccountWithMeta) => void;
-  onFileSelect: (file: File) => void;
+  onFileSelect: (file: FileWithMetadata) => void;
 }) {
   // Calculate total price
   const startBlock = Number.parseInt(dealProposal.startBlock) || 0;
