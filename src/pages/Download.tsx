@@ -3,6 +3,7 @@ import { HelpCircle } from "lucide-react";
 import { useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import { Tooltip } from "react-tooltip";
+import { ZodError } from "zod";
 import { useCtx } from "../GlobalCtx";
 import { ReceiptUploader } from "../components/ReceiptUploader";
 import { DownloadButton } from "../components/buttons/DownloadButton";
@@ -11,8 +12,31 @@ import { resolvePeerIdMultiaddrs } from "../lib/resolvePeerIdMultiaddr";
 import { retrieveContent } from "../lib/retrieval";
 import { SubmissionReceipt } from "../lib/submissionReceipt";
 
+type InputReceipt =
+  | {
+      status: "ok";
+      file: File;
+      receipt: SubmissionReceipt;
+    }
+  | {
+      status: "error";
+      message: string;
+    };
+
+namespace InputReceipt {
+  export function Ok(file: File, receipt: SubmissionReceipt): InputReceipt {
+    return { status: "ok", file, receipt };
+  }
+  export function Err(message: string): InputReceipt {
+    return { status: "error", message };
+  }
+}
+
 export function Download() {
   const { collatorWsApi, collatorWsProvider } = useCtx();
+
+  const [inputReceipt, setInputReceipt] = useState<InputReceipt | null>(null);
+
   const [submissionResultFile, setSubmissionResultFile] = useState<File | null>(null);
   const [submissionReceipt, setSubmissionResult] = useState<SubmissionReceipt | null>(null);
   const [submissionFailureFilename, setSubmissionFailureFilename] = useState<string | null>(null);
@@ -20,53 +44,60 @@ export function Download() {
   const [shouldExtract, setShouldExtract] = useState<boolean>(true);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const download = async () => {
+  const downloadInner = async () => {
     if (!collatorWsProvider || !collatorWsApi) {
-      toast.error("Failed to connect to collator!");
-      return;
+      throw new Error("Failed to connect to collator!");
     }
-    if (!submissionResultFile) {
-      toast.error("No submission result was uploaded!");
-      return;
+    if (!inputReceipt) {
+      throw new Error("No receipt has been uploaded");
     }
-    if (!submissionReceipt) {
-      setSubmissionFailureFilename(submissionResultFile.name);
+    if (inputReceipt.status === "error") {
       return;
     }
 
+    // if (!submissionResultFile) {
+    //   throw new Error("No submission result was uploaded!");
+    // }
+    // if (!submissionReceipt) {
+    //   setSubmissionFailureFilename(submissionResultFile.name);
+    //   return;
+    // }
+
+    // This has a bunch of improvements that can be applied,
+    // namely, we can make this whole resolution deal batched on the server side
+    const multiaddrs = await Promise.all(
+      // submissionReceipt.deals
+      inputReceipt.receipt.deals.map((deal) =>
+        resolvePeerIdMultiaddrs(
+          {
+            wsProvider: collatorWsProvider,
+            apiPromise: collatorWsApi,
+          },
+          deal.storageProviderPeerId,
+        ),
+      ),
+    );
+    const providers = (Array.prototype.concat(...multiaddrs) as Multiaddr[]).filter((maddr) =>
+      maddr.protoNames().includes("ws"),
+    );
+    if (providers.length === 0) {
+      throw new Error("Could not find storage providers for your request!");
+    }
+
+    const contents = await retrieveContent(
+      inputReceipt.receipt.payloadCid,
+      providers,
+      shouldExtract,
+    );
+    createDownloadTrigger(inputReceipt.receipt.filename, contents);
+    // const contents = await retrieveContent(submissionReceipt.payloadCid, providers, shouldExtract);
+    // createDownloadTrigger(submissionReceipt.filename, contents);
+  };
+
+  const download = async () => {
     setIsDownloading(true);
     try {
-      await toast.promise(
-        async () => {
-          // This has a bunch of improvements that can be applied,
-          // namely, we can make this whole resolution deal batched on the server side
-          const multiaddrs = await Promise.all(
-            submissionReceipt.deals.map((deal) =>
-              resolvePeerIdMultiaddrs(
-                {
-                  wsProvider: collatorWsProvider,
-                  apiPromise: collatorWsApi,
-                },
-                deal.storageProviderPeerId,
-              ),
-            ),
-          );
-          const providers = (Array.prototype.concat(...multiaddrs) as Multiaddr[]).filter((maddr) =>
-            maddr.protoNames().includes("ws"),
-          );
-          if (providers.length === 0) {
-            throw new Error("Could not find storage providers for your request!");
-          }
-
-          const { title, contents } = await retrieveContent(
-            submissionReceipt.payloadCid,
-            providers,
-            shouldExtract,
-          );
-          createDownloadTrigger(title, contents);
-        },
-        { loading: "Downloading file!" },
-      );
+      await toast.promise(downloadInner(), { loading: "Downloading file!" });
     } finally {
       setIsDownloading(false);
     }
@@ -81,23 +112,37 @@ export function Download() {
             // We can't validate the file onDrop because dropzone sucks
             // * It doesn't allow the validation function to be async
             // * It doesn't allow a mapping function to be applied and in turn pass the parsed file forwards
-            setSubmissionResultFile(file);
+            // setSubmissionResultFile(file);
             try {
-              setSubmissionResult(SubmissionReceipt.parse(content));
+              setInputReceipt(InputReceipt.Ok(file, SubmissionReceipt.new(JSON.parse(content))));
+              // setSubmissionResult(SubmissionReceipt.new(JSON.parse(content)));
             } catch (e) {
-              if (e instanceof Error) {
-                setSubmissionFailureFilename(e.message);
+              if (e instanceof SyntaxError) {
+                setInputReceipt(InputReceipt.Err("File is not valid JSON!"));
+                // setSubmissionFailureFilename("File is not valid JSON!");
+              } else if (e instanceof ZodError) {
+                setInputReceipt(InputReceipt.Err(e.errors.map((err) => err.message).join("\n")));
+                // setSubmissionFailureFilename(e.errors.map((err) => err.message).join("\n"));
+              } else if (e instanceof Error) {
+                setInputReceipt(InputReceipt.Err(e.message));
+                // setSubmissionFailureFilename(e.message);
               } else {
-                setSubmissionFailureFilename(`Failed to parse file ${file.name}`);
+                setInputReceipt(InputReceipt.Err(`Failed to parse file ${file.name}`));
+                // setSubmissionFailureFilename(`Failed to parse file ${file.name}`);
               }
             }
           }}
         />
-        {submissionFailureFilename ? (
-          <p className="text-red-400">{submissionFailureFilename}</p>
+        {inputReceipt?.status === "error" ? (
+          <pre className="text-red-400 text-xs">{inputReceipt.message}</pre>
         ) : (
           <></>
         )}
+        {/* {submissionFailureFilename ? (
+          <pre className="text-red-400 text-xs">{submissionFailureFilename}</pre>
+        ) : (
+          <></>
+        )} */}
 
         <Extract extract={shouldExtract} setExtract={setShouldExtract} />
 

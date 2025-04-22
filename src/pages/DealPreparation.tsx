@@ -168,14 +168,14 @@ export function DealPreparation() {
           file: dealProposal.piece.file,
         };
 
-        const submissionResults = new SubmissionReceipt(
-          [],
-          CID.parse(dealProposal.piece.payloadCid),
-          CID.parse(dealProposal.piece.pieceCid),
-          dealProposal.piece.file.name,
-          dealProposal.startBlock,
-          dealProposal.endBlock,
-        );
+        const submissionResults = SubmissionReceipt.new({
+          deals: [],
+          pieceCid: dealProposal.piece.pieceCid,
+          payloadCid: dealProposal.piece.payloadCid,
+          filename: dealProposal.piece.file.name,
+          startBlock: dealProposal.startBlock,
+          endBlock: dealProposal.endBlock,
+        });
         // Using Promise.all here spams the user with N popups
         // where N is the number of storage providers the user is uploading deals to
         for (const spInfo of dealProposal.providers) {

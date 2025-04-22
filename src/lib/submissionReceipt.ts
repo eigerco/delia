@@ -1,6 +1,9 @@
 import { CID } from "multiformats/cid";
 import { z } from "zod";
 
+const DAG_PB_CODEC = 0x70;
+const FIL_COMMITMENT_UNSEALED_CODEC = 0xf101;
+
 namespace DealResult {
   export const schema = z.object({
     storageProviderPeerId: z.string(),
@@ -14,6 +17,14 @@ type DealResult = {
   storageProviderPeerId: string;
   storageProviderAccountId: string;
   dealId: number;
+};
+
+// This gives us better errors for missing fields
+const errorMap: z.ZodErrorMap = (issue, ctx) => {
+  if (issue.code === z.ZodIssueCode.invalid_type && issue.received === "undefined") {
+    return { message: `Missing required field: ${issue.path.join(".")}` };
+  }
+  return { message: ctx.defaultError };
 };
 
 const cidSchema = z.string().transform((s, ctx) => {
@@ -54,14 +65,18 @@ export class SubmissionReceipt {
 
   private static readonly SCHEMA = z.object({
     deals: z.array(DealResult.schema),
-    pieceCid: cidSchema,
-    payloadCid: cidSchema,
+    pieceCid: cidSchema.refine((cid) => cid.code === FIL_COMMITMENT_UNSEALED_CODEC, {
+      message: `Piece CID must be equal to ${FIL_COMMITMENT_UNSEALED_CODEC}`,
+    }),
+    payloadCid: cidSchema.refine((cid) => cid.code === DAG_PB_CODEC, {
+      message: `Payload CID must be equal to ${DAG_PB_CODEC}`,
+    }),
     filename: z.string(),
     startBlock: z.number(),
     endBlock: z.number(),
   });
 
-  constructor(
+  private constructor(
     deals: DealResult[],
     pieceCid: CID,
     payloadCid: CID,
@@ -77,16 +92,15 @@ export class SubmissionReceipt {
     this.endBlock = endBlock;
   }
 
-  toJSON(): object {
-    return {
-      ...this,
-      payloadCid: this.payloadCid.toString(),
-      pieceCid: this.pieceCid.toString(),
-    };
-  }
-
-  static parse(s: string): SubmissionReceipt {
-    const parsed = SubmissionReceipt.SCHEMA.parse(JSON.parse(s));
+  static new(params: {
+    deals: DealResult[];
+    pieceCid: string;
+    payloadCid: string;
+    filename: string;
+    startBlock: number;
+    endBlock: number;
+  }): SubmissionReceipt {
+    const parsed = SubmissionReceipt.SCHEMA.parse(params, { errorMap });
     return new SubmissionReceipt(
       parsed.deals,
       parsed.pieceCid,
@@ -95,5 +109,13 @@ export class SubmissionReceipt {
       parsed.startBlock,
       parsed.endBlock,
     );
+  }
+
+  toJSON(): object {
+    return {
+      ...this,
+      payloadCid: this.payloadCid.toString(),
+      pieceCid: this.pieceCid.toString(),
+    };
   }
 }

@@ -60,7 +60,7 @@ async function retrieveContentInner(
   payloadCid: CID,
   providers: Multiaddr[],
   extractContents: boolean,
-) {
+): Promise<Blob> {
   // Connect to the providers
   await Promise.all(
     providers.map(async (maddr) => {
@@ -91,18 +91,14 @@ async function retrieveContentInner(
     10000,
     new Error("Timed out while attempting to download the file!"),
   );
-
-  return {
-    title: extractContents ? payloadCid.toString() : `${payloadCid.toString()}.car`,
-    contents: new Blob(contents),
-  };
+  return new Blob(contents);
 }
 
 export async function retrieveContent(
   payloadCid: CID,
   providers: Multiaddr[],
   extractContents = true,
-): Promise<{ title: string; contents: Blob }> {
+): Promise<Blob> {
   const helia = await setupHelia();
 
   try {
