@@ -38,19 +38,6 @@ type Collator = {
   apiPromise: ApiPromise;
 };
 
-// CAR metadata returned by the FileUploader
-export type CarMetadata = {
-  payloadCid: string;
-  pieceSize: number;
-  // CommP
-  pieceCid: string;
-};
-
-export type FileWithMetadata = {
-  file: File;
-  metadata: CarMetadata;
-};
-
 async function executeDeal(
   accounts: InjectedAccountWithMeta[],
   providerInfo: ProviderInfo,
