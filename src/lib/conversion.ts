@@ -4,6 +4,11 @@ export function planckToDot(value: number): number {
   const PLANCKS_PER_DOT = 10_000_000_000;
   return value / PLANCKS_PER_DOT;
 }
+
+export function formatDot(value: number): string {
+  return value.toFixed(8).replace(/\.?0+$/, "");
+}
+
 export function blockToTime(
   block: number,
   currentBlock: number,

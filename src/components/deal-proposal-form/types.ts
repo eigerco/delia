@@ -12,8 +12,6 @@ export interface FormValues {
   label: string;
   startBlock: number;
   endBlock: number;
-  pricePerBlock: number;
-  providerCollateral: number;
   client: string;
   providers: StorageProviderInfo[];
 }

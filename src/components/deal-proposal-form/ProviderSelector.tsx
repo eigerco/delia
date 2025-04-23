@@ -5,7 +5,11 @@ import { useCallback, useEffect, useState } from "react";
 import { type Control, Controller, type Path } from "react-hook-form";
 import { useCtx } from "../../GlobalCtx";
 import { COLLATOR_LOCAL_RPC_URL } from "../../lib/consts";
-import { type StorageProviderInfo, isStorageProviderInfo } from "../../lib/storageProvider";
+import {
+  type DealParams,
+  type StorageProviderInfo,
+  isStorageProviderInfo,
+} from "../../lib/storageProvider";
 import { ProviderButton } from "../buttons/ProviderButton";
 import type { FormValues } from "./types";
 
@@ -68,18 +72,33 @@ export function ProviderSelector({ control, name, error }: ProviderSelectorProps
     }
 
     setStatus({ type: "loading" });
-    const newProviders = new Map();
+
+    const newProviders = new Map<string, StorageProviderInfo>();
     const entries = await polkaStorageApi.query.storageProvider.storageProviders.entries();
     for (const [key, value] of entries) {
       const accountId = key.args[0].toString();
       // biome-ignore lint/suspicious/noExplicitAny: any is a superset of AnyJson and easier to work with
       const spInfo = anyJsonToSpInfo(accountId, value.toJSON() as any);
-      if (spInfo instanceof String) {
+      if (typeof spInfo === "string") {
         console.warn(spInfo);
         continue;
       }
+
       newProviders.set(key.args[0].toString(), spInfo);
     }
+
+    const params = await polkaStorageApi.query.market.spDealParameters.entries();
+    for (const [key, value] of params) {
+      const providerId = key.args[0].toString();
+      const dealParams = value.toJSON() as unknown as DealParams;
+      const spInfo = newProviders.get(providerId);
+      if (!spInfo) {
+        console.warn("Cannot associate deal params with SP", providerId, dealParams);
+        continue;
+      }
+      spInfo.dealParams = dealParams;
+    }
+
     setProviders(newProviders);
     setStatus({ type: "loaded" });
   }, [polkaStorageApi]);

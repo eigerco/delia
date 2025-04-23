@@ -4,6 +4,17 @@ export interface StorageProviderInfo {
   sectorSize: string;
   windowPostPartitionSectors: string;
   windowPostProofType: string;
+  dealParams: DealParams;
+}
+
+export interface DealDuration {
+  lower: number;
+  upper: number;
+}
+
+export interface DealParams {
+  minimumPricePerBlock: number;
+  dealDuration: DealDuration;
 }
 
 export function isStorageProviderInfo(obj: object): obj is StorageProviderInfo {
