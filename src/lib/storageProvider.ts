@@ -7,7 +7,7 @@ export interface StorageProviderInfo {
   dealParams: DealParams;
 }
 
-interface DealDuration {
+export interface DealDuration {
   lower: number;
   upper: number;
 }

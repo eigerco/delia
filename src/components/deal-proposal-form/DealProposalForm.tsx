@@ -174,9 +174,10 @@ export function DealProposalForm({
                 <ul className="list-disc pb-2">
                   {providers.map((p) => (
                     <li key={p.accountId} className="ml-2 text-xs text-gray-500">
-                      Provider: {p.accountId} {duration * p.dealParams.minimumPricePerBlock}
-                      {" Planck"} = {duration} blocks × {p.dealParams.minimumPricePerBlock} per
-                      block
+                      Provider: <i>{p.accountId.slice(0, 32)}...</i>
+                      <br />
+                      {duration * p.dealParams.minimumPricePerBlock} {" Planck"} = {duration} blocks
+                      × {p.dealParams.minimumPricePerBlock} Planck/block
                     </li>
                   ))}
                 </ul>
