@@ -4,7 +4,6 @@ import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import type { TypeRegistry } from "@polkadot/types";
 import { Loader2 } from "lucide-react";
 import { CID } from "multiformats/cid";
-import { useRef } from "react";
 import { toast } from "react-hot-toast";
 import { useOutletContext } from "react-router";
 import { useCtx } from "../GlobalCtx";
@@ -173,21 +172,6 @@ async function executeDeal(
 }
 
 export function DealPreparation() {
-  /**
-   * We use `useRef` instead of `useState` to store the `refreshBalance` callback
-   * because:
-   *
-   * - `useState` would trigger a re-render if updated, which React doesn't allow
-   *   during the render phase of a different component (e.g., setting state in the parent
-   *   while rendering the child triggers a React warning).
-   *
-   * - `useRef` allows us to hold a mutable reference to the latest refresh function
-   *   without causing re-renders or violating React’s render timing rules.
-   *
-   * - This lets the child component (DealProposalForm) register a callback that the parent
-   *   (DealPreparation) can safely call after deal submission to refresh the market balance.
-   */
-  const refreshBalanceRef = useRef<() => Promise<void>>(null);
   const { accounts } = useOutletContext<OutletContextType>();
   const { latestFinalizedBlock, collatorWsApi, collatorWsProvider, registry } = useCtx();
 
@@ -262,9 +246,6 @@ export function DealPreparation() {
           });
         }
 
-        if (refreshBalanceRef.current) {
-          await refreshBalanceRef.current();
-        }
         createDownloadTrigger("deal.json", new Blob([JSON.stringify(submissionResults.toJSON())]));
       },
       {

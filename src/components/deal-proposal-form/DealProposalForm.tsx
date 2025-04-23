@@ -83,6 +83,7 @@ export function DealProposalForm({
   const schema = useMemo(() => {
     return validationSchema(currentBlock);
   }, [currentBlock]);
+  const defaultClient = accounts[0]?.address ?? "";
 
   const {
     register,
@@ -93,6 +94,7 @@ export function DealProposalForm({
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
+      client: defaultClient,
       startBlock: currentBlock + OFFSET + maxProveCommitDuration,
       endBlock: currentBlock + OFFSET + minDealDuration + maxProveCommitDuration,
       pricePerBlock: 1000,
@@ -129,8 +131,10 @@ export function DealProposalForm({
   }, [api, client]);
 
   useEffect(() => {
-    fetchMarketBalance();
-  }, [fetchMarketBalance]);
+    if (client) {
+      fetchMarketBalance();
+    }
+  }, [client, fetchMarketBalance]);
 
   return (
     <form
