@@ -1,6 +1,7 @@
 import { CID } from "multiformats/cid";
 import { z } from "zod";
 
+const RAW_CODEC = 0x55;
 const DAG_PB_CODEC = 0x70;
 const FIL_COMMITMENT_UNSEALED_CODEC = 0xf101;
 
@@ -68,7 +69,7 @@ export class SubmissionReceipt {
     pieceCid: cidSchema.refine((cid) => cid.code === FIL_COMMITMENT_UNSEALED_CODEC, {
       message: `Piece CID must be equal to ${FIL_COMMITMENT_UNSEALED_CODEC}`,
     }),
-    payloadCid: cidSchema.refine((cid) => cid.code === DAG_PB_CODEC, {
+    payloadCid: cidSchema.refine((cid) => cid.code === DAG_PB_CODEC || cid.code === RAW_CODEC, {
       message: `Payload CID must be equal to ${DAG_PB_CODEC}`,
     }),
     filename: z.string(),
