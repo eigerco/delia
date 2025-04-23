@@ -12,7 +12,7 @@ export function ReceiptUploader({ onFileReady }: FileUploaderProps) {
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       return new Promise<void>((resolve, reject) => {
-        const file = acceptedFiles.at(0);
+        const file = acceptedFiles[0];
         if (!file) {
           reject("No files were passed in.");
           return;

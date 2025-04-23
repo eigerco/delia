@@ -47,7 +47,8 @@ const cidSchema = z.string().transform((s, ctx) => {
     } else {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: e as string, // ¯\_(ツ)_/¯
+        // We know `e` is at least an object — i.e. not undefined nor null
+        message: (e as object).toString(),
       });
     }
     return z.NEVER;
