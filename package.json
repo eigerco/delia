@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "homepage": "https://jmg-duarte.github.io/delia/",
   "scripts": {
     "dev": "pnpm run build:wasm && vite",
     "build": "pnpm run build:wasm && tsc -b && vite build",
