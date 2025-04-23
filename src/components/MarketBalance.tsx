@@ -28,7 +28,7 @@ export function MarketBalance({
     case "fetched":
       return (
         <p className="mt-1 text-sm text-gray-500">
-          Market Balance: {value} Planck = {formatBalance(value, {})}
+          Market Balance: {value} Planck = {formatBalance(value, { decimals: 10, withUnit: "DOT" })}
         </p>
       );
 

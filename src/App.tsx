@@ -1,5 +1,4 @@
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
-import { formatBalance } from "@polkadot/util";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router";
@@ -15,8 +14,6 @@ const DOWNLOAD_PATH = "/download";
 
 function WsAddressInput({ onChange }: { onChange: (newValue: string) => void }) {
   const [wsAddress, setWsAddress] = useState(COLLATOR_LOCAL_RPC_URL);
-  // Needs to be set once so we can format DOT values correctly
-  formatBalance.setDefaults({ decimals: 10, unit: "DOT" });
 
   return (
     <>
