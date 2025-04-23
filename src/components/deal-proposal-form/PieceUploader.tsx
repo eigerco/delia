@@ -22,32 +22,38 @@ export function PieceUploader({ error, ...props }: FileUploaderProps) {
     (acceptedFiles: File[]) => {
       return new Promise<void>((resolve, reject) => {
         const file = acceptedFiles[0];
-        if (!file) return;
+        if (!file) {
+          reject("No files were passed in.");
+          return;
+        }
 
         const reader = new FileReader();
         setIsProcessing(true);
 
         reader.onloadend = async (e) => {
-          if (e.target?.result) {
-            try {
-              const content = new Uint8Array(e.target.result as ArrayBuffer);
-              const [rootCid, v2Bytes] = await generateCarV2(content);
+          if (!e.target?.result) {
+            reject("Failed to load file contents");
+            return;
+          }
 
-              const pieceSize = Number.parseInt(paddedPieceSize(v2Bytes));
-              const cid = commpFromBytes(v2Bytes);
+          try {
+            const content = new Uint8Array(e.target.result as ArrayBuffer);
+            const [rootCid, v2Bytes] = await generateCarV2(content);
 
-              onChange({
-                pieceCid: cid,
-                payloadCid: rootCid.toString(),
-                size: pieceSize,
-                file: file,
-              });
-              resolve();
-            } catch (err) {
-              reject(err);
-            } finally {
-              setIsProcessing(false);
-            }
+            const pieceSize = Number.parseInt(paddedPieceSize(v2Bytes));
+            const cid = commpFromBytes(v2Bytes);
+
+            onChange({
+              pieceCid: cid,
+              payloadCid: rootCid.toString(),
+              size: pieceSize,
+              file: file,
+            });
+            resolve();
+          } catch (err) {
+            reject(err);
+          } finally {
+            setIsProcessing(false);
           }
         };
 
