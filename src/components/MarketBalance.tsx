@@ -11,7 +11,7 @@ export function MarketBalance({
   value,
   status,
 }: {
-  value: string;
+  value: number;
   status: MarketBalanceStatus;
 }) {
   switch (status) {
@@ -26,14 +26,11 @@ export function MarketBalance({
       return <p className="mt-1 text-sm text-red-500">Error loading market balance</p>;
 
     case "fetched":
-      if (/^\d+$/.test(value)) {
-        return (
-          <p className="mt-1 text-sm text-gray-500">
-            Market Balance: {value} Planck = {formatBalance(value, {})}
-          </p>
-        );
-      }
-      return null;
+      return (
+        <p className="mt-1 text-sm text-gray-500">
+          Market Balance: {value} Planck = {formatBalance(value, {})}
+        </p>
+      );
 
     case "idle":
       return null;

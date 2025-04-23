@@ -110,7 +110,7 @@ export function DealProposalForm({
 
   const { collatorWsApi: api } = useCtx();
   const client = watch("client");
-  const [marketBalance, setMarketBalance] = useState<string>("");
+  const [marketBalance, setMarketBalance] = useState<number>(0);
   const [balanceStatus, setBalanceStatus] = useState<MarketBalanceStatus>(MarketBalanceStatus.Idle);
 
   const fetchMarketBalance = useCallback(async () => {
@@ -119,9 +119,8 @@ export function DealProposalForm({
     setBalanceStatus(MarketBalanceStatus.Loading);
     try {
       const result = await api.query.market.balanceTable(client);
-      const json = result.toJSON() as Record<string, unknown>;
-      const free = (json.free as string) ?? "0";
-      setMarketBalance(free);
+      const record = result.toJSON() as Record<string, number>;
+      setMarketBalance(record.free);
       setBalanceStatus(MarketBalanceStatus.Fetched);
     } catch (err) {
       console.error("Error fetching market balance:", err);
