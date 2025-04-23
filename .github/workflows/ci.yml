@@ -18,6 +18,11 @@ jobs:
         with:
           node-version: 22.x
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -26,10 +31,10 @@ jobs:
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: latest
+      # Need to build the WASM before type-checking
+      # otherwise we're missing code and tsc will fail
+      - name: Build WASM
+        run: pnpm build:wasm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

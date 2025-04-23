@@ -6,12 +6,12 @@
   "homepage": "https://jmg-duarte.github.io/delia/",
   "scripts": {
     "dev": "pnpm run build:wasm && vite",
+    "build:wasm": "wasm-pack build --target web ./wasm-commp",
     "build": "pnpm run build:wasm && tsc -b && vite build",
     "preview": "vite preview",
     "lint": "biome lint ./src",
     "fmt": "biome format --write ./src",
-    "fmt-check": "biome format ./src",
-    "build:wasm": "wasm-pack build --target web ./wasm-commp"
+    "fmt-check": "biome format ./src"
   },
   "dependencies": {
     "@chainsafe/libp2p-noise": "^16.0.3",
