@@ -124,7 +124,7 @@ export function DealPreparation() {
       throw new Error("Collator WS provider not setup!");
     }
     if (!collatorWsApi) {
-      throw new Error("Collator chain connetion not setup!");
+      throw new Error("Collator chain connection not setup!");
     }
     const collator: Collator = {
       wsProvider: collatorWsProvider,
