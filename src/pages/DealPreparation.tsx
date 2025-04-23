@@ -1,9 +1,8 @@
-import { type Multiaddr, type NodeAddress, multiaddr } from "@multiformats/multiaddr";
+import type { NodeAddress } from "@multiformats/multiaddr";
 import type { ApiPromise, WsProvider } from "@polkadot/api";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import type { TypeRegistry } from "@polkadot/types";
 import { Loader2 } from "lucide-react";
-import { CID } from "multiformats/cid";
 import { toast } from "react-hot-toast";
 import { useOutletContext } from "react-router";
 import { useCtx } from "../GlobalCtx";
@@ -13,52 +12,13 @@ import { createSignedRpc, toRpc } from "../lib/dealProposal";
 import { createDownloadTrigger } from "../lib/download";
 import { uploadFile } from "../lib/fileUpload";
 import { callProposeDeal, callPublishDeal } from "../lib/jsonRpc";
-import { queryPeerId } from "../lib/p2p/bootstrapRequestResponse";
 import { Services } from "../lib/p2p/servicesRequestResponse";
+import { resolvePeerIdMultiaddrs } from "../lib/resolvePeerIdMultiaddr";
+import { SubmissionReceipt } from "../lib/submissionReceipt";
 
 type OutletContextType = {
   accounts: InjectedAccountWithMeta[];
 };
-
-// This is not great
-type DealResult = {
-  storageProviderPeerId: string;
-  storageProviderAccountId: string;
-  dealId: number;
-};
-
-class SubmissionResult {
-  deals: DealResult[];
-  payloadCid: CID;
-  pieceCid: CID;
-  filename: string;
-  startBlock: number;
-  endBlock: number;
-
-  constructor(
-    deals: DealResult[],
-    payloadCid: CID,
-    pieceCid: CID,
-    filename: string,
-    startBlock: number,
-    endBlock: number,
-  ) {
-    this.deals = deals;
-    this.payloadCid = payloadCid;
-    this.pieceCid = pieceCid;
-    this.filename = filename;
-    this.startBlock = startBlock;
-    this.endBlock = endBlock;
-  }
-
-  toJSON(): object {
-    return {
-      ...this,
-      payloadCid: this.payloadCid.toString(),
-      pieceCid: this.pieceCid.toString(),
-    };
-  }
-}
 
 type DealInfo = {
   proposal: FormValues;
@@ -77,34 +37,18 @@ type Collator = {
   apiPromise: ApiPromise;
 };
 
-async function resolvePeerIdMultiaddrs(collator: Collator, peerId: string): Promise<Multiaddr[]> {
-  const collatorMaddrs: string[] = await collator.wsProvider.send(
-    "polkaStorage_getP2pMultiaddrs",
-    [],
-  );
-  const wsMaddrs = collatorMaddrs
-    .filter((maddr) => maddr.includes("ws"))
-    .map(multiaddr)
-    .at(0);
-  if (!wsMaddrs) {
-    throw new Error("Could not find the services required to resolve the peer id");
-  }
+// CAR metadata returned by the FileUploader
+export type CarMetadata = {
+  payloadCid: string;
+  pieceSize: number;
+  // CommP
+  pieceCid: string;
+};
 
-  // Hack: since there's no way to replace parts of multiaddrs, we need to do it by hand
-  // we convert to a string, replace the "0.0.0.0" which is what we're expecting and recreate the multiaddr
-  const queryAddr = multiaddr(
-    wsMaddrs
-      .toString()
-      // biome-ignore lint/style/noNonNullAssertion: wsAddress should be valid at this point
-      .replace("0.0.0.0", URL.parse(collator.wsProvider.endpoint)!.hostname), // double check this
-  );
-
-  const peerIdMultiaddress = await queryPeerId(peerId, queryAddr);
-  if (!peerIdMultiaddress) {
-    throw new Error(`Failed to find multiaddress for PeerId: ${peerId}`);
-  }
-  return peerIdMultiaddress;
-}
+export type FileWithMetadata = {
+  file: File;
+  metadata: CarMetadata;
+};
 
 async function executeDeal(
   accounts: InjectedAccountWithMeta[],
@@ -223,14 +167,14 @@ export function DealPreparation() {
           file: dealProposal.piece.file,
         };
 
-        const submissionResults = new SubmissionResult(
-          [],
-          CID.parse(dealProposal.piece.payloadCid),
-          CID.parse(dealProposal.piece.pieceCid),
-          dealProposal.piece.file.name,
-          dealProposal.startBlock,
-          dealProposal.endBlock,
-        );
+        const submissionResults = SubmissionReceipt.new({
+          deals: [],
+          pieceCid: dealProposal.piece.pieceCid,
+          payloadCid: dealProposal.piece.payloadCid,
+          filename: dealProposal.piece.file.name,
+          startBlock: dealProposal.startBlock,
+          endBlock: dealProposal.endBlock,
+        });
         // Using Promise.all here spams the user with N popups
         // where N is the number of storage providers the user is uploading deals to
         for (const spInfo of dealProposal.providers) {

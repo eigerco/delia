@@ -85,7 +85,7 @@ function App() {
               <></>
             ) : (
               <Link to="/download" className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-sm">
-                Download
+                Deal Retrieval
               </Link>
             )}
           </div>
