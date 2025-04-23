@@ -19,14 +19,16 @@ export const toRpc = (
   provider: string,
   pricePerBlock: number,
   collateral: number,
+  startBlock: number,
+  endBlock: number,
 ): RpcFields => ({
   piece_cid: validated.piece.pieceCid,
   piece_size: validated.piece.size,
   client: validated.client,
   provider,
   label: validated.label,
-  start_block: validated.startBlock,
-  end_block: validated.endBlock,
+  start_block: startBlock,
+  end_block: endBlock,
   storage_price_per_block: pricePerBlock,
   provider_collateral: collateral,
   state: "Published",
@@ -38,14 +40,16 @@ export const toSCALEable = (
   provider: string,
   pricePerBlock: number,
   collateral: number,
+  startBlock: number,
+  endBlock: number,
 ): SCALEableFields => ({
   piece_cid: encodeCid(CID.parse(validated.piece.pieceCid)),
   piece_size: validated.piece.size,
   client: validated.client,
   provider,
   label: encodeLabel(validated.label),
-  start_block: validated.startBlock,
-  end_block: validated.endBlock,
+  start_block: startBlock,
+  end_block: endBlock,
   storage_price_per_block: pricePerBlock,
   provider_collateral: collateral,
   deal_state: { Published: null },
@@ -64,11 +68,20 @@ export const createSignedRpc = async (
   provider: string,
   pricePerBlock: number,
   collateral: number,
+  startBlock: number,
+  endBlock: number,
   registry: TypeRegistry,
   account: InjectedAccountWithMeta,
 ): Promise<SignedRpcFields> => {
-  const rpc = toRpc(validated, provider, pricePerBlock, collateral);
-  const scaleable = toSCALEable(validated, provider, pricePerBlock, collateral);
+  const rpc = toRpc(validated, provider, pricePerBlock, collateral, startBlock, endBlock);
+  const scaleable = toSCALEable(
+    validated,
+    provider,
+    pricePerBlock,
+    collateral,
+    startBlock,
+    endBlock,
+  );
   const scale = encodeSCALEable(scaleable, registry);
   const signed = await signRaw(account, u8aToHex(scale));
 
