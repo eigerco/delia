@@ -14,6 +14,7 @@ const DOWNLOAD_PATH = "/download";
 
 function WsAddressInput({ onChange }: { onChange: (newValue: string) => void }) {
   const [wsAddress, setWsAddress] = useState(COLLATOR_LOCAL_RPC_URL);
+
   return (
     <>
       <label htmlFor="ws-address" className="text-gray-700 mr-2">
@@ -85,7 +86,7 @@ function App() {
               <></>
             ) : (
               <Link to="/download" className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-sm">
-                Download
+                Deal Retrieval
               </Link>
             )}
           </div>

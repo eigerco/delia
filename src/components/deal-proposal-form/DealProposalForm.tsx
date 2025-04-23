@@ -1,11 +1,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { useMemo } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Toaster } from "react-hot-toast";
 import { z } from "zod";
+import { useCtx } from "../../GlobalCtx";
 import { blockToTime, formatDot, planckToDot } from "../../lib/conversion";
 import { type StorageProviderInfo, isStorageProviderInfo } from "../../lib/storageProvider";
+import { MarketBalance, MarketBalanceStatus } from "../MarketBalance";
 import { HookAccountSelector } from "./AccountSelector";
 import { DisabledInputInfo } from "./DisabledInputInfo";
 import { HookInput } from "./Input";
@@ -78,6 +81,7 @@ export function DealProposalForm({
   const schema = useMemo(() => {
     return validationSchema(currentBlock);
   }, [currentBlock]);
+  const defaultClient = accounts[0]?.address ?? "";
 
   const {
     register,
@@ -88,6 +92,7 @@ export function DealProposalForm({
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
+      client: defaultClient,
       startBlock: currentBlock + OFFSET + maxProveCommitDuration,
       endBlock: currentBlock + OFFSET + minDealDuration + maxProveCommitDuration,
       providers: [],
@@ -96,7 +101,6 @@ export function DealProposalForm({
   });
 
   const [startBlock, endBlock, providers] = watch(["startBlock", "endBlock", "providers"]);
-
   const duration = endBlock - startBlock;
   const startBlockRealTime = blockToTime(startBlock, currentBlock, currentBlockTimestamp);
   const endBlockRealTime = blockToTime(endBlock, currentBlock, currentBlockTimestamp);
@@ -104,14 +108,46 @@ export function DealProposalForm({
     .map((p) => p.dealParams.minimumPricePerBlock * duration)
     .reduce((a, b) => a + b, 0);
 
+  const { collatorWsApi: api } = useCtx();
+  const client = watch("client");
+  const [marketBalance, setMarketBalance] = useState<number>(0);
+  const [balanceStatus, setBalanceStatus] = useState<MarketBalanceStatus>(MarketBalanceStatus.Idle);
+
+  const fetchMarketBalance = useCallback(async () => {
+    if (!api || !client) return;
+
+    setBalanceStatus(MarketBalanceStatus.Loading);
+    try {
+      const result = await api.query.market.balanceTable(client);
+      const record = result.toJSON() as Record<string, number>;
+      setMarketBalance(record.free);
+      setBalanceStatus(MarketBalanceStatus.Fetched);
+    } catch (err) {
+      console.error("Error fetching market balance:", err);
+      setBalanceStatus(MarketBalanceStatus.Error);
+    }
+  }, [api, client]);
+
+  useEffect(() => {
+    if (client) {
+      fetchMarketBalance();
+    }
+  }, [client, fetchMarketBalance]);
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form
+      onSubmit={handleSubmit(async (data) => {
+        await onSubmit(data);
+        fetchMarketBalance();
+      })}
+    >
       <div className="flex bg-white rounded-lg shadow p-6 mb-4">
         <div>
           <h2 className="text-xl font-bold mb-4">Deal Creation</h2>
           <div className="flex flex-col min-w-md max-w-md">
             <div className="grid grid-cols-1 gap-4 mb-4">
               <HookAccountSelector id="client" register={register} accounts={accounts} />
+              <MarketBalance value={marketBalance} status={balanceStatus} />
               <PieceUploader
                 error={errors.piece?.message || errors.piece?.file?.message}
                 name="piece"
