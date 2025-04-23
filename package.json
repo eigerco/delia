@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "lint": "biome lint ./src",
     "fmt": "biome format --write ./src",
+    "fmt-check": "biome format ./src",
     "build:wasm": "wasm-pack build --target web ./wasm-commp"
   },
   "dependencies": {
