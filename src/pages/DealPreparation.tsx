@@ -1,41 +1,25 @@
 import { type Multiaddr, type NodeAddress, multiaddr } from "@multiformats/multiaddr";
 import type { ApiPromise, WsProvider } from "@polkadot/api";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
-import type { TypeRegistry, u64 } from "@polkadot/types";
+import type { TypeRegistry } from "@polkadot/types";
 import { Loader2 } from "lucide-react";
-import type { CID } from "multiformats/cid";
-import { useCallback, useRef, useState } from "react";
-import { Toaster, toast } from "react-hot-toast";
+import { CID } from "multiformats/cid";
+import { useRef } from "react";
+import { toast } from "react-hot-toast";
 import { useOutletContext } from "react-router";
 import { useCtx } from "../GlobalCtx";
-import { DealProposalForm } from "../components/DealProposalForm";
-import { ProviderSelector } from "../components/ProviderSelector";
-import {
-  DEFAULT_INPUT,
-  type InputFields,
-  type ValidatedFields,
-  createSignedRpc,
-  toRpc,
-  validateInput,
-} from "../lib/dealProposal";
+import { DealProposalForm } from "../components/deal-proposal-form/DealProposalForm";
+import type { FormValues } from "../components/deal-proposal-form/types";
+import { createSignedRpc, toRpc } from "../lib/dealProposal";
 import { createDownloadTrigger } from "../lib/download";
 import { uploadFile } from "../lib/fileUpload";
 import { callProposeDeal, callPublishDeal } from "../lib/jsonRpc";
 import { queryPeerId } from "../lib/p2p/bootstrapRequestResponse";
 import { Services } from "../lib/p2p/servicesRequestResponse";
-import type { StorageProviderInfo } from "../lib/storageProvider";
 
 type OutletContextType = {
   accounts: InjectedAccountWithMeta[];
-  selectedAccount: InjectedAccountWithMeta | null;
-  setSelectedAccount: (account: InjectedAccountWithMeta) => void;
 };
-
-// Give user 5 minutes to think before submitting.
-const BLOCKS_IN_MINUTE = 10;
-const OFFSET = BLOCKS_IN_MINUTE * 5;
-const DEFAULT_DEAL_DURATION = 50;
-const DEFAULT_MAX_PROVE_COMMIT_DURATION = 50;
 
 // This is not great
 type DealResult = {
@@ -46,6 +30,7 @@ type DealResult = {
 
 class SubmissionResult {
   deals: DealResult[];
+  payloadCid: CID;
   pieceCid: CID;
   filename: string;
   startBlock: number;
@@ -53,12 +38,14 @@ class SubmissionResult {
 
   constructor(
     deals: DealResult[],
+    payloadCid: CID,
     pieceCid: CID,
     filename: string,
     startBlock: number,
     endBlock: number,
   ) {
     this.deals = deals;
+    this.payloadCid = payloadCid;
     this.pieceCid = pieceCid;
     this.filename = filename;
     this.startBlock = startBlock;
@@ -68,13 +55,14 @@ class SubmissionResult {
   toJSON(): object {
     return {
       ...this,
+      payloadCid: this.payloadCid.toString(),
       pieceCid: this.pieceCid.toString(),
     };
   }
 }
 
 type DealInfo = {
-  proposal: ValidatedFields;
+  proposal: FormValues;
   file: File;
 };
 
@@ -120,9 +108,9 @@ async function resolvePeerIdMultiaddrs(collator: Collator, peerId: string): Prom
 }
 
 async function executeDeal(
+  accounts: InjectedAccountWithMeta[],
   providerInfo: ProviderInfo,
   dealInfo: DealInfo,
-  account: InjectedAccountWithMeta,
   collator: Collator,
   registry: TypeRegistry,
 ): Promise<DealId> {
@@ -149,6 +137,11 @@ async function executeDeal(
     throw new Error("Could not find an address to upload the files to.");
   }
 
+  const clientAccount = accounts.find((v) => v.address === dealInfo.proposal.client);
+  if (!clientAccount) {
+    throw new Error("Could not find a client account address");
+  }
+
   const proposeDealResponse = await callProposeDeal(
     toRpc(dealInfo.proposal, providerInfo.accountId),
     {
@@ -169,7 +162,7 @@ async function executeDeal(
     dealInfo.proposal,
     providerInfo.accountId,
     registry,
-    account,
+    clientAccount,
   );
   const dealId = await callPublishDeal(signedRpc, {
     ip: targetStorageProvider.address.address,
@@ -180,32 +173,6 @@ async function executeDeal(
 }
 
 export function DealPreparation() {
-  const { accounts, selectedAccount, setSelectedAccount } = useOutletContext<OutletContextType>();
-  const { latestFinalizedBlock, collatorWsApi, collatorWsProvider, wsAddress, registry } = useCtx();
-
-  // This is the minimum amount of blocks it'll take for the deal to be active.
-  const maxProveCommitDuration =
-    (collatorWsApi?.consts.storageProvider.maxProveCommitDuration as u64).toNumber() ||
-    DEFAULT_MAX_PROVE_COMMIT_DURATION;
-
-  // It's not in pallet metadata anymore, because of the benchmarks.
-  const minDealDuration = DEFAULT_DEAL_DURATION;
-
-  const [dealProposal, setDealProposal] = useState<InputFields>({
-    ...DEFAULT_INPUT,
-    startBlock: latestFinalizedBlock
-      ? (latestFinalizedBlock.number + OFFSET + maxProveCommitDuration).toString()
-      : "100",
-    endBlock: latestFinalizedBlock
-      ? (latestFinalizedBlock.number + OFFSET + maxProveCommitDuration + minDealDuration).toString()
-      : "150",
-    client: selectedAccount?.address || null,
-  });
-
-  const [dealFile, setDealFile] = useState<File | null>(null);
-  const [providers, setProviders] = useState(new Map<string, StorageProviderInfo>());
-  const [selectedProviders, selectProviders] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(false);
   /**
    * We use `useRef` instead of `useState` to store the `refreshBalance` callback
    * because:
@@ -221,24 +188,10 @@ export function DealPreparation() {
    *   (DealPreparation) can safely call after deal submission to refresh the market balance.
    */
   const refreshBalanceRef = useRef<() => Promise<void>>(null);
-
-  const updateProviderSelection = useCallback((newProvider: string) => {
-    selectProviders((oldState) => {
-      const newSet = new Set(oldState);
-      if (newSet.has(newProvider)) {
-        newSet.delete(newProvider);
-      } else {
-        newSet.add(newProvider);
-      }
-      return newSet;
-    });
-  }, []);
+  const { accounts } = useOutletContext<OutletContextType>();
+  const { latestFinalizedBlock, collatorWsApi, collatorWsProvider, registry } = useCtx();
 
   const performDeal = async (providerInfo: ProviderInfo, dealInfo: DealInfo): Promise<DealId> => {
-    if (!selectedAccount) {
-      throw new Error("No account was selected!");
-    }
-
     if (!collatorWsProvider) {
       throw new Error("Collator WS provider not setup!");
     }
@@ -250,7 +203,7 @@ export function DealPreparation() {
       apiPromise: collatorWsApi,
     };
 
-    return await executeDeal(providerInfo, dealInfo, selectedAccount, collator, registry);
+    return await executeDeal(accounts, providerInfo, dealInfo, collator, registry);
   };
 
   const performDealToastWrapper = async (
@@ -259,12 +212,7 @@ export function DealPreparation() {
   ): Promise<DealId> => {
     return await toast.promise(
       async () => {
-        setLoading(true);
-        try {
-          return await performDeal(providerInfo, dealInfo);
-        } finally {
-          setLoading(false);
-        }
+        return await performDeal(providerInfo, dealInfo);
       },
       {
         loading: `Uploading deal to provider ${providerInfo.accountId}`,
@@ -283,85 +231,47 @@ export function DealPreparation() {
     );
   };
 
-  const Submit = () => {
-    const submit = async () =>
-      await toast.promise(
-        async () => {
-          const validDealProposal = validateInput(dealProposal);
-          if (!validDealProposal) {
-            throw new Error("Failed to validate deal proposal");
-          }
-          if (!dealFile) {
-            throw new Error("No file was provided!");
-          }
-          const dealInfo: DealInfo = {
-            proposal: validDealProposal,
-            file: dealFile,
+  const onSubmit = async (dealProposal: FormValues) =>
+    await toast.promise(
+      async () => {
+        const dealInfo: DealInfo = {
+          proposal: dealProposal,
+          file: dealProposal.piece.file,
+        };
+
+        const submissionResults = new SubmissionResult(
+          [],
+          CID.parse(dealProposal.piece.payloadCid),
+          CID.parse(dealProposal.piece.pieceCid),
+          dealProposal.piece.file.name,
+          dealProposal.startBlock,
+          dealProposal.endBlock,
+        );
+        // Using Promise.all here spams the user with N popups
+        // where N is the number of storage providers the user is uploading deals to
+        for (const spInfo of dealProposal.providers) {
+          const providerInfo: ProviderInfo = {
+            accountId: spInfo.accountId,
+            peerId: spInfo.peerId,
           };
 
-          const submissionResults = new SubmissionResult(
-            [],
-            validDealProposal.pieceCid,
-            dealFile?.name,
-            validDealProposal.startBlock,
-            validDealProposal.endBlock,
-          );
-          // Using Promise.all here spams the user with N popups
-          // where N is the number of storage providers the user is uploading deals to
-          for (const providerAccountId of selectedProviders) {
-            const spInfo = providers.get(providerAccountId);
-            if (!spInfo) {
-              throw new Error(`Unable to find information for provider ${providerAccountId}`);
-            }
-            const providerInfo: ProviderInfo = {
-              accountId: providerAccountId,
-              peerId: spInfo.peerId,
-            };
+          submissionResults.deals.push({
+            storageProviderAccountId: providerInfo.accountId,
+            storageProviderPeerId: providerInfo.peerId,
+            dealId: await performDealToastWrapper(providerInfo, dealInfo),
+          });
+        }
 
-            submissionResults.deals.push({
-              storageProviderAccountId: providerInfo.accountId,
-              storageProviderPeerId: providerInfo.peerId,
-              dealId: await performDealToastWrapper(providerInfo, dealInfo),
-            });
-          }
-
-          if (refreshBalanceRef.current) {
-            await refreshBalanceRef.current();
-          }
-
-          createDownloadTrigger(
-            "deal.json",
-            new Blob([JSON.stringify(submissionResults.toJSON())]),
-          );
-        },
-        {
-          loading: "Submitting deals!",
-          success: "Successfully submitted all deals!",
-        },
-      );
-
-    const submitDisabled =
-      !selectedAccount ||
-      !validateInput(dealProposal) ||
-      !dealFile ||
-      selectedProviders.size === 0 ||
-      loading;
-
-    return (
-      <div className={"pt-4"}>
-        <button
-          type="submit"
-          className={`px-4 py-2 bg-blue-200 rounded-sm ${
-            submitDisabled ? "bg-gray-400 cursor-not-allowed" : "hover:bg-blue-600"
-          } ${loading ? "cursor-progress" : ""}`}
-          onClick={submit}
-          disabled={submitDisabled}
-        >
-          {loading ? "Loading..." : "Continue"}
-        </button>
-      </div>
+        if (refreshBalanceRef.current) {
+          await refreshBalanceRef.current();
+        }
+        createDownloadTrigger("deal.json", new Blob([JSON.stringify(submissionResults.toJSON())]));
+      },
+      {
+        loading: "Submitting deals!",
+        success: "Successfully submitted all deals!",
+      },
     );
-  };
 
   if (!latestFinalizedBlock) {
     return (
@@ -373,34 +283,11 @@ export function DealPreparation() {
   }
 
   return (
-    <>
-      <div className="flex bg-white rounded-lg shadow p-6 mb-4">
-        <div>
-          <h2 className="text-xl font-bold mb-4">Deal Creation</h2>
-          <DealProposalForm
-            dealProposal={dealProposal}
-            onChange={setDealProposal}
-            onFileSelect={setDealFile}
-            accounts={accounts}
-            selectedAccount={selectedAccount}
-            onSelectAccount={setSelectedAccount}
-            currentBlock={latestFinalizedBlock.number}
-            currentBlockTimestamp={latestFinalizedBlock.timestamp}
-            onRequestBalanceRefresh={(refreshFn) => {
-              refreshBalanceRef.current = refreshFn;
-            }}
-          />
-          <Submit />
-        </div>
-        <div className="bg-black mx-8 min-w-px max-w-px" />
-        <ProviderSelector
-          providers={providers}
-          setProviders={setProviders}
-          selectedProviders={selectedProviders}
-          onSelectProvider={updateProviderSelection}
-        />
-      </div>
-      <Toaster position="bottom-right" reverseOrder={true} />
-    </>
+    <DealProposalForm
+      currentBlock={latestFinalizedBlock.number}
+      currentBlockTimestamp={latestFinalizedBlock.timestamp}
+      accounts={accounts}
+      onSubmit={onSubmit}
+    />
   );
 }

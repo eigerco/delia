@@ -2,10 +2,12 @@ import { hexToU8a } from "@polkadot/util";
 import { base58Encode } from "@polkadot/util-crypto";
 import { AlertCircle, Loader2, RefreshCw, Server } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { useCtx } from "../GlobalCtx";
-import { COLLATOR_LOCAL_RPC_URL } from "../lib/consts";
-import { type StorageProviderInfo, isStorageProviderInfo } from "../lib/storageProvider";
-import { ProviderButton } from "./buttons/ProviderButton";
+import { type Control, Controller, type Path } from "react-hook-form";
+import { useCtx } from "../../GlobalCtx";
+import { COLLATOR_LOCAL_RPC_URL } from "../../lib/consts";
+import { type StorageProviderInfo, isStorageProviderInfo } from "../../lib/storageProvider";
+import { ProviderButton } from "../buttons/ProviderButton";
+import type { FormValues } from "./types";
 
 type Status =
   | { type: "connecting" }
@@ -31,29 +33,35 @@ const anyJsonToSpInfo = (key: string, value: any): StorageProviderInfo | string 
   if (!isStorageProviderInfo(spInfo)) {
     return `Provider ${key} "info" field is not valid, skipping...`;
   }
+  spInfo.accountId = key;
   spInfo.peerId = base58Encode(hexToU8a(spInfo.peerId));
   return spInfo;
 };
 
 type ProviderSelectorProps = {
-  providers: Map<string, StorageProviderInfo>;
-  setProviders: (providers: Map<string, StorageProviderInfo>) => void;
-  onSelectProvider: (provider: string) => void;
-  selectedProviders: Set<string>;
+  control: Control<FormValues>;
+  name: Path<FormValues>;
+  error?: string;
 };
 
-export function ProviderSelector({
-  providers,
-  setProviders,
-  onSelectProvider,
-  selectedProviders,
-}: ProviderSelectorProps) {
-  const [status, setStatus] = useState<Status>({ type: "connecting" });
+const NoProviders = () => {
+  return (
+    <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+      <Server className="mx-auto h-12 w-12 text-gray-400 mb-2" />
+      <p className="text-gray-500">No storage providers found</p>
+      <p className="text-sm mt-2 text-gray-400">
+        Run a storage provider node and register it on chain
+      </p>
+      <p className="text-xs mt-1 text-gray-400 font-mono">endpoint: {COLLATOR_LOCAL_RPC_URL}</p>
+    </div>
+  );
+};
 
+export function ProviderSelector({ control, name, error }: ProviderSelectorProps) {
+  const [status, setStatus] = useState<Status>({ type: "connecting" });
+  const [providers, setProviders] = useState<Map<string, StorageProviderInfo>>(new Map());
   const { collatorWsApi: polkaStorageApi } = useCtx();
 
-  // A liveness check before populating (or maybe populating but disabled)
-  // would be great UX
   const getStorageProviders = useCallback(async () => {
     if (!polkaStorageApi) {
       return;
@@ -74,37 +82,11 @@ export function ProviderSelector({
     }
     setProviders(newProviders);
     setStatus({ type: "loaded" });
-  }, [setProviders, polkaStorageApi]);
+  }, [polkaStorageApi]);
 
   useEffect(() => {
     getStorageProviders();
   }, [getStorageProviders]);
-
-  const NoProviders = () => {
-    return (
-      <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
-        <Server className="mx-auto h-12 w-12 text-gray-400 mb-2" />
-        <p className="text-gray-500">No storage providers found</p>
-        <p className="text-sm mt-2 text-gray-400">
-          Run a storage provider node and register it on chain
-        </p>
-        <p className="text-xs mt-1 text-gray-400 font-mono">endpoint: {COLLATOR_LOCAL_RPC_URL}</p>
-      </div>
-    );
-  };
-
-  const Providers = () => {
-    return Array.from(providers.entries()).map(([accountId, provider]) => (
-      <li key={`${accountId}`} style={{ listStyleType: "none" }}>
-        <ProviderButton
-          accountId={accountId}
-          provider={provider}
-          isSelected={selectedProviders.has(accountId)}
-          onSelect={onSelectProvider}
-        />
-      </li>
-    ));
-  };
 
   const Body = () => {
     switch (status.type) {
@@ -120,7 +102,42 @@ export function ProviderSelector({
       case "loaded":
       case "connected": {
         return (
-          <div className="grid gap-4">{providers.size === 0 ? <NoProviders /> : <Providers />}</div>
+          <div className="grid gap-4">
+            <Controller
+              control={control}
+              name={name}
+              render={({ field }) => (
+                <div className="min-w-md max-w-md">
+                  {providers.size === 0 ? (
+                    <NoProviders />
+                  ) : (
+                    Array.from(providers.entries()).map(([accountId, provider]) => {
+                      // as StorageProviderInfo[], because I can't figure out how to enforce that FormValues[name] passed here will be `StorageProviderInfo[]` typed at typescript level.
+                      const v = (field.value as StorageProviderInfo[]) || [];
+                      const isSelected = v.some((sp) => sp.peerId === provider.peerId);
+
+                      return (
+                        <li key={`${accountId}`} style={{ listStyleType: "none" }}>
+                          <ProviderButton
+                            accountId={accountId}
+                            provider={provider}
+                            isSelected={isSelected}
+                            onSelect={(accountId) => {
+                              const newValue = isSelected
+                                ? v.filter((sp) => sp.accountId !== accountId)
+                                : [...v, provider];
+                              field.onChange(newValue);
+                            }}
+                          />
+                        </li>
+                      );
+                    })
+                  )}
+                  {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+                </div>
+              )}
+            />
+          </div>
         );
       }
 
@@ -140,16 +157,14 @@ export function ProviderSelector({
       <div className="flex py-4">
         <h2 className="flex items-center text-lg font-semibold pr-2">Select Storage Provider</h2>
         <button
-          type="submit"
+          type="button"
           className="transition-colors hover:text-blue-400"
           onClick={(_) => getStorageProviders()}
         >
           <RefreshCw />
         </button>
       </div>
-      <div className="min-w-md max-w-md">
-        <Body />
-      </div>
+      <Body />
     </div>
   );
 }

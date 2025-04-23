@@ -1,4 +1,5 @@
 export interface StorageProviderInfo {
+  accountId: string;
   peerId: string;
   sectorSize: string;
   windowPostPartitionSectors: string;
