@@ -9,7 +9,8 @@ import { ConnectWallet } from "./components/ConnectWallet";
 import { COLLATOR_LOCAL_RPC_URL } from "./lib/consts";
 import { setupTypeRegistry } from "./lib/registry";
 
-const DEAL_CREATION_PATH = "/";
+const ACCOUNT_PATH = "/";
+const DEAL_CREATION_PATH = "/deal";
 const DOWNLOAD_PATH = "/download";
 
 function WsAddressInput({ onChange }: { onChange: (newValue: string) => void }) {
@@ -75,17 +76,21 @@ function App() {
         <div className="flex mb-4 items-center">
           <h1 className="grow text-xl font-bold">📦 Delia</h1>
           <div className="flex items-center mr-6">
-            {location.pathname === DEAL_CREATION_PATH ? (
-              <></>
-            ) : (
+            {location.pathname !== ACCOUNT_PATH && (
               <Link to="/" className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-sm">
+                Account
+              </Link>
+            )}
+            {location.pathname !== DEAL_CREATION_PATH && (
+              <Link to="/deal" className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-sm mr-2">
                 Deal Creation
               </Link>
             )}
-            {location.pathname === DOWNLOAD_PATH ? (
-              <></>
-            ) : (
-              <Link to="/download" className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-sm">
+            {location.pathname !== DOWNLOAD_PATH && (
+              <Link
+                to="/download"
+                className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-sm mr-2"
+              >
                 Deal Retrieval
               </Link>
             )}
