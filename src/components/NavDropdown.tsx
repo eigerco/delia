@@ -34,7 +34,7 @@ export function NavDropdown() {
         className="flex items-center gap-2 px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-sm cursor-pointer"
       >
         Navigate
-        <ChevronDownCircle className="w-4 h-4 text-gray-500" />
+        <ChevronDownCircle className="w-4 h-4" />
       </button>
 
       {open && (

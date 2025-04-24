@@ -90,7 +90,7 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
   return (
     <div className="border rounded p-4 bg-gray-50 space-y-3 w-full">
       <h3 className="text-lg font-semibold">💧 Faucet Drip</h3>
-      <p className="text-sm text-gray-600">
+      <p className="text-sm">
         Use this to request testnet funds from the faucet. No signature is required.
       </p>
 
@@ -99,7 +99,7 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
         disabled={faucetStatus.state === FaucetState.Loading}
         className={`px-3 py-2 rounded text-sm transition ${
           faucetStatus.state === FaucetState.Loading
-            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+            ? "bg-gray-300 cursor-not-allowed"
             : "bg-blue-600 text-white hover:bg-blue-700"
         }`}
         onClick={handleDrip}
