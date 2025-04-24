@@ -8,7 +8,7 @@ import { z } from "zod";
 import { useCtx } from "../../GlobalCtx";
 import { blockToTime, formatDot, planckToDot } from "../../lib/conversion";
 import { type StorageProviderInfo, isStorageProviderInfo } from "../../lib/storageProvider";
-import { Balance, type BalanceStatus } from "../Balance";
+import { Balance, BalanceStatus } from "../Balance";
 import Collapsible from "../Collapsible";
 import { HookAccountSelector } from "./AccountSelector";
 import { DisabledInputInfo } from "./DisabledInputInfo";
@@ -115,19 +115,19 @@ export function DealProposalForm({
 
   const { collatorWsApi: api } = useCtx();
   const client = watch("client");
-  const [balanceStatus, setBalanceStatus] = useState<BalanceStatus>({ type: "idle" });
+  const [balanceStatus, setBalanceStatus] = useState<BalanceStatus>(BalanceStatus.idle);
 
   const fetchBalance = useCallback(async () => {
     if (!api || !client) return;
 
-    setBalanceStatus({ type: "loading" });
+    setBalanceStatus(BalanceStatus.loading);
     try {
       const result = await api.query.market.balanceTable(client);
       const record = result.toJSON() as Record<string, number>;
-      setBalanceStatus({ type: "fetched", value: record.free });
+      setBalanceStatus(BalanceStatus.fetched(record.free));
     } catch (err) {
       console.error("Error fetching market balance:", err);
-      setBalanceStatus({ type: "error", message: "Failed to fetch market balance" });
+      setBalanceStatus(BalanceStatus.error("Failed to fetch market balance"));
     }
   }, [api, client]);
 

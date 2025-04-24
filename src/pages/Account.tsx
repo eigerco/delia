@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useOutletContext } from "react-router";
 import { Tooltip } from "react-tooltip";
 import { useCtx } from "../GlobalCtx";
-import { Balance, type BalanceStatus } from "../components/Balance";
+import { Balance, BalanceStatus } from "../components/Balance";
 import { getRelativeTime } from "../lib/time";
 
 export function Account() {
@@ -17,8 +17,8 @@ export function Account() {
   const { collatorWsApi: api } = useCtx();
 
   const [selectedAddress, setSelectedAddress] = useState("");
-  const [walletBalance, setWalletBalance] = useState<BalanceStatus>({ type: "idle" });
-  const [marketBalance, setMarketBalance] = useState<BalanceStatus>({ type: "idle" });
+  const [walletBalance, setWalletBalance] = useState<BalanceStatus>(BalanceStatus.idle);
+  const [marketBalance, setMarketBalance] = useState<BalanceStatus>(BalanceStatus.idle);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const fetchBalances = useCallback(
@@ -26,22 +26,22 @@ export function Account() {
       if (!api) return;
 
       try {
-        setMarketBalance({ type: "loading" });
-        setWalletBalance({ type: "loading" });
+        setMarketBalance(BalanceStatus.loading);
+        setWalletBalance(BalanceStatus.loading);
 
         const accountInfo = await api.query.system.account(account.address);
         const { data } = accountInfo as AccountInfo;
-        setWalletBalance({ type: "fetched", value: data.free.toNumber() });
+        setWalletBalance(BalanceStatus.fetched(data.free.toNumber()));
 
         const result = await api.query.market.balanceTable(account.address);
         const marketJSON = result.toJSON() as Record<string, unknown>;
         const marketValue = (marketJSON.free as number) ?? 0;
-        setMarketBalance({ type: "fetched", value: marketValue });
+        setMarketBalance(BalanceStatus.fetched(marketValue));
         setLastUpdated(new Date());
       } catch (err) {
         console.error("Failed to fetch balances", err);
-        setWalletBalance({ type: "error", message: "Failed to fetch wallet balance" });
-        setMarketBalance({ type: "error", message: "Failed to fetch market balance" });
+        setWalletBalance(BalanceStatus.error("Failed to fetch wallet balance"));
+        setMarketBalance(BalanceStatus.error("Failed to fetch market balance"));
       }
     },
     [api],
