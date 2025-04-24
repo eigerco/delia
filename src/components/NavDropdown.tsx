@@ -31,6 +31,8 @@ export function NavDropdown() {
       <button
         type="button"
         onClick={toggleDropdown}
+        aria-haspopup="menu"
+        aria-expanded={open}
         className="flex items-center gap-2 px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-sm cursor-pointer"
       >
         Navigate
@@ -38,11 +40,16 @@ export function NavDropdown() {
       </button>
 
       {open && (
-        <ul className="absolute gap-1 bg-white border rounded shadow p-1 z-10 min-w-[160px]">
+        <ul
+          role="menu"
+          aria-label="Page navigation options"
+          className="absolute gap-1 bg-white border rounded shadow p-1 z-10 min-w-[160px]"
+        >
           {filteredPages.map((page) => (
-            <li key={page.path}>
+            <li key={page.path} role="presentation">
               <Link
                 to={page.path}
+                role="menuitem"
                 onClick={toggleDropdown}
                 className="flex items-center gap-2 px-3 py-1 hover:bg-gray-100 whitespace-nowrap"
               >
