@@ -38,7 +38,7 @@ export function NavDropdown() {
       </button>
 
       {open && (
-        <ul className="absolute mt-1 bg-white border rounded shadow p-1 z-10 min-w-[160px]">
+        <ul className="absolute gap-1 bg-white border rounded shadow p-1 z-10 min-w-[160px]">
           {filteredPages.map((page) => (
             <li key={page.path}>
               <Link

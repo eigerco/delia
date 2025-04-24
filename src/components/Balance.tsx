@@ -41,17 +41,17 @@ export function Balance({
   switch (status.state) {
     case "loading":
       return (
-        <p className="mt-1 text-sm">
+        <p className="gap-1 text-sm">
           {balanceType} Balance: <span className="italic">(loading...)</span>
         </p>
       );
 
     case "error":
-      return <p className="mt-1 text-sm text-red-500">Error loading balance</p>;
+      return <p className="gap-1 text-sm text-red-500">Error loading balance</p>;
 
     case "fetched":
       return (
-        <p className="mt-1 text-sm">
+        <p className="text-sm gap-1">
           {balanceType} Balance: {formatBalance(status.value, { withUnit: false, withSi: false })}{" "}
           DOT
         </p>
