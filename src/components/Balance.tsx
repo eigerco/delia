@@ -38,26 +38,30 @@ export function Balance({
   status: BalanceStatus;
   balanceType: string;
 }) {
+  if (status.state === BalanceState.Idle) return null;
+
+  let balanceContent: React.ReactNode;
+
   switch (status.state) {
-    case "loading":
-      return (
-        <p className="gap-1 text-sm">
-          {balanceType} Balance: <span className="italic">(loading...)</span>
-        </p>
+    case BalanceState.Loading:
+      balanceContent = <span className="italic">(loading...)</span>;
+      break;
+
+    case BalanceState.Error:
+      balanceContent = <span className="text-red-500">Error loading balance</span>;
+      break;
+
+    case BalanceState.Fetched:
+      balanceContent = (
+        <span>{formatBalance(status.value, { withUnit: false, withSi: false })} DOT</span>
       );
-
-    case "error":
-      return <p className="gap-1 text-sm text-red-500">Error loading balance</p>;
-
-    case "fetched":
-      return (
-        <p className="text-sm gap-1">
-          {balanceType} Balance: {formatBalance(status.value, { withUnit: false, withSi: false })}{" "}
-          DOT
-        </p>
-      );
-
-    case "idle":
-      return null;
+      break;
   }
+
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <div className="w-32">{balanceType} Balance:</div>
+      {balanceContent}
+    </div>
+  );
 }
