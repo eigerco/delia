@@ -1,7 +1,7 @@
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Outlet, useLocation } from "react-router";
+import { Outlet } from "react-router";
 import { default as initWasm } from "wasm-commp";
 import { useCtx } from "./GlobalCtx";
 import { GlobalCtxProvider } from "./GlobalCtxProvider";
@@ -44,7 +44,6 @@ function App() {
   const [loaded, setLoaded] = useState<boolean>(false);
   const [wsAddress, setWsAddress] = useState(COLLATOR_LOCAL_RPC_URL);
 
-  const location = useLocation();
   const registry = useMemo(() => setupTypeRegistry(), []);
 
   // Initialize WASM module, !VERY IMPORTANT! without this no WASM function will work.

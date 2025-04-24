@@ -2,23 +2,23 @@ import { formatBalance } from "@polkadot/util";
 
 export namespace BalanceStatus {
   export function idle(): BalanceStatus {
-    return { type: BalanceType.Idle };
+    return { state: BalanceState.Idle };
   }
 
   export function loading(): BalanceStatus {
-    return { type: BalanceType.Loading };
+    return { state: BalanceState.Loading };
   }
 
   export function fetched(value: number): BalanceStatus {
-    return { type: BalanceType.Fetched, value };
+    return { state: BalanceState.Fetched, value };
   }
 
   export function error(message: string): BalanceStatus {
-    return { type: BalanceType.Error, message };
+    return { state: BalanceState.Error, message };
   }
 }
 
-export enum BalanceType {
+export enum BalanceState {
   Idle = "idle",
   Loading = "loading",
   Fetched = "fetched",
@@ -26,10 +26,10 @@ export enum BalanceType {
 }
 
 export type BalanceStatus =
-  | { type: BalanceType.Idle }
-  | { type: BalanceType.Loading }
-  | { type: BalanceType.Fetched; value: number }
-  | { type: BalanceType.Error; message: string };
+  | { state: BalanceState.Idle }
+  | { state: BalanceState.Loading }
+  | { state: BalanceState.Fetched; value: number }
+  | { state: BalanceState.Error; message: string };
 
 export function Balance({
   status,
@@ -38,7 +38,7 @@ export function Balance({
   status: BalanceStatus;
   balanceType: string;
 }) {
-  switch (status.type) {
+  switch (status.state) {
     case "loading":
       return (
         <p className="mt-1 text-sm text-gray-400">

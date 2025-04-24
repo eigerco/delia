@@ -7,6 +7,34 @@ import { useCtx } from "../GlobalCtx";
 import { Balance, BalanceStatus } from "../components/Balance";
 import { getRelativeTime } from "../lib/time";
 
+export namespace FaucetStatus {
+  export function idle(): FaucetStatus {
+    return { state: FaucetState.Idle };
+  }
+  export function loading(): FaucetStatus {
+    return { state: FaucetState.Loading };
+  }
+  export function success(txHash: string): FaucetStatus {
+    return { state: FaucetState.Success, txHash };
+  }
+  export function error(message: string): FaucetStatus {
+    return { state: FaucetState.Error, message };
+  }
+}
+
+export enum FaucetState {
+  Idle = "idle",
+  Loading = "loading",
+  Success = "success",
+  Error = "error",
+}
+
+export type FaucetStatus =
+  | { state: FaucetState.Idle }
+  | { state: FaucetState.Loading }
+  | { state: FaucetState.Success; txHash: string }
+  | { state: FaucetState.Error; message: string };
+
 export function Account() {
   const context = useOutletContext<{
     accounts: InjectedAccountWithMeta[];
@@ -20,6 +48,7 @@ export function Account() {
   const [walletBalance, setWalletBalance] = useState<BalanceStatus>(BalanceStatus.idle);
   const [marketBalance, setMarketBalance] = useState<BalanceStatus>(BalanceStatus.idle);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [faucetStatus, setFaucetStatus] = useState<FaucetStatus>(FaucetStatus.idle);
 
   const fetchBalances = useCallback(
     async (account: InjectedAccountWithMeta) => {
@@ -72,23 +101,110 @@ export function Account() {
         onChange={setSelectedAddress}
       />
 
-      <Balance status={walletBalance} balanceType="Wallet" />
-      <Balance status={marketBalance} balanceType="Market" />
-
       {selectedAddress && (
-        <button
-          id="refresh-balances-btn"
-          type="button"
-          onClick={() => {
-            const acc = accounts.find((a) => a.address === selectedAddress);
-            if (acc) fetchBalances(acc);
-          }}
-          className="px-3 py-2 bg-gray-200 hover:bg-gray-300 rounded text-sm transition"
-        >
-          🔄 Refresh Balances
-        </button>
+        <div className="border rounded p-4 bg-gray-50 space-y-3 w-full">
+          <h3 className="text-lg font-semibold">💧 Faucet Top-Up</h3>
+          <p className="text-sm text-gray-600">
+            Use this to request testnet funds from the faucet. No signature is required.
+          </p>
+
+          <button
+            type="button"
+            disabled={faucetStatus.state === FaucetState.Loading}
+            className={`px-3 py-2 rounded text-sm transition ${
+              faucetStatus.state === FaucetState.Loading
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-blue-600 text-white hover:bg-blue-700"
+            }`}
+            onClick={async () => {
+              if (!api || !selectedAddress) return;
+
+              try {
+                setFaucetStatus(FaucetStatus.loading);
+
+                const unsub = await api.tx.faucet.drip(selectedAddress).send((result) => {
+                  const { status, dispatchError } = result;
+
+                  // Check if transaction is included in block
+                  if (status.isInBlock || status.isFinalized) {
+                    if (dispatchError) {
+                      if (dispatchError.isModule) {
+                        const decoded = api.registry.findMetaError(dispatchError.asModule);
+                        const { docs, name, section } = decoded;
+
+                        const userMessage =
+                          section === "faucet" && name === "FaucetUsedRecently"
+                            ? "You can only request tokens once every 24 hours."
+                            : docs.join(" ") || "Transaction failed.";
+
+                        setFaucetStatus(FaucetStatus.error(userMessage));
+                        setTimeout(() => setFaucetStatus(FaucetStatus.idle), 4000);
+                      } else {
+                        setFaucetStatus(FaucetStatus.error(dispatchError.toString()));
+                        setTimeout(() => setFaucetStatus(FaucetStatus.idle), 4000);
+                      }
+                    } else {
+                      setFaucetStatus(FaucetStatus.success(result.txHash.toHex()));
+                      const selected = accounts.find((a) => a.address === selectedAddress);
+                      if (selected) {
+                        void fetchBalances(selected);
+                      }
+                    }
+
+                    unsub();
+                  }
+                });
+              } catch (err) {
+                const rawMessage = (err as Error).message || "";
+                const isDuplicate =
+                  rawMessage.includes("1013") ||
+                  rawMessage.includes("Transaction Already Imported");
+
+                const userMessage = isDuplicate
+                  ? "Your transaction is already being processed."
+                  : "Transaction failed.";
+
+                setFaucetStatus(FaucetStatus.error(userMessage));
+                setTimeout(() => setFaucetStatus(FaucetStatus.idle), 4000);
+              }
+            }}
+          >
+            {faucetStatus.state === FaucetState.Loading
+              ? "⏳ Requesting..."
+              : "💰 Request 10 Test Tokens"}
+          </button>
+          {faucetStatus.state === FaucetState.Success && (
+            <div className="text-sm text-green-600 space-y-1">
+              <p>✅ Faucet top-up successful!</p>
+              <p>Tx Hash: {faucetStatus.txHash}</p>
+            </div>
+          )}
+          {faucetStatus.state === FaucetState.Error && (
+            <p className="text-sm text-red-600">⚠️ {faucetStatus.message}</p>
+          )}
+        </div>
       )}
 
+      {selectedAddress && (
+        <div className="border rounded p-4 bg-gray-50 space-y-3">
+          <h3 className="text-lg font-semibold">💼 Wallet Balances</h3>
+
+          <Balance status={walletBalance} balanceType="Wallet" />
+          <Balance status={marketBalance} balanceType="Market" />
+
+          <button
+            id="refresh-balances-btn"
+            type="button"
+            onClick={() => {
+              const acc = accounts.find((a) => a.address === selectedAddress);
+              if (acc) fetchBalances(acc);
+            }}
+            className="px-3 py-2 bg-gray-200 hover:bg-gray-300 rounded text-sm transition"
+          >
+            🔄 Refresh Balances
+          </button>
+        </div>
+      )}
       {lastUpdated && (
         <Tooltip
           anchorSelect="#refresh-balances-btn"
