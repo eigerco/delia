@@ -19,20 +19,18 @@ export interface DurationValue {
   days: number;
 }
 
-const DurationInput: React.FC<DurationFieldProps> = ({
+const DurationInput = ({
   name,
   label,
   control,
   error,
-  required = false,
+  required = true,
   defaultValue = { months: 0, days: 0 },
-  disabled = false,
-  className = "",
   maxMonths = 99,
   maxDays = 31,
-}) => {
+}: DurationFieldProps) => {
   return (
-    <div className={`duration-field ${className}`}>
+    <div className="duration-field">
       {label && (
         <label
           htmlFor={name}
@@ -63,7 +61,6 @@ const DurationInput: React.FC<DurationFieldProps> = ({
                     max={maxMonths}
                     className="w-full p-2 border rounded border-gray-300 focus:ring-blue-500 focus:border-blue-500"
                     value={durationValue.months}
-                    disabled={disabled}
                     onChange={(e) => {
                       onChange({ ...durationValue, months: e.target.value });
                     }}
@@ -81,7 +78,6 @@ const DurationInput: React.FC<DurationFieldProps> = ({
                     max={maxDays}
                     className="w-full p-2 border rounded border-gray-300 focus:ring-blue-500 focus:border-blue-500"
                     value={durationValue.days}
-                    disabled={disabled}
                     onChange={(e) => {
                       onChange({ ...durationValue, days: e.target.value });
                     }}

@@ -169,48 +169,52 @@ export function DealProposalForm({
                 Label
               </HookInput>
 
-              <DurationInput
-                name="duration"
-                label="Duration"
-                required={true}
-                control={control}
-                maxMonths={24} // Limit to 2 years
-                error={errors.duration?.months || errors.duration?.days}
-              />
+              <div>
+                <DurationInput
+                  name="duration"
+                  label="Duration"
+                  required={true}
+                  control={control}
+                  maxMonths={24} // Limit to 2 years
+                  error={errors.duration?.months || errors.duration?.days}
+                />
 
-              <Collapsible title="Details">
-                <i className="text-sm font-medium">Current block: {currentBlock}</i>
-                <div className="flex flex-row items-start gap-4">
-                  <div className="w-1/2">
-                    <DisabledInputInfo
-                      name="startBlock"
-                      value={startBlock.toString()}
-                      label="Start Block"
-                    />
+                <Collapsible title="Details">
+                  <div className="flex flex-col gap-4">
+                    <i className="text-sm font-medium">Current block: {currentBlock}</i>
+                    <div className="flex flex-row items-start gap-4">
+                      <div className="w-1/2">
+                        <DisabledInputInfo
+                          name="startBlock"
+                          value={startBlock.toString()}
+                          label="Start Block"
+                        />
+                      </div>
+
+                      <DisabledInputInfo
+                        name="startBlockTime"
+                        value={startBlockRealTime.toLocaleString("en-GB")}
+                        label="Estimated real-time"
+                      />
+                    </div>
+
+                    <div className="flex flex-row items-start gap-4">
+                      <div className="w-1/2">
+                        <DisabledInputInfo
+                          name="endBlock"
+                          value={endBlock.toString()}
+                          label="End Block"
+                        />
+                      </div>
+                      <DisabledInputInfo
+                        name="endBlockTime"
+                        value={endBlockRealTime.toLocaleString("en-GB")}
+                        label="Estimated real-time"
+                      />
+                    </div>
                   </div>
-
-                  <DisabledInputInfo
-                    name="startBlockTime"
-                    value={startBlockRealTime.toLocaleString("en-GB")}
-                    label="Estimated real-time"
-                  />
-                </div>
-
-                <div className="flex flex-row items-start gap-4">
-                  <div className="w-1/2">
-                    <DisabledInputInfo
-                      name="endBlock"
-                      value={endBlock.toString()}
-                      label="End Block"
-                    />
-                  </div>
-                  <DisabledInputInfo
-                    name="endBlockTime"
-                    value={endBlockRealTime.toLocaleString("en-GB")}
-                    label="Estimated real-time"
-                  />
-                </div>
-              </Collapsible>
+                </Collapsible>
+              </div>
             </div>
 
             {totalPrice > 0 && (
