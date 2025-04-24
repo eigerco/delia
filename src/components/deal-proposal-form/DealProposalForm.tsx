@@ -142,8 +142,6 @@ export function DealProposalForm({
   return (
     <form
       onSubmit={handleSubmit(async (data) => {
-        console.log(data);
-
         await onSubmit(data);
         fetchMarketBalance();
       })}
