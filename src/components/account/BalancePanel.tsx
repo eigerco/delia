@@ -21,7 +21,7 @@ export function BalancePanel({
 
   return (
     <div className="border rounded p-4 bg-gray-50 space-y-3">
-      <h3 className="text-lg font-semibold">💼 Wallet Balances</h3>
+      <h3 className="text-lg font-semibold">💼 Balances</h3>
 
       <Balance status={walletBalance} balanceType="Wallet" />
       <Balance status={marketBalance} balanceType="Market" />
