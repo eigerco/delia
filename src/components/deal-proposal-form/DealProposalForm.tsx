@@ -8,9 +8,11 @@ import { z } from "zod";
 import { useCtx } from "../../GlobalCtx";
 import { blockToTime, formatDot, planckToDot } from "../../lib/conversion";
 import { type StorageProviderInfo, isStorageProviderInfo } from "../../lib/storageProvider";
+import Collapsible from "../Collapsible";
 import { MarketBalance, MarketBalanceStatus } from "../MarketBalance";
 import { HookAccountSelector } from "./AccountSelector";
 import { DisabledInputInfo } from "./DisabledInputInfo";
+import DurationInput, { type DurationValue } from "./DurationInput";
 import { HookInput } from "./Input";
 import { PieceUploader } from "./PieceUploader";
 import { ProviderSelector } from "./ProviderSelector";
@@ -18,53 +20,50 @@ import type { FormValues } from "./types";
 
 const BLOCKS_IN_MINUTE = 10;
 const OFFSET = BLOCKS_IN_MINUTE * 5;
-const DEFAULT_DEAL_DURATION = 50;
 const DEFAULT_MAX_PROVE_COMMIT_DURATION = 50;
-const DEFAULT_MAX_DEAL_DURATION = 180 * BLOCKS_IN_MINUTE;
 
 // TODO(@th7nder,16/04/2025): fetch from chain
 // This is the minimum amount of blocks it'll take for the deal to be active.
 const maxProveCommitDuration = DEFAULT_MAX_PROVE_COMMIT_DURATION;
-// It's not in pallet metadata anymore, because of the benchmarks.
-const minDealDuration = DEFAULT_DEAL_DURATION;
-const maxDealDuration = DEFAULT_MAX_DEAL_DURATION;
 
 const storageProviderInfoSchema = z.custom<StorageProviderInfo>(isStorageProviderInfo);
 
-function validationSchema(currentBlock: number) {
-  return z
-    .object({
-      piece: z.object({
-        pieceCid: z.string(),
-        payloadCid: z.string(),
-        size: z.number(),
-        file: z.instanceof(File).refine((file: File) => file.size <= 8 * 1024 * 1024, {
-          message: "File must be under 8MB",
-        }),
+function validationSchema() {
+  return z.object({
+    duration: z.object({
+      months: z.coerce.number().max(24),
+      days: z.coerce.number().min(1).max(30),
+    }),
+    piece: z.object({
+      pieceCid: z.string(),
+      payloadCid: z.string(),
+      size: z.number(),
+      file: z.instanceof(File).refine((file: File) => file.size <= 8 * 1024 * 1024, {
+        message: "File must be under 8MB",
       }),
-      label: z.string().max(128),
-      startBlock: z.coerce
-        .number()
-        .int()
-        .positive()
-        .refine((value) => value > currentBlock + maxProveCommitDuration, {
-          message: `Must be at least ${maxProveCommitDuration} blocks in the future`,
-        }),
-      endBlock: z.coerce.number().int().positive(),
-      client: z.string(),
-      providers: z
-        .array(storageProviderInfoSchema)
-        .min(1, "There must be at least 1 Storage Provider selected"),
-    })
-    .refine((data) => data.endBlock > data.startBlock, {
-      message: "End block must be greater than start block",
-    })
-    .refine((data) => data.endBlock - data.startBlock >= minDealDuration, {
-      message: "Must be at least ${minDealDuration} blocks long",
-    })
-    .refine((data) => data.endBlock - data.startBlock <= maxDealDuration, {
-      message: "Must be at max ${maxDealDuration} blocks long",
-    });
+    }),
+    label: z.string().max(128),
+    client: z.string(),
+    providers: z
+      .array(storageProviderInfoSchema)
+      .min(1, "There must be at least 1 Storage Provider selected"),
+  });
+}
+
+export function calculateStartEndBlocks(currentBlock: number, duration: DurationValue) {
+  const startBlock = currentBlock + OFFSET + maxProveCommitDuration;
+  const endBlock =
+    startBlock +
+    duration.days * 24 * 60 * BLOCKS_IN_MINUTE +
+    duration.months * 30 * 24 * 60 * BLOCKS_IN_MINUTE;
+
+  const durationInBlocks = endBlock - startBlock;
+
+  return {
+    startBlock,
+    endBlock,
+    durationInBlocks,
+  };
 }
 
 export function DealProposalForm({
@@ -79,8 +78,8 @@ export function DealProposalForm({
   onSubmit: (data: FormValues) => Promise<void>;
 }) {
   const schema = useMemo(() => {
-    return validationSchema(currentBlock);
-  }, [currentBlock]);
+    return validationSchema();
+  }, []);
   const defaultClient = accounts[0]?.address ?? "";
 
   const {
@@ -93,19 +92,25 @@ export function DealProposalForm({
     resolver: zodResolver(schema),
     defaultValues: {
       client: defaultClient,
-      startBlock: currentBlock + OFFSET + maxProveCommitDuration,
-      endBlock: currentBlock + OFFSET + minDealDuration + maxProveCommitDuration,
       providers: [],
+      duration: {
+        days: 1,
+        months: 0,
+      },
     },
     mode: "onChange",
   });
 
-  const [startBlock, endBlock, providers] = watch(["startBlock", "endBlock", "providers"]);
-  const duration = endBlock - startBlock;
+  const [duration, providers] = watch(["duration", "providers"]);
+  const { startBlock, endBlock, durationInBlocks } = calculateStartEndBlocks(
+    currentBlock,
+    duration,
+  );
+
   const startBlockRealTime = blockToTime(startBlock, currentBlock, currentBlockTimestamp);
   const endBlockRealTime = blockToTime(endBlock, currentBlock, currentBlockTimestamp);
   const totalPrice = providers
-    .map((p) => p.dealParams.minimumPricePerBlock * duration)
+    .map((p) => p.dealParams.minimumPricePerBlock * durationInBlocks)
     .reduce((a, b) => a + b, 0);
 
   const { collatorWsApi: api } = useCtx();
@@ -164,44 +169,51 @@ export function DealProposalForm({
                 Label
               </HookInput>
 
-              <i className="text-sm font-medium">Current block: {currentBlock}</i>
-              <div className="flex flex-row items-start gap-4">
-                <div className="w-1/2">
-                  <HookInput
-                    id="startBlock"
-                    register={register}
-                    error={errors.startBlock}
-                    type="number"
-                    tooltip="The block number of when the data is guaranteed to be available"
-                  >
-                    Start Block*
-                  </HookInput>
-                </div>
-
-                <DisabledInputInfo
-                  name="startBlockTime"
-                  value={startBlockRealTime.toLocaleString("en-GB")}
-                  label="Estimated real-time"
+              <div>
+                <DurationInput
+                  name="duration"
+                  label="Duration"
+                  required={true}
+                  control={control}
+                  maxMonths={24} // Limit to 2 years
+                  error={errors.duration?.months || errors.duration?.days}
                 />
-              </div>
 
-              <div className="flex flex-row items-start gap-4">
-                <div className="w-1/2">
-                  <HookInput
-                    id="endBlock"
-                    register={register}
-                    error={errors.endBlock}
-                    type="number"
-                    tooltip="The block number when the data ends to be available"
-                  >
-                    End Block*
-                  </HookInput>
-                </div>
-                <DisabledInputInfo
-                  name="endBlockTime"
-                  value={endBlockRealTime.toLocaleString("en-GB")}
-                  label="Estimated real-time"
-                />
+                <Collapsible title="Details">
+                  <div className="flex flex-col gap-4">
+                    <i className="text-sm font-medium">Current block: {currentBlock}</i>
+                    <div className="flex flex-row items-start gap-4">
+                      <div className="w-1/2">
+                        <DisabledInputInfo
+                          name="startBlock"
+                          value={startBlock.toString()}
+                          label="Start Block"
+                        />
+                      </div>
+
+                      <DisabledInputInfo
+                        name="startBlockTime"
+                        value={startBlockRealTime.toLocaleString("en-GB")}
+                        label="Estimated real-time"
+                      />
+                    </div>
+
+                    <div className="flex flex-row items-start gap-4">
+                      <div className="w-1/2">
+                        <DisabledInputInfo
+                          name="endBlock"
+                          value={endBlock.toString()}
+                          label="End Block"
+                        />
+                      </div>
+                      <DisabledInputInfo
+                        name="endBlockTime"
+                        value={endBlockRealTime.toLocaleString("en-GB")}
+                        label="Estimated real-time"
+                      />
+                    </div>
+                  </div>
+                </Collapsible>
               </div>
             </div>
 
@@ -212,8 +224,8 @@ export function DealProposalForm({
                     <li key={p.accountId} className="ml-2 text-xs text-gray-500">
                       Provider: <i>{p.accountId.slice(0, 32)}...</i>
                       <br />
-                      {duration * p.dealParams.minimumPricePerBlock} {" Planck"} = {duration} blocks
-                      × {p.dealParams.minimumPricePerBlock} Planck/block
+                      {durationInBlocks * p.dealParams.minimumPricePerBlock} {" Planck"} ={" "}
+                      {durationInBlocks} blocks × {p.dealParams.minimumPricePerBlock} Planck/block
                     </li>
                   ))}
                 </ul>

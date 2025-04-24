@@ -10,8 +10,10 @@ export interface Piece {
 export interface FormValues {
   piece: Piece;
   label: string;
-  startBlock: number;
-  endBlock: number;
   client: string;
   providers: StorageProviderInfo[];
+  duration: {
+    months: number;
+    days: number;
+  };
 }

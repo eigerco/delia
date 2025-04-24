@@ -6,7 +6,10 @@ import { Loader2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useOutletContext } from "react-router";
 import { useCtx } from "../GlobalCtx";
-import { DealProposalForm } from "../components/deal-proposal-form/DealProposalForm";
+import {
+  DealProposalForm,
+  calculateStartEndBlocks,
+} from "../components/deal-proposal-form/DealProposalForm";
 import type { FormValues } from "../components/deal-proposal-form/types";
 import { createSignedRpc, toRpc } from "../lib/dealProposal";
 import { createDownloadTrigger } from "../lib/download";
@@ -23,6 +26,9 @@ type OutletContextType = {
 type DealInfo = {
   proposal: FormValues;
   file: File;
+  durationInBlocks: number;
+  startBlock: number;
+  endBlock: number;
 };
 
 type ProviderInfo = {
@@ -50,8 +56,7 @@ async function executeDeal(
   // TODO(@th7nder,18/04/2025): https://github.com/eigerco/polka-storage/issues/835
   // Collateral hardcoded as 2 * total deal price.
   // It should be set on-chain not here.
-  const collateral =
-    2 * (dealInfo.proposal.endBlock - dealInfo.proposal.startBlock) * providerInfo.pricePerBlock;
+  const collateral = 2 * dealInfo.durationInBlocks * providerInfo.pricePerBlock;
 
   let targetStorageProvider:
     | {
@@ -80,7 +85,14 @@ async function executeDeal(
   }
 
   const proposeDealResponse = await callProposeDeal(
-    toRpc(dealInfo.proposal, providerInfo.accountId, providerInfo.pricePerBlock, collateral),
+    toRpc(
+      dealInfo.proposal,
+      providerInfo.accountId,
+      providerInfo.pricePerBlock,
+      collateral,
+      dealInfo.startBlock,
+      dealInfo.endBlock,
+    ),
     {
       ip: targetStorageProvider.address.address,
       port: targetStorageProvider.services.rpc.port,
@@ -100,6 +112,8 @@ async function executeDeal(
     providerInfo.accountId,
     providerInfo.pricePerBlock,
     collateral,
+    dealInfo.startBlock,
+    dealInfo.endBlock,
     registry,
     clientAccount,
   );
@@ -155,12 +169,29 @@ export function DealPreparation() {
     );
   };
 
+  if (!latestFinalizedBlock) {
+    return (
+      <div className="text-center py-8">
+        <Loader2 className="animate-spin mx-auto h-8 w-8 text-blue-500 mb-4" />
+        <p className="text-gray-600">Loading on-chain data...</p>
+      </div>
+    );
+  }
+
   const onSubmit = async (dealProposal: FormValues) =>
     await toast.promise(
       async () => {
+        const { startBlock, endBlock, durationInBlocks } = calculateStartEndBlocks(
+          latestFinalizedBlock.number,
+          dealProposal.duration,
+        );
+
         const dealInfo: DealInfo = {
           proposal: dealProposal,
           file: dealProposal.piece.file,
+          durationInBlocks,
+          startBlock,
+          endBlock,
         };
 
         const submissionResults = SubmissionReceipt.new({
@@ -168,9 +199,10 @@ export function DealPreparation() {
           pieceCid: dealProposal.piece.pieceCid,
           payloadCid: dealProposal.piece.payloadCid,
           filename: dealProposal.piece.file.name,
-          startBlock: dealProposal.startBlock,
-          endBlock: dealProposal.endBlock,
+          startBlock: startBlock,
+          endBlock: endBlock,
         });
+
         // Using Promise.all here spams the user with N popups
         // where N is the number of storage providers the user is uploading deals to
         for (const spInfo of dealProposal.providers) {
@@ -194,15 +226,6 @@ export function DealPreparation() {
         success: "Successfully submitted all deals!",
       },
     );
-
-  if (!latestFinalizedBlock) {
-    return (
-      <div className="text-center py-8">
-        <Loader2 className="animate-spin mx-auto h-8 w-8 text-blue-500 mb-4" />
-        <p className="text-gray-600">Loading on-chain data...</p>
-      </div>
-    );
-  }
 
   return (
     <DealProposalForm
