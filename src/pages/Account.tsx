@@ -42,15 +42,14 @@ async function fetchBalancesFor(
 export function Account() {
   const context = useOutletContext<{
     accounts: InjectedAccountWithMeta[];
-    setSelectedAccount: (acc: InjectedAccountWithMeta | null) => void;
   }>();
 
-  const { accounts, setSelectedAccount } = context;
+  const { accounts } = context;
   const { collatorWsApi: api } = useCtx();
 
-  const [selectedAddress, setSelectedAddress] = useState("");
-  const [walletBalance, setWalletBalance] = useState<BalanceStatus>(BalanceStatus.idle);
-  const [marketBalance, setMarketBalance] = useState<BalanceStatus>(BalanceStatus.idle);
+  const [selectedAddress, setSelectedAddress] = useState(accounts[0].address);
+  const [walletBalance, setWalletBalance] = useState(BalanceStatus.idle);
+  const [marketBalance, setMarketBalance] = useState(BalanceStatus.idle);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const fetchBalances = useCallback(
@@ -61,19 +60,14 @@ export function Account() {
   );
 
   useEffect(() => {
-    let account = accounts.find((acc) => acc.address === selectedAddress) ?? null;
-
-    if (accounts.length > 0 && selectedAddress === "") {
-      account = accounts[0];
-      setSelectedAddress(account.address);
-      return;
+    const account = accounts.find((acc) => acc.address === selectedAddress) ?? null;
+    if (account?.address) {
+      setSelectedAddress(account?.address);
     }
-
-    setSelectedAccount(account);
     if (account) {
       fetchBalances(account);
     }
-  }, [accounts, selectedAddress, setSelectedAccount, fetchBalances]);
+  }, [accounts, selectedAddress, fetchBalances]);
 
   return (
     <div className="space-y-4">
