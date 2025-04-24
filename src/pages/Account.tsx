@@ -24,7 +24,9 @@ async function fetchBalancesFor(
 
     const accountInfo = await api.query.system.account(account.address);
     const { data } = accountInfo as AccountInfo;
-    setWalletBalance(BalanceStatus.fetched(data.free.toNumber()));
+    const freeBalance: number | bigint =
+      data.free.bitLength() > 53 ? data.free.toBigInt() : data.free.toNumber();
+    setWalletBalance(BalanceStatus.fetched(freeBalance));
 
     const result = await api.query.market.balanceTable(account.address);
     const marketJSON = result.toJSON() as Record<string, unknown>;
