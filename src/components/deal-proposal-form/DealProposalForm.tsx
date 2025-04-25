@@ -8,8 +8,8 @@ import { z } from "zod";
 import { useCtx } from "../../GlobalCtx";
 import { blockToTime, formatDot, planckToDot } from "../../lib/conversion";
 import { type StorageProviderInfo, isStorageProviderInfo } from "../../lib/storageProvider";
+import { Balance, BalanceStatus } from "../Balance";
 import Collapsible from "../Collapsible";
-import { MarketBalance, MarketBalanceStatus } from "../MarketBalance";
 import { HookAccountSelector } from "./AccountSelector";
 import { DisabledInputInfo } from "./DisabledInputInfo";
 import DurationInput, { type DurationValue } from "./DurationInput";
@@ -115,35 +115,33 @@ export function DealProposalForm({
 
   const { collatorWsApi: api } = useCtx();
   const client = watch("client");
-  const [marketBalance, setMarketBalance] = useState<number>(0);
-  const [balanceStatus, setBalanceStatus] = useState<MarketBalanceStatus>(MarketBalanceStatus.Idle);
+  const [balanceStatus, setBalanceStatus] = useState<BalanceStatus>(BalanceStatus.idle);
 
-  const fetchMarketBalance = useCallback(async () => {
+  const fetchBalance = useCallback(async () => {
     if (!api || !client) return;
 
-    setBalanceStatus(MarketBalanceStatus.Loading);
+    setBalanceStatus(BalanceStatus.loading);
     try {
       const result = await api.query.market.balanceTable(client);
       const record = result.toJSON() as Record<string, number>;
-      setMarketBalance(record.free);
-      setBalanceStatus(MarketBalanceStatus.Fetched);
+      setBalanceStatus(BalanceStatus.fetched(record.free));
     } catch (err) {
       console.error("Error fetching market balance:", err);
-      setBalanceStatus(MarketBalanceStatus.Error);
+      setBalanceStatus(BalanceStatus.error("Failed to fetch market balance"));
     }
   }, [api, client]);
 
   useEffect(() => {
     if (client) {
-      fetchMarketBalance();
+      fetchBalance();
     }
-  }, [client, fetchMarketBalance]);
+  }, [client, fetchBalance]);
 
   return (
     <form
       onSubmit={handleSubmit(async (data) => {
         await onSubmit(data);
-        fetchMarketBalance();
+        fetchBalance();
       })}
     >
       <div className="flex bg-white rounded-lg shadow p-6 mb-4">
@@ -152,7 +150,7 @@ export function DealProposalForm({
           <div className="flex flex-col min-w-md max-w-md">
             <div className="grid grid-cols-1 gap-4 mb-4">
               <HookAccountSelector id="client" register={register} accounts={accounts} />
-              <MarketBalance value={marketBalance} status={balanceStatus} />
+              <Balance status={balanceStatus} balanceType="Market" />
               <PieceUploader
                 error={errors.piece?.message || errors.piece?.file?.message}
                 name="piece"

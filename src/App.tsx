@@ -1,16 +1,14 @@
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Link, Outlet, useLocation } from "react-router";
+import { Outlet } from "react-router";
 import { default as initWasm } from "wasm-commp";
 import { useCtx } from "./GlobalCtx";
 import { GlobalCtxProvider } from "./GlobalCtxProvider";
 import { ConnectWallet } from "./components/ConnectWallet";
+import { NavDropdown } from "./components/NavDropdown";
 import { COLLATOR_LOCAL_RPC_URL } from "./lib/consts";
 import { setupTypeRegistry } from "./lib/registry";
-
-const DEAL_CREATION_PATH = "/";
-const DOWNLOAD_PATH = "/download";
 
 function WsAddressInput({ onChange }: { onChange: (newValue: string) => void }) {
   const [wsAddress, setWsAddress] = useState(COLLATOR_LOCAL_RPC_URL);
@@ -46,7 +44,6 @@ function App() {
   const [loaded, setLoaded] = useState<boolean>(false);
   const [wsAddress, setWsAddress] = useState(COLLATOR_LOCAL_RPC_URL);
 
-  const location = useLocation();
   const registry = useMemo(() => setupTypeRegistry(), []);
 
   // Initialize WASM module, !VERY IMPORTANT! without this no WASM function will work.
@@ -74,21 +71,8 @@ function App() {
       <div className="m-8">
         <div className="flex mb-4 items-center">
           <h1 className="grow text-xl font-bold">📦 Delia</h1>
-          <div className="flex items-center mr-6">
-            {location.pathname === DEAL_CREATION_PATH ? (
-              <></>
-            ) : (
-              <Link to="/" className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-sm">
-                Deal Creation
-              </Link>
-            )}
-            {location.pathname === DOWNLOAD_PATH ? (
-              <></>
-            ) : (
-              <Link to="/download" className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-sm">
-                Deal Retrieval
-              </Link>
-            )}
+          <div className="relative mr-6">
+            <NavDropdown />
           </div>
           <WsAddressInput onChange={setWsAddress} />
         </div>

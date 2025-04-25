@@ -4,6 +4,8 @@ import { RouterProvider, createHashRouter } from "react-router";
 import "./index.css";
 import "react-tooltip/dist/react-tooltip.css";
 import App from "./App.tsx";
+import { DEAL_CREATION_PATH, DOWNLOAD_PATH } from "./lib/consts.ts";
+import { Account } from "./pages/Account.tsx";
 import { DealPreparation } from "./pages/DealPreparation";
 import { Download } from "./pages/Download";
 
@@ -14,10 +16,14 @@ const router = createHashRouter([
     children: [
       {
         index: true,
+        Component: Account,
+      },
+      {
+        path: DEAL_CREATION_PATH,
         Component: DealPreparation,
       },
       {
-        path: "/download",
+        path: DOWNLOAD_PATH,
         Component: Download,
       },
     ],
