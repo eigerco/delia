@@ -44,46 +44,50 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
     try {
       setFaucetStatus(FaucetStatus.loading);
 
-      const unsub = await api.tx.faucet.drip(selectedAddress).send((result) => {
-        const { status, dispatchError } = result;
-
-        if (status.isInBlock || status.isFinalized) {
-          if (dispatchError) {
-            if (dispatchError.isModule) {
-              const decoded = api.registry.findMetaError(dispatchError.asModule);
-              const { docs, name, section } = decoded;
-
-              const userMessage =
-                section === "faucet" && name === "FaucetUsedRecently"
-                  ? "You can only request tokens once every 24 hours."
-                  : docs.join(" ") || "Transaction failed.";
-
-              setFaucetStatus(FaucetStatus.error(userMessage));
-              setTimeout(() => setFaucetStatus(FaucetStatus.idle), 4000);
-            } else {
-              setFaucetStatus(FaucetStatus.error(dispatchError.toString()));
-              setTimeout(() => setFaucetStatus(FaucetStatus.idle), 4000);
-            }
-          } else {
-            const txHash = result.txHash.toHex();
-            setFaucetStatus(FaucetStatus.success(txHash));
-            onSuccess(txHash);
+      const unsub = await api.tx.faucet
+        .drip(selectedAddress)
+        .send(({ status, dispatchError, txHash }) => {
+          if (!status.isInBlock && !status.isFinalized) {
+            return;
           }
-
-          unsub();
-        }
-      });
+          try {
+            if (!dispatchError) {
+              const txHashHex = txHash.toHex();
+              setFaucetStatus(FaucetStatus.success(txHashHex));
+              onSuccess(txHashHex);
+              return;
+            }
+            if (!dispatchError.isModule) {
+              setFaucetStatus(FaucetStatus.error(dispatchError.toString()));
+              return;
+            }
+            const decoded = api.registry.findMetaError(dispatchError.asModule);
+            const { docs, name, section } = decoded;
+            const userMessage =
+              section === "faucet" && name === "FaucetUsedRecently"
+                ? "You can only request tokens once every 24 hours."
+                : docs.join(" ") || "Transaction failed.";
+            setFaucetStatus(FaucetStatus.error(userMessage));
+          } finally {
+            unsub();
+          }
+        });
     } catch (err) {
-      const rawMessage = (err as Error).message || "";
-      const isDuplicate =
-        rawMessage.includes("1013") || rawMessage.includes("Transaction Already Imported");
+      if (err instanceof Error) {
+        const isDuplicate =
+          err.message.includes("1013") || err.message.includes("Transaction Already Imported");
 
-      const userMessage = isDuplicate
-        ? "Your transaction is already being processed."
-        : "Transaction failed.";
+        const userMessage = isDuplicate
+          ? "Your transaction is already being processed."
+          : "Transaction failed.";
 
-      setFaucetStatus(FaucetStatus.error(userMessage));
-      setTimeout(() => setFaucetStatus(FaucetStatus.idle), 4000);
+        setFaucetStatus(FaucetStatus.error(userMessage));
+      } else {
+        console.error(err);
+        setFaucetStatus(
+          FaucetStatus.error("Failed to decode incoming error, see logs for details."),
+        );
+      }
     }
   };
 
@@ -109,16 +113,21 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
           : "\uD83D\uDCB0 Request 10 Test Tokens"}
       </button>
 
-      {faucetStatus.state === FaucetState.Success && (
-        <div className="text-sm text-green-600 space-y-1">
-          <p>✅ Faucet top-up successful!</p>
-          <p>Tx Hash: {faucetStatus.txHash}</p>
-        </div>
-      )}
-
-      {faucetStatus.state === FaucetState.Error && (
-        <p className="text-sm text-red-600">⚠️ {faucetStatus.message}</p>
-      )}
+      {(() => {
+        switch (faucetStatus.state) {
+          case FaucetState.Success:
+            return (
+              <div className="text-sm text-green-600 space-y-1">
+                <p>✅ Faucet top-up successful!</p>
+                <p>Tx Hash: {faucetStatus.txHash}</p>
+              </div>
+            );
+          case FaucetState.Error:
+            return <p className="text-sm text-red-600">⚠️ {faucetStatus.message}</p>;
+          default:
+            return <></>;
+        }
+      })()}
     </div>
   );
 }
