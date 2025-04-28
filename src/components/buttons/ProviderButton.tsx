@@ -13,7 +13,6 @@ type ProviderButtonProps = {
 export function ProviderButton({ accountId, provider, isSelected, onSelect }: ProviderButtonProps) {
   const { tokenProperties } = useCtx();
   const peerId = provider.peerId;
-  console.log(provider.dealParams.minimumPricePerBlock);
   return (
     <button
       type="button"
