@@ -105,6 +105,7 @@ export function Account() {
 
       <MarketTopUpPanel
         selectedAddress={selectedAddress}
+        walletBalance={walletBalance.state === "fetched" ? walletBalance.value : 0n}
         onSuccess={() => {
           const selected = accounts.find((a) => a.address === selectedAddress);
           if (selected) {

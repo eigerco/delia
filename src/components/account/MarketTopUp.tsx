@@ -2,12 +2,13 @@ import { useState } from "react";
 import { useCtx } from "../../GlobalCtx";
 import { Transaction, TransactionState, type TransactionStatus } from "../../lib/transactionStatus";
 
-interface Props {
+interface MarketTopUpProps {
   selectedAddress: string;
+  walletBalance: bigint;
   onSuccess: () => void;
 }
 
-export function MarketTopUpPanel({ selectedAddress, onSuccess }: Props) {
+export function MarketTopUpPanel({ selectedAddress, walletBalance, onSuccess }: MarketTopUpProps) {
   const { collatorWsApi: api } = useCtx();
   const [topUpAmount, setTopUpAmount] = useState("");
   const [topUpStatus, setTopUpStatus] = useState<TransactionStatus>(Transaction.idle);
@@ -76,7 +77,11 @@ export function MarketTopUpPanel({ selectedAddress, onSuccess }: Props) {
 
       <button
         type="button"
-        disabled={topUpStatus.state === TransactionState.Loading || topUpAmount === ""}
+        disabled={
+          topUpStatus.state === TransactionState.Loading ||
+          topUpAmount === "" ||
+          BigInt(topUpAmount) > walletBalance
+        }
         onClick={handleTopUp}
         className={`w-full px-3 py-2 rounded text-sm transition ${
           topUpStatus.state === TransactionState.Loading
@@ -87,16 +92,27 @@ export function MarketTopUpPanel({ selectedAddress, onSuccess }: Props) {
         {topUpStatus.state === TransactionState.Loading ? "⏳ Processing..." : "➕ Top Up"}
       </button>
 
-      {topUpStatus.state === TransactionState.Success && (
-        <div className="text-sm text-green-600 space-y-1">
-          <p>✅ Top up successful!</p>
-          <p>Tx Hash: {topUpStatus.txHash}</p>
-        </div>
+      {topUpAmount !== "" && BigInt(topUpAmount) > walletBalance && (
+        <p className="text-sm text-red-600">
+          ⚠️ You cannot deposit more than your available wallet balance.
+        </p>
       )}
 
-      {topUpStatus.state === TransactionState.Error && (
-        <p className="text-sm text-red-600">⚠️ {topUpStatus.message}</p>
-      )}
+      {(() => {
+        switch (topUpStatus.state) {
+          case TransactionState.Success:
+            return (
+              <div className="text-sm text-green-600 space-y-1">
+                <p>✅ Market top up successful!</p>
+                <p>Tx Hash: {topUpStatus.txHash}</p>
+              </div>
+            );
+          case TransactionState.Error:
+            return <p className="text-sm text-red-600">⚠️ {topUpStatus.message}</p>;
+          default:
+            return <></>;
+        }
+      })()}
     </div>
   );
 }
