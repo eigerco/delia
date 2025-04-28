@@ -66,32 +66,32 @@ export function MarketTopUpPanel({ selectedAddress, walletBalance, onSuccess }: 
     <div className="border rounded p-4 bg-gray-50 space-y-3 w-full">
       <h3 className="text-lg font-semibold">🏦 Top Up Market Balance</h3>
       <p className="text-sm text-gray-600">Enter the amount to deposit (Planck units).</p>
+      <div className="flex items-center gap-2">
+        <input
+          type="number"
+          value={topUpAmount}
+          onChange={(e) => setTopUpAmount(e.target.value)}
+          placeholder="Amount in Planck"
+          className="px-3 py-2 border rounded text-sm"
+        />
 
-      <input
-        type="number"
-        value={topUpAmount}
-        onChange={(e) => setTopUpAmount(e.target.value)}
-        placeholder="Amount in Planck"
-        className="w-full px-3 py-2 border rounded text-sm"
-      />
-
-      <button
-        type="button"
-        disabled={
-          topUpStatus.state === TransactionState.Loading ||
-          topUpAmount === "" ||
-          BigInt(topUpAmount) > walletBalance
-        }
-        onClick={handleTopUp}
-        className={`w-full px-3 py-2 rounded text-sm transition ${
-          topUpStatus.state === TransactionState.Loading
-            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-            : "bg-green-600 text-white hover:bg-green-700"
-        }`}
-      >
-        {topUpStatus.state === TransactionState.Loading ? "⏳ Processing..." : "➕ Top Up"}
-      </button>
-
+        <button
+          type="button"
+          disabled={
+            topUpStatus.state === TransactionState.Loading ||
+            topUpAmount === "" ||
+            BigInt(topUpAmount) > walletBalance
+          }
+          onClick={handleTopUp}
+          className={`px-3 py-2 rounded text-sm transition ${
+            topUpStatus.state === TransactionState.Loading
+              ? "bg-gray-300 cursor-not-allowed"
+              : "bg-green-600 text-white hover:bg-green-700"
+          }`}
+        >
+          {topUpStatus.state === TransactionState.Loading ? "⏳ Processing..." : "➕ Top Up"}
+        </button>
+      </div>
       {topUpAmount !== "" && BigInt(topUpAmount) > walletBalance && (
         <p className="text-sm text-red-600">
           ⚠️ You cannot deposit more than your available wallet balance.
