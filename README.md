@@ -16,6 +16,34 @@ For instructions on how to add your own account, refer to the extension document
 * https://polkadot.js.org/docs/extension/usage
 * https://polkadot.js.org/docs/extension/
 
+
+### Setting up your balance
+
+Before you create a deal, you need some balance in your market account.
+Currently, the (local and internal) testnet provides you with a faucet function that you can find in Delia's landing page.
+
+![](static/faucet/faucet-idle.png)
+
+As you can imagine, once you click the button, 10 tokens will be added to your account's balance.
+After clicking, you should see a success message, as below:
+
+![](static/faucet/faucet-success.png)
+
+> [!NOTE]
+> The faucet takes a bit of time to finish,
+> this is due to waiting for the transaction to be [finalized](https://docs.polkadot.com/polkadot-protocol/architecture/polkadot-chain/pos-consensus/#finality-gadget-grandpa).
+
+Note that the faucet will only give out tokens every 24 hours, in the case you tried getting tokens earlier, you should see the following message:
+
+![](static/faucet/faucet-error.png)
+
+#### Checking your account's balance
+
+You can also check your account's network and market balance with Delia:
+
+![](static/market-balance.png)
+
+
 ### Preparing a storage deal
 
 1. Start by selecting an account from the *Client Account* field.
@@ -41,6 +69,7 @@ For instructions on how to add your own account, refer to the extension document
 6. Click "Continue" to sign your deals and you're done!
    After the deal is finished, you should receive a receipt file,
    it will come in handy to retrieve your files!
+
 
 ### Retrieve your file
 
