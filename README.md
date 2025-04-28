@@ -77,3 +77,31 @@ To retrieve your file, simply upload the receipt you received upon finishing you
 in the "Deal Retrieval" page and press "Continue".
 
 ![](static/deal-retrieval/widget.png)
+
+
+## Q&A
+
+### How does Delia connect to the chain?
+
+Delia connects to the parachain collator using the address defined in the top right corner of the page:
+
+![](static/address.png)
+
+After a connection is established, performing a deal works roughly as described in the following diagram:
+
+```mermaid
+sequenceDiagram
+    Delia->>Collator: Connect
+    Delia->>Delia: Prepare Deal & Select SPs
+
+    Delia->>+Collator: Request SPs Multiaddresses
+    activate Collator
+    Collator-->>-Delia: SP Multiaddresses
+
+    loop For every SP Multiaddress
+        Delia->>+SP: Negotiate Deal
+        SP-->>-Delia: Negotiation Result
+    end
+```
+
+For more details, refer to the [`DEVELOPMENT.md`](DEVELOPMENT.md).
