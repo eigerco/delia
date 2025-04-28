@@ -1,6 +1,6 @@
 # Delia
 
-> [!WARN]
+> [!WARNING]
 > This project is under active development!
 
 The Delia project is a complement to the [Polka Storage](https://github.com/eigerco/polka-storage) project,
@@ -8,69 +8,43 @@ being the frontend for file upload to the network's providers.
 
 ## Getting Started
 
-The stack aims to be straightforward and opinionated,
-using Typescript, Vite and Biome as the major development tools
-and React & Tailwind for the frontend due to their ubiquity.
+### Polkadot Extension
 
-### Installation
+Delia will require you to use the [Polkadot.js browser extension](https://polkadot.js.org/extension/).
+For instructions on how to add your own account, refer to the extension documentation:
 
-Delia requires `pnpm` for development, you can install it in a variety of ways:
-* [Through the official guide](https://pnpm.io/installation)
-* [Using Volta to install it](https://volta.sh/)
-* Or, if you're using `nix`; running `nix develop`
+* https://polkadot.js.org/docs/extension/usage
+* https://polkadot.js.org/docs/extension/
 
-After setting up `pnpm`, you can install the project with:
+### Preparing a storage deal
 
-```bash
-pnpm i
-```
+1. Start by selecting an account from the *Client Account* field.
 
-### Running
+![](static/deal-making/client-account.png)
 
-You can run the development setup with:
+2. Select your file, either by dragging it or clicking the following field:
 
-```bash
-pnpm run dev
-```
+![](static/deal-making/drag-n-drop.png)
 
-And format and lint it with:
-```bash
-pnpm run fmt && pnpm run lint
-```
+3. (Optional) You can add a description to your deal.
 
-## Usage
+![](static/deal-making/label.png)
 
-### Accounts
+4. Select your deal's duration.
 
-As a user, Delia will require you to use the Polkadot.js browser extension,
-for testing purposes, we recommend you add Alice's account to your wallet,
-the seed phrase for it is <sup><a href="https://stackoverflow.com/a/70518514">1</a>,
-<a href="https://github.com/polkadot-developers/substrate-developer-hub.github.io/issues/613">2</a></sup>:
+![](static/deal-making/duration.png)
 
-```
-bottom drive obey lake curtain smoke basket hold race lonely fit walk//Alice
-```
+5. Finally, select your storage providers:
 
-If you're using your own keys, you will need to have funds available to perform deals.
+![](static/deal-making/select-provider.png)
 
-### Preparing a deal
+6. Click "Continue" to sign your deals and you're done!
+   After the deal is finished, you should receive a receipt file,
+   it will come in handy to retrieve your files!
 
-#### Filling in information about your file
+### Retrieve your file
 
-<img src="static/deal-form.png" style="height: 300px; float:right;"/>
+To retrieve your file, simply upload the receipt you received upon finishing your deals
+in the "Deal Retrieval" page and press "Continue".
 
-<!-- TODO: add a full explainer here, or create one in the book and refer to it -->
-* **Piece CID** — A unique identifier for your file, it is calculated with the `polka-storage-provider-client` tool.
-* **Piece Size** — The piece size for your file, it is calculated with the `polka-storage-provider-client` tool (this number *MUST* be a power of two).
-* **Label** — A string up to 128 characters long, can contain anything you wish.
-* **Start Block** — The block at which the deal becomes active.
-* **End Block** — The block at which the deal ends.
-* **Price-per-block** — The price to pay for each block during which the file is stored.
-* **Provider Collateral** — The price the storage provider gives up if they fail to uphold their end of the deal.
-
-#### Selecting your storage provider
-
-<img src="static/select-provider.png" style="width: 300px; float:right;"/>
-
-* **Refresh** — Will fetch the list of storage providers.
-* **Storage Provider** — The storage provider's account ID, Peer ID and supported sector size.
+![](static/deal-retrieval/widget.png)
