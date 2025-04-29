@@ -19,7 +19,7 @@ export async function queryPeerId(
     const maddrs = [];
     for (const multiaddress of response.Found.multiaddrs) {
       const maddr = multiaddr(multiaddress);
-      if (maddr.protoNames().includes("ws")) {
+      if (maddr.protoNames().includes("wss") || maddr.protoNames().includes("ws")) {
         maddrs.push(maddr);
       }
     }

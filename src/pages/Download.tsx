@@ -64,8 +64,8 @@ export function Download() {
         ),
       ),
     );
-    const providers = (Array.prototype.concat(...multiaddrs) as Multiaddr[]).filter((maddr) =>
-      maddr.protoNames().includes("ws"),
+    const providers = (Array.prototype.concat(...multiaddrs) as Multiaddr[]).filter(
+      (maddr) => maddr.protoNames().includes("wss") || maddr.protoNames().includes("ws"),
     );
     if (providers.length === 0) {
       throw new Error("Could not find storage providers for your request!");
