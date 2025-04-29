@@ -29,6 +29,8 @@ export function MarketDeposit({ selectedAddress, walletBalance, onSuccess }: Mar
       onStatusChange: setDepositStatus,
       onSuccess,
     });
+
+    setDepositAmount(0n);
   };
 
   return (

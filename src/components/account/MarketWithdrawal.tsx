@@ -33,6 +33,8 @@ export function MarketWithdrawal({
       onStatusChange: setWithdrawStatus,
       onSuccess,
     });
+
+    setWithdrawAmount(0n);
   };
 
   return (
