@@ -65,15 +65,22 @@ async function executeDeal(
       }
     | undefined;
   for (const maddr of peerIdMultiaddress) {
-    const response = await Services.sendRequest("All", maddr);
-    if (Services.isStorageProviderService(response.services)) {
-      targetStorageProvider = {
-        services: response.services,
-        address: maddr.nodeAddress(),
-      };
-      break;
+    try {
+      const response = await Services.sendRequest("All", maddr);
+      if (Services.isStorageProviderService(response.services)) {
+        targetStorageProvider = {
+          services: response.services,
+          address: maddr.nodeAddress(),
+        };
+        console.log("selected maddr: ", maddr.toString());
+        break;
+      }
+    } catch (err) {
+      console.warn("failed to connect to ", maddr.toString());
     }
   }
+
+  console.log("SERVICES!", targetStorageProvider?.services);
 
   if (!targetStorageProvider) {
     throw new Error("Could not find an address to upload the files to.");
@@ -97,12 +104,18 @@ async function executeDeal(
       ip: targetStorageProvider.address.address,
       port: targetStorageProvider.services.rpc.port,
     },
+    targetStorageProvider.services.rpc.secure_url,
   );
 
-  const response = await uploadFile(dealInfo.file, proposeDealResponse, {
-    ip: targetStorageProvider.address.address,
-    port: targetStorageProvider.services.upload.port,
-  });
+  const response = await uploadFile(
+    dealInfo.file,
+    proposeDealResponse,
+    {
+      ip: targetStorageProvider.address.address,
+      port: targetStorageProvider.services.upload.port,
+    },
+    targetStorageProvider.services.upload.secure_url,
+  );
   if (!response.ok) {
     throw new Error(response.statusText);
   }
@@ -117,10 +130,14 @@ async function executeDeal(
     registry,
     clientAccount,
   );
-  const dealId = await callPublishDeal(signedRpc, {
-    ip: targetStorageProvider.address.address,
-    port: targetStorageProvider.services.rpc.port,
-  });
+  const dealId = await callPublishDeal(
+    signedRpc,
+    {
+      ip: targetStorageProvider.address.address,
+      port: targetStorageProvider.services.rpc.port,
+    },
+    targetStorageProvider.services.rpc.secure_url,
+  );
 
   return dealId;
 }
