@@ -9,7 +9,7 @@ import { BalanceStatus } from "../components/Balance";
 import { AccountDropdown } from "../components/account/AccountDropdown";
 import { BalancePanel } from "../components/account/BalancePanel";
 import { FaucetPanel } from "../components/account/FaucetPanel";
-import { MarketTopUpPanel } from "../components/account/MarketTopUp";
+import { MarketDepositPanel } from "../components/account/MarketDepositPanel";
 
 async function fetchBalancesFor(
   api: ApiPromise | null,
@@ -103,7 +103,7 @@ export function Account() {
         }}
       />
 
-      <MarketTopUpPanel
+      <MarketDepositPanel
         selectedAddress={selectedAddress}
         walletBalance={walletBalance.state === "fetched" ? walletBalance.value : 0n}
         onSuccess={() => {

@@ -1,27 +1,30 @@
-import { formatBalance } from "@polkadot/util";
 import { useState } from "react";
 import { useCtx } from "../../GlobalCtx";
 import { Transaction, TransactionState, type TransactionStatus } from "../../lib/transactionStatus";
 
-interface MarketTopUpProps {
+interface MarketDepositPanelProps {
   selectedAddress: string;
   walletBalance: bigint;
   onSuccess: () => void;
 }
 
-export function MarketTopUpPanel({ selectedAddress, walletBalance, onSuccess }: MarketTopUpProps) {
+export function MarketDepositPanel({
+  selectedAddress,
+  walletBalance,
+  onSuccess,
+}: MarketDepositPanelProps) {
   const { collatorWsApi: api, tokenProperties } = useCtx();
-  const [topUpAmount, setTopUpAmount] = useState(0n);
-  const [topUpStatus, setTopUpStatus] = useState<TransactionStatus>(Transaction.idle);
+  const [depositAmount, setDepositAmount] = useState(0n);
+  const [depositStatus, setDepositStatus] = useState<TransactionStatus>(Transaction.idle);
 
-  const handleTopUp = async () => {
-    if (!api || !selectedAddress || !topUpAmount) return;
+  const handleDeposit = async () => {
+    if (!api || !selectedAddress || !depositAmount) return;
 
     try {
-      setTopUpStatus(Transaction.loading);
+      setDepositStatus(Transaction.loading);
 
       const unsub = await api.tx.market
-        .addBalance(topUpAmount)
+        .addBalance(depositAmount)
         .signAndSend(selectedAddress, ({ status, dispatchError, txHash }) => {
           if (!status.isInBlock && !status.isFinalized) {
             return;
@@ -29,19 +32,19 @@ export function MarketTopUpPanel({ selectedAddress, walletBalance, onSuccess }: 
           try {
             if (!dispatchError) {
               const txHashHex = txHash.toHex();
-              setTopUpStatus(Transaction.success(txHashHex));
+              setDepositStatus(Transaction.success(txHashHex));
               onSuccess();
               return;
             }
             if (!dispatchError.isModule) {
-              setTopUpStatus(Transaction.error(dispatchError.toString()));
+              setDepositStatus(Transaction.error(dispatchError.toString()));
               return;
             }
             const decoded = api.registry.findMetaError(dispatchError.asModule);
             const { docs, name, section } = decoded;
             const userMessage = docs.join(" ") || `${section}.${name}`;
 
-            setTopUpStatus(Transaction.error(userMessage));
+            setDepositStatus(Transaction.error(userMessage));
           } finally {
             unsub();
           }
@@ -56,9 +59,11 @@ export function MarketTopUpPanel({ selectedAddress, walletBalance, onSuccess }: 
           ? "Your transaction is already being processed."
           : "Transaction failed.";
 
-        setTopUpStatus(Transaction.error(userMessage));
+        setDepositStatus(Transaction.error(userMessage));
       } else {
-        setTopUpStatus(Transaction.error("Failed to decode incoming error, see logs for details."));
+        setDepositStatus(
+          Transaction.error("Failed to decode incoming error, see logs for details."),
+        );
       }
     }
   };
@@ -70,58 +75,48 @@ export function MarketTopUpPanel({ selectedAddress, walletBalance, onSuccess }: 
       <div className="flex items-center gap-2">
         <input
           type="number"
-          value={topUpAmount.toString()}
-          onChange={(e) => setTopUpAmount(BigInt(e.target.value))}
+          value={depositAmount.toString()}
+          onChange={(e) => setDepositAmount(BigInt(e.target.value))}
           placeholder="Amount in Planck"
           className="px-3 py-2 border rounded text-sm"
         />
 
-        {/* <span>
-          ={" "}
-          {formatBalance(topUpAmount, {
-            decimals: tokenProperties.tokenDecimals,
-            // forceUnit: tokenProperties.tokenSymbol,
-            withZero: true,
-            withSi: true,
-          })}
-        </span> */}
-
-        <span>= {tokenProperties.formatUnit(topUpAmount, true)}</span>
+        <span>= {tokenProperties.formatUnit(depositAmount, true)}</span>
 
         <button
           type="button"
           disabled={
-            topUpStatus.state === TransactionState.Loading ||
-            topUpAmount === 0n ||
-            topUpAmount > walletBalance
+            depositStatus.state === TransactionState.Loading ||
+            depositAmount === 0n ||
+            depositAmount > walletBalance
           }
-          onClick={handleTopUp}
+          onClick={handleDeposit}
           className={`px-3 py-2 rounded text-sm transition ${
-            topUpStatus.state === TransactionState.Loading
+            depositStatus.state === TransactionState.Loading
               ? "bg-gray-300 cursor-not-allowed"
               : "bg-green-600 text-white hover:bg-green-700"
           }`}
         >
-          {topUpStatus.state === TransactionState.Loading ? "⏳ Processing..." : "➕ Deposit"}
+          {depositStatus.state === TransactionState.Loading ? "⏳ Processing..." : "➕ Deposit"}
         </button>
       </div>
-      {topUpAmount !== 0n && BigInt(topUpAmount) > walletBalance && (
+      {depositAmount !== 0n && BigInt(depositAmount) > walletBalance && (
         <p className="text-sm text-red-600">
           ⚠️ You cannot deposit more than your available wallet balance.
         </p>
       )}
 
       {(() => {
-        switch (topUpStatus.state) {
+        switch (depositStatus.state) {
           case TransactionState.Success:
             return (
               <div className="text-sm text-green-600 space-y-1">
                 <p>✅ Market top up successful!</p>
-                <p>Tx Hash: {topUpStatus.txHash}</p>
+                <p>Tx Hash: {depositStatus.txHash}</p>
               </div>
             );
           case TransactionState.Error:
-            return <p className="text-sm text-red-600">⚠️ {topUpStatus.message}</p>;
+            return <p className="text-sm text-red-600">⚠️ {depositStatus.message}</p>;
           default:
             return <></>;
         }
