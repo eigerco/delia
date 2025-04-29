@@ -15,19 +15,25 @@ export async function resolvePeerIdMultiaddrs(
     "polkaStorage_getP2pMultiaddrs",
     [],
   );
-  const wsMaddrs = collatorMaddrs
-    .filter((maddr) => maddr.includes("ws"))
-    .map(multiaddr)
-    .at(0);
-  if (!wsMaddrs) {
+  // To be explicit: if it includes ws, it includes wss
+  const wsMaddrs = collatorMaddrs.filter((maddr) => maddr.includes("ws")).map(multiaddr);
+  if (wsMaddrs.length === 0) {
     throw new Error("Could not find the services required to resolve the peer id");
   }
-  console.log(`wsMaddrs: ${wsMaddrs.toString()}`);
+
+  // Lambda here would make it more performant but remember KISS
+  const wssMultiaddr = wsMaddrs.find((maddr) => maddr.protoNames().includes("wss"));
+  const wsMultiaddr = wsMaddrs.find((maddr) => maddr.protoNames().includes("ws"));
+  const finalMultiaddr = wssMultiaddr || wsMultiaddr;
+  if (!finalMultiaddr) {
+    throw new Error("Could not find the services required to resolve the peer id");
+  }
+  console.log(`WebSocket Multiaddress: ${finalMultiaddr.toString()}`);
 
   // Hack: since there's no way to replace parts of multiaddrs, we need to do it by hand
   // we convert to a string, replace the "0.0.0.0" which is what we're expecting and recreate the multiaddr
   const queryAddr = multiaddr(
-    wsMaddrs
+    finalMultiaddr
       .toString()
       // biome-ignore lint/style/noNonNullAssertion: wsAddress should be valid at this point
       .replace("0.0.0.0", URL.parse(collator.wsProvider.endpoint)!.hostname), // double check this
