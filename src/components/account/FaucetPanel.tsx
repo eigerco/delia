@@ -1,33 +1,6 @@
 import { useState } from "react";
 import { useCtx } from "../../GlobalCtx";
-
-namespace FaucetStatus {
-  export function idle(): FaucetStatus {
-    return { state: FaucetState.Idle };
-  }
-  export function loading(): FaucetStatus {
-    return { state: FaucetState.Loading };
-  }
-  export function success(txHash: string): FaucetStatus {
-    return { state: FaucetState.Success, txHash };
-  }
-  export function error(message: string): FaucetStatus {
-    return { state: FaucetState.Error, message };
-  }
-}
-
-enum FaucetState {
-  Idle = "idle",
-  Loading = "loading",
-  Success = "success",
-  Error = "error",
-}
-
-type FaucetStatus =
-  | { state: FaucetState.Idle }
-  | { state: FaucetState.Loading }
-  | { state: FaucetState.Success; txHash: string }
-  | { state: FaucetState.Error; message: string };
+import { Transaction, TransactionState, type TransactionStatus } from "../../lib/transactionStatus";
 
 interface FaucetPanelProps {
   selectedAddress: string;
@@ -36,13 +9,13 @@ interface FaucetPanelProps {
 
 export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
   const { collatorWsApi: api } = useCtx();
-  const [faucetStatus, setFaucetStatus] = useState<FaucetStatus>(FaucetStatus.idle);
+  const [faucetStatus, setTransaction] = useState<TransactionStatus>(Transaction.idle);
 
   const handleDrip = async () => {
     if (!api || !selectedAddress) return;
 
     try {
-      setFaucetStatus(FaucetStatus.loading);
+      setTransaction(Transaction.loading);
 
       const unsub = await api.tx.faucet
         .drip(selectedAddress)
@@ -53,12 +26,12 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
           try {
             if (!dispatchError) {
               const txHashHex = txHash.toHex();
-              setFaucetStatus(FaucetStatus.success(txHashHex));
+              setTransaction(Transaction.success(txHashHex));
               onSuccess(txHashHex);
               return;
             }
             if (!dispatchError.isModule) {
-              setFaucetStatus(FaucetStatus.error(dispatchError.toString()));
+              setTransaction(Transaction.error(dispatchError.toString()));
               return;
             }
             const decoded = api.registry.findMetaError(dispatchError.asModule);
@@ -67,7 +40,7 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
               section === "faucet" && name === "FaucetUsedRecently"
                 ? "You can only request tokens once every 24 hours."
                 : docs.join(" ") || "Transaction failed.";
-            setFaucetStatus(FaucetStatus.error(userMessage));
+            setTransaction(Transaction.error(userMessage));
           } finally {
             unsub();
           }
@@ -81,48 +54,46 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
           ? "Your transaction is already being processed."
           : "Transaction failed.";
 
-        setFaucetStatus(FaucetStatus.error(userMessage));
+        setTransaction(Transaction.error(userMessage));
       } else {
         console.error(err);
-        setFaucetStatus(
-          FaucetStatus.error("Failed to decode incoming error, see logs for details."),
-        );
+        setTransaction(Transaction.error("Failed to decode incoming error, see logs for details."));
       }
     }
   };
 
   return (
     <div className="border rounded p-4 bg-gray-50 space-y-3 w-full">
-      <h3 className="text-lg font-semibold">💧 Faucet Drip</h3>
+      <h3 className="text-lg font-semibold">💧 Transaction Drip</h3>
       <p className="text-sm">
         Use this to request testnet funds from the faucet. No signature is required.
       </p>
 
       <button
         type="button"
-        disabled={faucetStatus.state === FaucetState.Loading}
+        disabled={faucetStatus.state === TransactionState.Loading}
         className={`px-3 py-2 rounded text-sm transition ${
-          faucetStatus.state === FaucetState.Loading
+          faucetStatus.state === TransactionState.Loading
             ? "bg-gray-300 cursor-not-allowed"
             : "bg-blue-600 text-white hover:bg-blue-700"
         }`}
         onClick={handleDrip}
       >
-        {faucetStatus.state === FaucetState.Loading
+        {faucetStatus.state === TransactionState.Loading
           ? "\u23F3 Requesting..."
           : "\uD83D\uDCB0 Request 10 Test Tokens"}
       </button>
 
       {(() => {
         switch (faucetStatus.state) {
-          case FaucetState.Success:
+          case TransactionState.Success:
             return (
               <div className="text-sm text-green-600 space-y-1">
-                <p>✅ Faucet top-up successful!</p>
+                <p>✅ Transaction top-up successful!</p>
                 <p>Tx Hash: {faucetStatus.txHash}</p>
               </div>
             );
-          case FaucetState.Error:
+          case TransactionState.Error:
             return <p className="text-sm text-red-600">⚠️ {faucetStatus.message}</p>;
           default:
             return <></>;

@@ -124,7 +124,7 @@ export function DealProposalForm({
     try {
       const result = await api.query.market.balanceTable(client);
       const record = result.toJSON() as Record<string, number>;
-      setBalanceStatus(BalanceStatus.fetched(record.free));
+      setBalanceStatus(BalanceStatus.fetched(BigInt(record.free)));
     } catch (err) {
       console.error("Error fetching market balance:", err);
       setBalanceStatus(BalanceStatus.error("Failed to fetch market balance"));

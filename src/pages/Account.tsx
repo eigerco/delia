@@ -1,6 +1,7 @@
 import type { ApiPromise } from "@polkadot/api";
+import { web3FromSource } from "@polkadot/extension-dapp";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
-import type { AccountInfo } from "@polkadot/types/interfaces";
+import type { AccountData, AccountInfo } from "@polkadot/types/interfaces";
 import { useCallback, useEffect, useState } from "react";
 import { useOutletContext } from "react-router";
 import { useCtx } from "../GlobalCtx";
@@ -8,6 +9,7 @@ import { BalanceStatus } from "../components/Balance";
 import { AccountDropdown } from "../components/account/AccountDropdown";
 import { BalancePanel } from "../components/account/BalancePanel";
 import { FaucetPanel } from "../components/account/FaucetPanel";
+import { MarketDepositPanel } from "../components/account/MarketDepositPanel";
 
 async function fetchBalancesFor(
   api: ApiPromise | null,
@@ -24,14 +26,13 @@ async function fetchBalancesFor(
 
     const accountInfo = await api.query.system.account(account.address);
     const { data } = accountInfo as AccountInfo;
-    const freeBalance: number | bigint =
-      data.free.bitLength() > 53 ? data.free.toBigInt() : data.free.toNumber();
+    const freeBalance: bigint = data.free.toBigInt();
     setWalletBalance(BalanceStatus.fetched(freeBalance));
 
     const result = await api.query.market.balanceTable(account.address);
-    const marketJSON = result.toJSON() as Record<string, unknown>;
-    const marketValue = (marketJSON.free as number) ?? 0;
-    setMarketBalance(BalanceStatus.fetched(marketValue));
+    const balanceInfo = result as AccountData;
+    const marketBalance = balanceInfo.free.toBigInt();
+    setMarketBalance(BalanceStatus.fetched(marketBalance));
 
     setLastUpdated(new Date());
   } catch (err) {
@@ -69,7 +70,19 @@ export function Account() {
     if (account) {
       fetchBalances(account);
     }
-  }, [accounts, selectedAddress, fetchBalances]);
+    const setSigner = async () => {
+      if (!api || !selectedAddress) return;
+
+      const account = accounts.find((acc) => acc.address === selectedAddress);
+      if (!account) return;
+
+      const injector = await web3FromSource(account.meta.source);
+
+      api.setSigner(injector.signer);
+    };
+
+    void setSigner();
+  }, [accounts, selectedAddress, fetchBalances, api]);
 
   return (
     <div className="space-y-4">
@@ -82,6 +95,17 @@ export function Account() {
 
       <FaucetPanel
         selectedAddress={selectedAddress}
+        onSuccess={() => {
+          const selected = accounts.find((a) => a.address === selectedAddress);
+          if (selected) {
+            void fetchBalances(selected);
+          }
+        }}
+      />
+
+      <MarketDepositPanel
+        selectedAddress={selectedAddress}
+        walletBalance={walletBalance.state === "fetched" ? walletBalance.value : 0n}
         onSuccess={() => {
           const selected = accounts.find((a) => a.address === selectedAddress);
           if (selected) {

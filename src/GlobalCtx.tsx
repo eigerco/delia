@@ -50,18 +50,28 @@ export class TokenProperties {
     return planck / this.tokenDecimals;
   }
 
-  formatUnit(unit: number | bigint): string {
+  formatUnit(unit: number | bigint, withSi = false): string {
     if (unit === 0 || unit === 0n) {
       // 0 never gets a unit assigned to it
       return `0 ${this.tokenSymbol}`;
     }
     // using `withSi: false` removes the unit,
     // regardless of forceUnit
-    return formatBalance(unit, {
+    const unitOptions = withSi
+      ? {
+          withUnit: this.tokenSymbol,
+          withSi: true,
+        }
+      : {
+          forceUnit: this.tokenSymbol,
+        };
+    const options = {
       decimals: this.tokenDecimals,
-      forceUnit: this.tokenSymbol,
       withZero: false,
-    });
+      ...unitOptions,
+    };
+
+    return formatBalance(unit, options);
   }
 }
 

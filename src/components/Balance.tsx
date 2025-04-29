@@ -9,7 +9,7 @@ export namespace BalanceStatus {
     return { state: BalanceState.Loading };
   }
 
-  export function fetched(value: number | bigint): BalanceStatus {
+  export function fetched(value: bigint): BalanceStatus {
     return { state: BalanceState.Fetched, value };
   }
 
@@ -28,7 +28,7 @@ export enum BalanceState {
 export type BalanceStatus =
   | { state: BalanceState.Idle }
   | { state: BalanceState.Loading }
-  | { state: BalanceState.Fetched; value: number | bigint }
+  | { state: BalanceState.Fetched; value: bigint }
   | { state: BalanceState.Error; message: string };
 
 export function Balance({
