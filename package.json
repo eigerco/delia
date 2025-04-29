@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "lint": "biome lint ./src",
     "fmt": "biome format --write ./src",
-    "fmt-check": "biome format ./src"
+    "fmt-check": "biome format ./src",
+    "prepare": "husky"
   },
   "dependencies": {
     "@chainsafe/libp2p-noise": "^16.0.3",
@@ -60,6 +61,7 @@
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",
     "globals": "^15.15.0",
+    "husky": "^9.1.7",
     "typescript": "~5.7.2",
     "vite": "^6.2.0"
   }
