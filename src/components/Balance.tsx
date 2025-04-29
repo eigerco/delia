@@ -1,4 +1,3 @@
-import { formatBalance } from "@polkadot/util";
 import { useCtx } from "../GlobalCtx";
 
 export namespace BalanceStatus {
