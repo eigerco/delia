@@ -64,7 +64,7 @@ export function MarketTopUpPanel({ selectedAddress, walletBalance, onSuccess }: 
 
   return (
     <div className="border rounded p-4 bg-gray-50 space-y-3 w-full">
-      <h3 className="text-lg font-semibold">🛒 Top Up Market Balance</h3>
+      <h3 className="text-lg font-semibold">🛒 Deposit Market Balance</h3>
       <p className="text-sm text-gray-600">Enter the amount to deposit (Planck units).</p>
       <div className="flex items-center gap-2">
         <input
@@ -89,7 +89,7 @@ export function MarketTopUpPanel({ selectedAddress, walletBalance, onSuccess }: 
               : "bg-green-600 text-white hover:bg-green-700"
           }`}
         >
-          {topUpStatus.state === TransactionState.Loading ? "⏳ Processing..." : "➕ Top Up"}
+          {topUpStatus.state === TransactionState.Loading ? "⏳ Processing..." : "➕ Deposit"}
         </button>
       </div>
       {topUpAmount !== "" && BigInt(topUpAmount) > walletBalance && (
