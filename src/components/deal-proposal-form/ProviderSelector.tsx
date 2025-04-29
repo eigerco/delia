@@ -121,12 +121,12 @@ export function ProviderSelector({ control, name, error }: ProviderSelectorProps
       case "loaded":
       case "connected": {
         return (
-          <div className="grid gap-4">
+          <div className="grid grid-cols-1 gap-4 w-full">
             <Controller
               control={control}
               name={name}
               render={({ field }) => (
-                <div className="min-w-md max-w-md">
+                <div className="w-full">
                   {providers.size === 0 ? (
                     <NoProviders />
                   ) : (
