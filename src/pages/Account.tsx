@@ -1,7 +1,7 @@
 import type { ApiPromise } from "@polkadot/api";
 import { web3FromSource } from "@polkadot/extension-dapp";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
-import type { AccountInfo } from "@polkadot/types/interfaces";
+import type { AccountData, AccountInfo } from "@polkadot/types/interfaces";
 import { useCallback, useEffect, useState } from "react";
 import { useOutletContext } from "react-router";
 import { useCtx } from "../GlobalCtx";
@@ -30,9 +30,9 @@ async function fetchBalancesFor(
     setWalletBalance(BalanceStatus.fetched(freeBalance));
 
     const result = await api.query.market.balanceTable(account.address);
-    const marketJSON = result.toJSON() as Record<string, unknown>;
-    const marketValue = (marketJSON.free as bigint) ?? 0n;
-    setMarketBalance(BalanceStatus.fetched(marketValue));
+    const balanceInfo = result as AccountData;
+    const marketBalance = balanceInfo.free.toBigInt();
+    setMarketBalance(BalanceStatus.fetched(marketBalance));
 
     setLastUpdated(new Date());
   } catch (err) {
