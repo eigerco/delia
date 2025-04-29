@@ -1,3 +1,4 @@
+import { formatBalance } from "@polkadot/util";
 import { useState } from "react";
 import { useCtx } from "../../GlobalCtx";
 import { Transaction, TransactionState, type TransactionStatus } from "../../lib/transactionStatus";
@@ -9,8 +10,8 @@ interface MarketTopUpProps {
 }
 
 export function MarketTopUpPanel({ selectedAddress, walletBalance, onSuccess }: MarketTopUpProps) {
-  const { collatorWsApi: api } = useCtx();
-  const [topUpAmount, setTopUpAmount] = useState("");
+  const { collatorWsApi: api, tokenProperties } = useCtx();
+  const [topUpAmount, setTopUpAmount] = useState(0n);
   const [topUpStatus, setTopUpStatus] = useState<TransactionStatus>(Transaction.idle);
 
   const handleTopUp = async () => {
@@ -69,18 +70,30 @@ export function MarketTopUpPanel({ selectedAddress, walletBalance, onSuccess }: 
       <div className="flex items-center gap-2">
         <input
           type="number"
-          value={topUpAmount}
-          onChange={(e) => setTopUpAmount(e.target.value)}
+          value={topUpAmount.toString()}
+          onChange={(e) => setTopUpAmount(BigInt(e.target.value))}
           placeholder="Amount in Planck"
           className="px-3 py-2 border rounded text-sm"
         />
+
+        {/* <span>
+          ={" "}
+          {formatBalance(topUpAmount, {
+            decimals: tokenProperties.tokenDecimals,
+            // forceUnit: tokenProperties.tokenSymbol,
+            withZero: true,
+            withSi: true,
+          })}
+        </span> */}
+
+        <span>= {tokenProperties.formatUnit(topUpAmount, true)}</span>
 
         <button
           type="button"
           disabled={
             topUpStatus.state === TransactionState.Loading ||
-            topUpAmount === "" ||
-            BigInt(topUpAmount) > walletBalance
+            topUpAmount === 0n ||
+            topUpAmount > walletBalance
           }
           onClick={handleTopUp}
           className={`px-3 py-2 rounded text-sm transition ${
@@ -92,7 +105,7 @@ export function MarketTopUpPanel({ selectedAddress, walletBalance, onSuccess }: 
           {topUpStatus.state === TransactionState.Loading ? "⏳ Processing..." : "➕ Deposit"}
         </button>
       </div>
-      {topUpAmount !== "" && BigInt(topUpAmount) > walletBalance && (
+      {topUpAmount !== 0n && BigInt(topUpAmount) > walletBalance && (
         <p className="text-sm text-red-600">
           ⚠️ You cannot deposit more than your available wallet balance.
         </p>
