@@ -1,4 +1,5 @@
 import { formatBalance } from "@polkadot/util";
+import { useCtx } from "../GlobalCtx";
 
 export namespace BalanceStatus {
   export function idle(): BalanceStatus {
@@ -38,6 +39,8 @@ export function Balance({
   status: BalanceStatus;
   balanceType: string;
 }) {
+  const { tokenProperties } = useCtx();
+
   if (status.state === BalanceState.Idle) return null;
 
   let balanceContent: React.ReactNode;
@@ -52,9 +55,7 @@ export function Balance({
       break;
 
     case BalanceState.Fetched:
-      balanceContent = (
-        <span>{formatBalance(status.value, { withUnit: false, withSi: false })} DOT</span>
-      );
+      balanceContent = <span>{tokenProperties.formatUnit(status.value)}</span>;
       break;
   }
 
