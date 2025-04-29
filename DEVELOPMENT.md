@@ -25,6 +25,15 @@ pnpm i
 pnpm i --frozen-lockfile
 ```
 
+### Setup husky
+
+After installing `pnpm` and the dependencies, you'll need to get husky up and running.
+You can do so using the following command:
+
+```bash
+pnpm prepare
+```
+
 ### Running
 
 You can run the development setup with:

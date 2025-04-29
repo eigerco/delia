@@ -1,0 +1,3 @@
+echo "[Biome] Linting" && biome lint ./src
+echo "[Biome] Checking formatting" && biome format ./src
+echo "[Typescript] Typechecking" && tsc
