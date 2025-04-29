@@ -32,8 +32,18 @@ export class TokenProperties {
   }
 
   /** Converts a given value in the chain's respective UNIT to Plancks (amount denoted by the `tokenDecimals` field). */
-  unitToPlanck(unit: number): number {
-    return unit * this.tokenDecimals;
+  unitToPlanck(unit: number | bigint): number {
+    const plancksPerUnit = 1 ** this.tokenDecimals;
+    const plancksPerUnitBI = BigInt(plancksPerUnit);
+    const valueBigInt = typeof unit === "number" ? BigInt(unit) : unit;
+
+    const whole = valueBigInt / plancksPerUnitBI;
+    const fraction = valueBigInt % plancksPerUnitBI;
+
+    const wholeNumber = Number(whole);
+    const fractionNumber = Number(fraction) / plancksPerUnit;
+
+    return wholeNumber + fractionNumber;
   }
 
   planckToUnit(planck: number): number {
@@ -41,8 +51,7 @@ export class TokenProperties {
   }
 
   formatUnit(unit: number | bigint): string {
-    // 0 != BigInt(0) hence the ||
-    if (unit === 0 || (typeof unit === "bigint" && BigInt(0) === unit)) {
+    if (unit === 0 || unit === 0n) {
       // 0 never gets a unit assigned to it
       return `0 ${this.tokenSymbol}`;
     }
