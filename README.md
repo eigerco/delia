@@ -105,3 +105,8 @@ sequenceDiagram
 ```
 
 For more details, refer to the [`DEVELOPMENT.md`](DEVELOPMENT.md).
+
+### Does Delia encrypt my files?
+
+*No.* Files stored in storage providers are public, as such, we suggest you encrypt your files. While file encryption is a broad enough topic, if you not sure about which tools to use, we suggest you keep it simple by compressing your file in a format such as [7zip](https://www.7-zip.org/) and using its encryption features. If 7zip doesn't cut it, you may want to take a look into [age](https://github.com/FiloSottile/age) or [VeraCrypt](https://www.veracrypt.fr/en/Code.html).
+
