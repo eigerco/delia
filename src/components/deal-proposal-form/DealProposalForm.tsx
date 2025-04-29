@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { Toaster } from "react-hot-toast";
 import { z } from "zod";
 import { useCtx } from "../../GlobalCtx";
-import { blockToTime, formatDot, planckToDot } from "../../lib/conversion";
+import { blockToTime } from "../../lib/conversion";
 import { type StorageProviderInfo, isStorageProviderInfo } from "../../lib/storageProvider";
 import { Balance, BalanceStatus } from "../Balance";
 import Collapsible from "../Collapsible";
@@ -113,7 +113,7 @@ export function DealProposalForm({
     .map((p) => p.dealParams.minimumPricePerBlock * durationInBlocks)
     .reduce((a, b) => a + b, 0);
 
-  const { collatorWsApi: api } = useCtx();
+  const { collatorWsApi: api, tokenProperties } = useCtx();
   const client = watch("client");
   const [balanceStatus, setBalanceStatus] = useState<BalanceStatus>(BalanceStatus.idle);
 
@@ -230,7 +230,9 @@ export function DealProposalForm({
 
                 <p className="font-semibold text-sm">
                   Total Deal Price: <span className="text-blue-600">{totalPrice}</span> Planck (
-                  <span className="text-blue-600">{formatDot(planckToDot(totalPrice))}</span> DOT)
+                  <span className="text-blue-600">
+                    {tokenProperties.formatUnit(tokenProperties.planckToUnit(totalPrice))}
+                  </span>
                 </p>
               </div>
             )}

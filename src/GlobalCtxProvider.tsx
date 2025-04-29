@@ -1,7 +1,7 @@
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import type { TypeRegistry, u64 } from "@polkadot/types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { GlobalCtx } from "./GlobalCtx";
+import { GlobalCtx, TokenProperties } from "./GlobalCtx";
 
 export type Status =
   | { type: "connecting" }
@@ -21,6 +21,7 @@ export function GlobalCtxProvider({
   const [status, setStatus] = useState<Status>({ type: "connecting" });
   const [latestFinalizedBlock, setLatestFinalizedBlock] = useState<number | null>(null);
   const [latestBlockTimestamp, setLatestBlockTimestamp] = useState<Date | null>(null);
+  const [tokenProperties, setTokenProperties] = useState<TokenProperties>(TokenProperties.preset());
 
   const connect = useCallback(async () => {
     const wsProvider = new WsProvider(wsAddress);
@@ -50,6 +51,10 @@ export function GlobalCtxProvider({
       collatorWsRef.current = polkaStorageApi;
 
       await polkaStorageApi.isReady;
+
+      // While `fromApi` throws, it's a chain bug for it to do so, not a front end issue
+      // as such, being loud and crashing the app is better than limping along and providing wrong units to the clients
+      setTokenProperties(await TokenProperties.fromApi(polkaStorageApi));
 
       console.log(`Connected to ${await polkaStorageApi.rpc.system.chain()}`);
 
@@ -106,8 +111,9 @@ export function GlobalCtxProvider({
       collatorWsProvider: collatorWsProviderRef.current,
       collatorWsApi: collatorWsRef.current,
       collatorConnectionStatus: status,
+      tokenProperties: tokenProperties,
     }),
-    [registry, wsAddress, latestFinalizedBlock, status, latestBlockTimestamp],
+    [registry, wsAddress, latestFinalizedBlock, status, latestBlockTimestamp, tokenProperties],
   );
 
   return <GlobalCtx.Provider value={value}>{children}</GlobalCtx.Provider>;
