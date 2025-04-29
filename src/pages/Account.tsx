@@ -9,7 +9,7 @@ import { BalanceStatus } from "../components/Balance";
 import { AccountDropdown } from "../components/account/AccountDropdown";
 import { BalancePanel } from "../components/account/BalancePanel";
 import { FaucetPanel } from "../components/account/FaucetPanel";
-import { MarketDepositPanel } from "../components/account/MarketDepositPanel";
+import { MarketPanel } from "../components/account/MarketPanel";
 
 async function fetchBalancesFor(
   api: ApiPromise | null,
@@ -103,9 +103,10 @@ export function Account() {
         }}
       />
 
-      <MarketDepositPanel
+      <MarketPanel
         selectedAddress={selectedAddress}
         walletBalance={walletBalance.state === "fetched" ? walletBalance.value : 0n}
+        marketBalance={marketBalance.state === "fetched" ? marketBalance.value : 0n}
         onSuccess={() => {
           const selected = accounts.find((a) => a.address === selectedAddress);
           if (selected) {

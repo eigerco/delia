@@ -37,7 +37,7 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
             const decoded = api.registry.findMetaError(dispatchError.asModule);
             const { docs, name, section } = decoded;
             const userMessage =
-              section === "faucet" && name === "TransactionUsedRecently"
+              section === "faucet" && name === "FaucetUsedRecently"
                 ? "You can only request tokens once every 24 hours."
                 : docs.join(" ") || "Transaction failed.";
             setTransaction(Transaction.error(userMessage));
@@ -89,7 +89,7 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
           case TransactionState.Success:
             return (
               <div className="text-sm text-green-600 space-y-1">
-                <p>✅ Transaction top-up successful!</p>
+                <p>✅ Funds added successfully!</p>
                 <p>Tx Hash: {faucetStatus.txHash}</p>
               </div>
             );
