@@ -63,6 +63,7 @@ export function ProviderButton({ accountId, provider, isSelected, onSelect }: Pr
               Price Per Block:{" "}
               {tokenProperties.formatUnit(
                 tokenProperties.planckToUnit(provider.dealParams.minimumPricePerBlock),
+                true,
               )}
               <span id="tooltip-price" className="cursor-help inline-flex items-center ml-1">
                 <HelpCircle className="inline w-4 h-4 text-gray-400" />
