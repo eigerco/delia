@@ -31,8 +31,8 @@ async function fetchBalancesFor(
 
     const result = await api.query.market.balanceTable(account.address);
     const marketJSON = result.toJSON() as Record<string, unknown>;
-    const marketValue = (marketJSON.free as number) ?? 0;
-    setMarketBalance(BalanceStatus.fetched(BigInt(marketValue)));
+    const marketValue = (marketJSON.free as bigint) ?? 0n;
+    setMarketBalance(BalanceStatus.fetched(marketValue));
 
     setLastUpdated(new Date());
   } catch (err) {

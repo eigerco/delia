@@ -37,7 +37,7 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
             const decoded = api.registry.findMetaError(dispatchError.asModule);
             const { docs, name, section } = decoded;
             const userMessage =
-              section === "faucet" && name === "TransactionUsedRecently"
+              section === "faucet" && name === "FaucetUsedRecently"
                 ? "You can only request tokens once every 24 hours."
                 : docs.join(" ") || "Transaction failed.";
             setTransaction(Transaction.error(userMessage));
