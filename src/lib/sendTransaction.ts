@@ -2,12 +2,11 @@ import type { ApiPromise } from "@polkadot/api";
 import type { SubmittableExtrinsic } from "@polkadot/api/types";
 import { Transaction, type TransactionStatus } from "./transactionStatus";
 
-interface SendTransactionOptions {
+interface SendTransactionArgs {
   api: ApiPromise;
   tx: SubmittableExtrinsic<"promise">;
   selectedAddress: string;
   onStatusChange: (status: TransactionStatus) => void;
-  onSuccess: () => void;
 }
 
 export async function sendTransaction({
@@ -15,8 +14,7 @@ export async function sendTransaction({
   tx,
   selectedAddress,
   onStatusChange,
-  onSuccess,
-}: SendTransactionOptions) {
+}: SendTransactionArgs) {
   try {
     onStatusChange(Transaction.loading());
 
@@ -28,7 +26,6 @@ export async function sendTransaction({
         if (!dispatchError) {
           const txHashHex = txHash.toHex();
           onStatusChange(Transaction.success(txHashHex));
-          onSuccess();
           return;
         }
 

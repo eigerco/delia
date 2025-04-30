@@ -30,15 +30,25 @@ export function MarketWithdrawal({
       api,
       tx: api.tx.market.withdrawBalance(withdrawAmount),
       selectedAddress,
-      onStatusChange: setWithdrawStatus,
-      onSuccess,
+      onStatusChange: (status) => {
+        setWithdrawStatus(status);
+        // We just expose the onSuccess to the upper levels
+        if (status.state === TransactionState.Success) {
+          onSuccess();
+        }
+      },
     });
 
     setWithdrawAmount(0n);
   };
 
+  const isWithdrawalDisabled =
+    withdrawStatus.state === TransactionState.Loading ||
+    withdrawAmount === 0n ||
+    withdrawAmount > marketBalance;
+
   return (
-    <div className="flex-1 min-w-0 space-y-3">
+    <div className="flex-1 min-w-0 flex flex-col gap-2">
       <h3 className="text-lg font-semibold">💰 Withdraw Market Balance</h3>
       <p className="text-sm text-gray-600">Enter the amount to withdraw (Planck units).</p>
       <div className="flex items-center gap-2">
@@ -54,23 +64,23 @@ export function MarketWithdrawal({
 
         <button
           type="button"
-          disabled={
-            withdrawStatus.state === TransactionState.Loading ||
-            withdrawAmount === 0n ||
-            withdrawAmount > marketBalance
-          }
+          disabled={isWithdrawalDisabled}
           onClick={handleWithdraw}
           className={`px-3 py-2 rounded text-sm transition ${
-            withdrawStatus.state === TransactionState.Loading
+            isWithdrawalDisabled
               ? "bg-gray-300 cursor-not-allowed"
-              : "bg-red-600 text-white hover:bg-green-700"
+              : "bg-red-600 text-white hover:bg-red-700"
           }`}
         >
           {withdrawStatus.state === TransactionState.Loading ? "⏳ Processing..." : "➖ Withdraw"}
         </button>
       </div>
 
-      {withdrawAmount !== 0n && BigInt(withdrawAmount) > marketBalance && (
+      {withdrawAmount <= 0n && (
+        <p className="text-sm text-red-600">⚠️ Withdraw amount must be greater than 0</p>
+      )}
+
+      {withdrawAmount > 0n && BigInt(withdrawAmount) > marketBalance && (
         <p className="text-sm text-red-600">
           ⚠️ You cannot withdraw more than your available market balance.
         </p>

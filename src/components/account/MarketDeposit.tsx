@@ -15,26 +15,37 @@ export function MarketDeposit({ selectedAddress, walletBalance, onSuccess }: Mar
   const [depositStatus, setDepositStatus] = useState<TransactionStatus>(Transaction.idle);
 
   if (!api) {
-    console.error("WebSocket api is null");
-    return;
+    throw new Error("State hasn't been properly initialized");
   }
 
   const handleDeposit = async () => {
-    if (!api || !selectedAddress || !depositAmount) return;
+    if (!api || !selectedAddress || !depositAmount) {
+      throw new Error("State hasn't been properly initialized");
+    }
 
     await sendTransaction({
       api,
       tx: api.tx.market.addBalance(depositAmount),
       selectedAddress,
-      onStatusChange: setDepositStatus,
-      onSuccess,
+      onStatusChange: (status) => {
+        // We just expose the onSuccess to the upper levels
+        setDepositStatus(status);
+        if (status.state === TransactionState.Success) {
+          onSuccess();
+        }
+      },
     });
 
     setDepositAmount(0n);
   };
 
+  const isDepositDisabled =
+    depositStatus.state === TransactionState.Loading ||
+    depositAmount <= 0n ||
+    depositAmount > walletBalance;
+
   return (
-    <div className="flex-1 min-w-0 space-y-3">
+    <div className="flex-1 min-w-0 flex flex-col gap-2">
       <h3 className="text-lg font-semibold">🛒 Deposit Market Balance</h3>
       <p className="text-sm text-gray-600">Enter the amount to deposit (Planck units).</p>
       <div className="flex items-center gap-2">
@@ -50,11 +61,7 @@ export function MarketDeposit({ selectedAddress, walletBalance, onSuccess }: Mar
 
         <button
           type="button"
-          disabled={
-            depositStatus.state === TransactionState.Loading ||
-            depositAmount === 0n ||
-            depositAmount > walletBalance
-          }
+          disabled={isDepositDisabled}
           onClick={handleDeposit}
           className={`px-3 py-2 rounded text-sm transition ${
             depositStatus.state === TransactionState.Loading
@@ -66,7 +73,11 @@ export function MarketDeposit({ selectedAddress, walletBalance, onSuccess }: Mar
         </button>
       </div>
 
-      {depositAmount !== 0n && BigInt(depositAmount) > walletBalance && (
+      {depositAmount <= 0n && (
+        <p className="text-sm text-red-600">⚠️ Deposit value must be greater than 0.</p>
+      )}
+
+      {depositAmount > 0n && BigInt(depositAmount) > walletBalance && (
         <p className="text-sm text-red-600">
           ⚠️ You cannot deposit more than your available wallet balance.
         </p>
