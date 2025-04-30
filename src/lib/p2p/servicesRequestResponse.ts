@@ -6,7 +6,7 @@ const SERVICES_DEFAULT_MULTIADDR = multiaddr("/ip4/127.0.0.1/tcp/62650/ws");
 const SERVICES_REQUEST_RESPONSE_PROTOCOL = "/polka-storage/rr-services/1.0.0";
 
 export namespace Services {
-  export type ServiceInfo = { port: number };
+  export type ServiceInfo = { port: number; secure_url?: string };
   export type Services = {
     [key: string]: ServiceInfo | undefined;
   };
