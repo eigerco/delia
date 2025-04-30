@@ -64,7 +64,7 @@ export function MarketDeposit({ selectedAddress, walletBalance, onSuccess }: Mar
           disabled={isDepositDisabled}
           onClick={handleDeposit}
           className={`px-3 py-2 rounded text-sm transition ${
-            depositStatus.state === TransactionState.Loading
+            isDepositDisabled
               ? "bg-gray-300 cursor-not-allowed"
               : "bg-green-600 text-white hover:bg-green-700"
           }`}

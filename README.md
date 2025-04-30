@@ -37,6 +37,24 @@ Note that the faucet will only give out tokens every 24 hours, in the case you t
 
 ![](static/faucet/faucet-error.png)
 
+### Managing your account's balance
+
+We've established that you will need some balance to perform deals,
+however, you will also need to store some balance in your market account;
+the market will act as an escrow keeping money for signed deals locked,
+ensuring the provider can't run away with your money!
+
+```mermaid
+flowchart LR
+    Acc[Your Account] -->|Deposit| Market
+    Market -->|Withdraw| Acc
+```
+
+Delia offers a simple interface to manage this,
+allowing you to deposit and withdraw money from the market account.
+
+![](static/deposit_withdraw.png)
+
 #### Checking your account's balance
 
 You can also check your account's network and market balance with Delia:
