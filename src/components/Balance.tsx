@@ -54,7 +54,7 @@ export function Balance({
       break;
 
     case BalanceState.Fetched:
-      balanceContent = <span>{tokenProperties.formatUnit(status.value)}</span>;
+      balanceContent = <span>{tokenProperties.formatUnit(status.value, true)}</span>;
       break;
   }
 

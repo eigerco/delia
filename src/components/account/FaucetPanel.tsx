@@ -89,7 +89,7 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
           case TransactionState.Success:
             return (
               <div className="text-sm text-green-600 space-y-1">
-                <p>✅ Transaction top-up successful!</p>
+                <p>✅ Funds added successfully!</p>
                 <p>Tx Hash: {faucetStatus.txHash}</p>
               </div>
             );
