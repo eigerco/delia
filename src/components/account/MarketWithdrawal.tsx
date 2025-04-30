@@ -19,8 +19,7 @@ export function MarketWithdrawal({
   const [withdrawStatus, setWithdrawStatus] = useState<TransactionStatus>(Transaction.idle);
 
   if (!api) {
-    console.error("WebSocket api is null");
-    return;
+    throw new Error("Initialization failed");
   }
 
   const handleWithdraw = async () => {
