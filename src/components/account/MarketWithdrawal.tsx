@@ -23,7 +23,9 @@ export function MarketWithdrawal({
   }
 
   const handleWithdraw = async () => {
-    if (!api || !selectedAddress || !withdrawAmount) return;
+    if (!api || !selectedAddress || !withdrawAmount) {
+      throw new Error("Initialization failed");
+    }
 
     await sendTransaction({
       api,
