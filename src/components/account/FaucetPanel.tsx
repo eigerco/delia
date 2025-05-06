@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { Toaster } from "react-hot-toast";
 import { useCtx } from "../../GlobalCtx";
 import { Transaction, TransactionState, type TransactionStatus } from "../../lib/transactionStatus";
+import { toastCustom } from "../Toast";
 
 interface FaucetPanelProps {
   selectedAddress: string;
@@ -27,11 +29,15 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
             if (!dispatchError) {
               const txHashHex = txHash.toHex();
               setTransaction(Transaction.success(txHashHex));
+              toastCustom("✅ Funds added successfully!", true);
+              toastCustom(`Tx Hash: ${txHashHex}`, true);
               onSuccess(txHashHex);
               return;
             }
             if (!dispatchError.isModule) {
+              const message = dispatchError.toString();
               setTransaction(Transaction.error(dispatchError.toString()));
+              toastCustom(`⚠️ ${message}`, false);
               return;
             }
             const decoded = api.registry.findMetaError(dispatchError.asModule);
@@ -40,6 +46,8 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
               section === "faucet" && name === "FaucetUsedRecently"
                 ? "You can only request tokens once every 24 hours."
                 : docs.join(" ") || "Transaction failed.";
+
+            toastCustom(`⚠️ ${userMessage}`, false);
             setTransaction(Transaction.error(userMessage));
           } finally {
             unsub();
@@ -54,9 +62,12 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
           ? "Your transaction is already being processed."
           : "Transaction failed.";
 
+        toastCustom(`⚠️ ${userMessage}`, false);
+
         setTransaction(Transaction.error(userMessage));
       } else {
         console.error(err);
+        toastCustom("⚠️ Failed to decode incoming error, see logs for details.", false);
         setTransaction(Transaction.error("Failed to decode incoming error, see logs for details."));
       }
     }
@@ -84,21 +95,7 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
           : "\uD83D\uDCB0 Request 10 Test Tokens"}
       </button>
 
-      {(() => {
-        switch (faucetStatus.state) {
-          case TransactionState.Success:
-            return (
-              <div className="text-sm text-green-600 space-y-1">
-                <p>✅ Funds added successfully!</p>
-                <p>Tx Hash: {faucetStatus.txHash}</p>
-              </div>
-            );
-          case TransactionState.Error:
-            return <p className="text-sm text-red-600">⚠️ {faucetStatus.message}</p>;
-          default:
-            return <></>;
-        }
-      })()}
+      <Toaster position="bottom-left" reverseOrder={true} />
     </div>
   );
 }

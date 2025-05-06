@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useCtx } from "../../GlobalCtx";
 import { sendTransaction } from "../../lib/sendTransaction";
 import { Transaction, TransactionState, type TransactionStatus } from "../../lib/transactionStatus";
+import { toastCustom } from "../Toast";
 
 interface MarketWithdrawalProps {
   selectedAddress: string;
@@ -17,6 +18,7 @@ export function MarketWithdrawal({
   const { collatorWsApi: api, tokenProperties } = useCtx();
   const [withdrawAmount, setWithdrawAmount] = useState(0n);
   const [withdrawStatus, setWithdrawStatus] = useState<TransactionStatus>(Transaction.idle);
+  const [isFocused, setIsFocused] = useState(false);
 
   if (!api) {
     throw new Error("Initialization failed");
@@ -35,7 +37,11 @@ export function MarketWithdrawal({
         setWithdrawStatus(status);
         // We just expose the onSuccess to the upper levels
         if (status.state === TransactionState.Success) {
+          toastCustom("✅ Market withdrawal successful!", true);
+          toastCustom(`Tx Hash: ${status.txHash}`, true);
           onSuccess();
+        } else if (status.state === TransactionState.Error) {
+          toastCustom(`⚠️ ${status.message}`, false);
         }
       },
     });
@@ -48,6 +54,10 @@ export function MarketWithdrawal({
     withdrawAmount === 0n ||
     withdrawAmount > marketBalance;
 
+  const isZero = withdrawAmount <= 0n && isFocused;
+
+  const isTooLarge = withdrawAmount > 0n && BigInt(withdrawAmount) > marketBalance && isFocused;
+
   return (
     <div className="flex-1 min-w-0 flex flex-col gap-2">
       <h3 className="text-lg font-semibold">💰 Withdraw Market Balance</h3>
@@ -57,6 +67,8 @@ export function MarketWithdrawal({
           type="number"
           value={withdrawAmount.toString()}
           onChange={(e) => setWithdrawAmount(BigInt(e.target.value))}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
           placeholder="Amount in Planck"
           className="px-3 py-2 border rounded text-sm"
         />
@@ -77,31 +89,13 @@ export function MarketWithdrawal({
         </button>
       </div>
 
-      {withdrawAmount <= 0n && (
-        <p className="text-sm text-red-600">⚠️ Withdraw amount must be greater than 0</p>
-      )}
+      {isZero && <p className="text-sm text-red-600">⚠️ Withdraw amount must be greater than 0</p>}
 
-      {withdrawAmount > 0n && BigInt(withdrawAmount) > marketBalance && (
+      {isTooLarge && (
         <p className="text-sm text-red-600">
           ⚠️ You cannot withdraw more than your available market balance.
         </p>
       )}
-
-      {(() => {
-        switch (withdrawStatus.state) {
-          case TransactionState.Success:
-            return (
-              <div className="text-sm text-green-600 space-y-1">
-                <p>✅ Withdrawal successful!</p>
-                <p>Tx Hash: {withdrawStatus.txHash}</p>
-              </div>
-            );
-          case TransactionState.Error:
-            return <p className="text-sm text-red-600">⚠️ {withdrawStatus.message}</p>;
-          default:
-            return <></>;
-        }
-      })()}
     </div>
   );
 }
