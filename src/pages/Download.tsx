@@ -133,7 +133,7 @@ export function Download() {
           text={isDownloading ? "Downloading..." : "Download"}
         />
       </div>
-      <Toaster position="top-center" reverseOrder={true} />
+      <Toaster position="bottom-left" reverseOrder={true} />
     </>
   );
 }

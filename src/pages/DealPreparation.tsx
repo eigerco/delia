@@ -193,7 +193,8 @@ export function DealPreparation() {
         ),
       },
       {
-        duration: 5000,
+        duration: 5000, // applies to success and error
+        loading: { duration: Number.POSITIVE_INFINITY }, // keep loading toast visible until resolution
       },
     );
   };

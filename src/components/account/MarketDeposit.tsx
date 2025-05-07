@@ -57,7 +57,10 @@ export function MarketDeposit({ selectedAddress, walletBalance, onSuccess }: Mar
           <ToastMessage message={`Deposit failed: ${err}`} state={ToastState.Error} />
         ),
       },
-      { duration: 5000 },
+      {
+        duration: 5000, // applies to success and error
+        loading: { duration: Number.POSITIVE_INFINITY }, // keep loading toast visible until resolution
+      },
     );
 
     setDepositAmount(0n);

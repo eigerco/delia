@@ -72,7 +72,10 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
           <ToastMessage message={`Faucet request failed: ${err}`} state={ToastState.Error} />
         ),
       },
-      { duration: 5000 },
+      {
+        duration: 5000, // applies to success and error
+        loading: { duration: Number.POSITIVE_INFINITY }, // keep loading toast visible until resolution
+      },
     );
   };
 
