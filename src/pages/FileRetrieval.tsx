@@ -1,19 +1,19 @@
 import type { Multiaddr } from "@multiformats/multiaddr";
-import { HelpCircle } from "lucide-react";
 import { useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
-import { Tooltip } from "react-tooltip";
 import { ZodError } from "zod";
 import { useCtx } from "../GlobalCtx";
 import { ReceiptUploader } from "../components/ReceiptUploader";
 import { ToastMessage, ToastState } from "../components/Toast";
-import { DownloadButton } from "../components/buttons/DownloadButton";
+import { Button } from "../components/buttons/Button";
+import { DealStatus } from "../components/retrieval/DealStatus";
+import { ExtractCheckbox } from "../components/retrieval/ExtractCheckbox";
 import { createDownloadTrigger } from "../lib/download";
 import { resolvePeerIdMultiaddrs } from "../lib/resolvePeerIdMultiaddr";
 import { retrieveContent } from "../lib/retrieval";
 import { SubmissionReceipt } from "../lib/submissionReceipt";
 
-type InputReceipt =
+export type InputReceipt =
   | {
       status: "ok";
       file: File;
@@ -25,15 +25,15 @@ type InputReceipt =
     };
 
 namespace InputReceipt {
-  export function Ok(file: File, receipt: SubmissionReceipt): InputReceipt {
+  export function ok(file: File, receipt: SubmissionReceipt): InputReceipt {
     return { status: "ok", file, receipt };
   }
-  export function Err(message: string): InputReceipt {
+  export function err(message: string): InputReceipt {
     return { status: "error", message };
   }
 }
 
-export function Download() {
+export function Retrieval() {
   const { collatorWsApi, collatorWsProvider } = useCtx();
   const [inputReceipt, setInputReceipt] = useState<InputReceipt | null>(null);
   const [shouldExtract, setShouldExtract] = useState<boolean>(true);
@@ -56,13 +56,7 @@ export function Download() {
     const multiaddrs = await Promise.all(
       // submissionReceipt.deals
       inputReceipt.receipt.deals.map((deal) =>
-        resolvePeerIdMultiaddrs(
-          {
-            wsProvider: collatorWsProvider,
-            apiPromise: collatorWsApi,
-          },
-          deal.storageProviderPeerId,
-        ),
+        resolvePeerIdMultiaddrs(collatorWsProvider, deal.storageProviderPeerId),
       ),
     );
     const providers = (Array.prototype.concat(...multiaddrs) as Multiaddr[]).filter(
@@ -105,16 +99,16 @@ export function Download() {
             // * It doesn't allow the validation function to be async
             // * It doesn't allow a mapping function to be applied and in turn pass the parsed file forwards
             try {
-              setInputReceipt(InputReceipt.Ok(file, SubmissionReceipt.new(JSON.parse(content))));
+              setInputReceipt(InputReceipt.ok(file, SubmissionReceipt.new(JSON.parse(content))));
             } catch (e) {
               if (e instanceof SyntaxError) {
-                setInputReceipt(InputReceipt.Err("File is not valid JSON!"));
+                setInputReceipt(InputReceipt.err("File is not valid JSON!"));
               } else if (e instanceof ZodError) {
-                setInputReceipt(InputReceipt.Err(e.errors.map((err) => err.message).join("\n")));
+                setInputReceipt(InputReceipt.err(e.errors.map((err) => err.message).join("\n")));
               } else if (e instanceof Error) {
-                setInputReceipt(InputReceipt.Err(e.message));
+                setInputReceipt(InputReceipt.err(e.message));
               } else {
-                setInputReceipt(InputReceipt.Err(`Failed to parse file ${file.name}`));
+                setInputReceipt(InputReceipt.err(`Failed to parse file ${file.name}`));
               }
             }
           }}
@@ -125,40 +119,16 @@ export function Download() {
           <></>
         )}
 
-        <Extract extract={shouldExtract} setExtract={setShouldExtract} />
+        {inputReceipt?.status === "ok" && <DealStatus receipt={inputReceipt.receipt} />}
 
-        <DownloadButton
-          onClick={download}
-          disabled={isDownloading}
-          text={isDownloading ? "Downloading..." : "Download"}
-        />
+        <div className="flex gap-4">
+          <Button onClick={download} disabled={isDownloading} className="grow">
+            {isDownloading ? "Downloading..." : "Download"}
+          </Button>
+          <ExtractCheckbox extract={shouldExtract} setExtract={setShouldExtract} />
+        </div>
       </div>
       <Toaster position="bottom-left" reverseOrder={true} />
     </>
-  );
-}
-
-type ExtractProps = { extract: boolean; setExtract: (extract: boolean) => void };
-function Extract({ extract, setExtract }: ExtractProps) {
-  return (
-    <div className="flex items-center gap-2">
-      <input
-        id="extract-car"
-        type="checkbox"
-        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-        checked={extract}
-        onChange={(e) => setExtract(e.target.checked)}
-      />
-      <label htmlFor="extract-car" className="flex gap-1 text-sm text-gray-700 items-center">
-        Extract
-        <span id="extract-tooltip" className="cursor-help">
-          <HelpCircle className="w-4 h-4 text-gray-400" />
-        </span>
-        <Tooltip
-          anchorSelect="#extract-tooltip"
-          content="When checked, extracts the content. When unchecked, downloads the raw CAR file."
-        />
-      </label>
-    </div>
   );
 }

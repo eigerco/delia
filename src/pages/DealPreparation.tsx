@@ -1,5 +1,5 @@
 import type { NodeAddress } from "@multiformats/multiaddr";
-import type { ApiPromise, WsProvider } from "@polkadot/api";
+import type { WsProvider } from "@polkadot/api";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import type { TypeRegistry } from "@polkadot/types";
 import { Loader2 } from "lucide-react";
@@ -40,19 +40,14 @@ type ProviderInfo = {
 
 type DealId = number;
 
-type Collator = {
-  wsProvider: WsProvider;
-  apiPromise: ApiPromise;
-};
-
 async function executeDeal(
   accounts: InjectedAccountWithMeta[],
   providerInfo: ProviderInfo,
   dealInfo: DealInfo,
-  collator: Collator,
+  collatorWsProvider: WsProvider,
   registry: TypeRegistry,
 ): Promise<DealId> {
-  const peerIdMultiaddress = await resolvePeerIdMultiaddrs(collator, providerInfo.peerId);
+  const peerIdMultiaddress = await resolvePeerIdMultiaddrs(collatorWsProvider, providerInfo.peerId);
 
   // TODO(@th7nder,18/04/2025): https://github.com/eigerco/polka-storage/issues/835
   // Collateral hardcoded as 2 * total deal price.
@@ -154,12 +149,7 @@ export function DealPreparation() {
     if (!collatorWsApi) {
       throw new Error("Collator chain connection not setup!");
     }
-    const collator: Collator = {
-      wsProvider: collatorWsProvider,
-      apiPromise: collatorWsApi,
-    };
-
-    return await executeDeal(accounts, providerInfo, dealInfo, collator, registry);
+    return await executeDeal(accounts, providerInfo, dealInfo, collatorWsProvider, registry);
   };
 
   const performDealToastWrapper = async (
