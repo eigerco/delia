@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Toaster } from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 import { useCtx } from "../../GlobalCtx";
 import { Transaction, TransactionState, type TransactionStatus } from "../../lib/transactionStatus";
-import { toastCustom } from "../Toast";
+import { ToastMessage, ToastState } from "../Toast";
 
 interface FaucetPanelProps {
   selectedAddress: string;
@@ -16,61 +16,64 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
   const handleDrip = async () => {
     if (!api || !selectedAddress) return;
 
-    try {
-      setTransaction(Transaction.loading);
+    let unsub: () => void = () => {}; // initialized as no-op
 
-      const unsub = await api.tx.faucet
-        .drip(selectedAddress)
-        .send(({ status, dispatchError, txHash }) => {
-          if (!status.isInBlock && !status.isFinalized) {
+    const promise = new Promise<void>((resolve, reject) => {
+      const tx = api.tx.faucet.drip(selectedAddress);
+
+      tx.send(({ status, dispatchError, txHash }) => {
+        if (!status.isInBlock && !status.isFinalized) return;
+
+        try {
+          if (!dispatchError) {
+            const txHashHex = txHash.toHex();
+            setTransaction(Transaction.success(txHashHex));
+            onSuccess(txHashHex);
+            resolve();
             return;
           }
-          try {
-            if (!dispatchError) {
-              const txHashHex = txHash.toHex();
-              setTransaction(Transaction.success(txHashHex));
-              toastCustom("✅ Funds added successfully!", true);
-              toastCustom(`Tx Hash: ${txHashHex}`, true);
-              onSuccess(txHashHex);
-              return;
-            }
-            if (!dispatchError.isModule) {
-              const message = dispatchError.toString();
-              setTransaction(Transaction.error(dispatchError.toString()));
-              toastCustom(`⚠️ ${message}`, false);
-              return;
-            }
-            const decoded = api.registry.findMetaError(dispatchError.asModule);
-            const { docs, name, section } = decoded;
-            const userMessage =
-              section === "faucet" && name === "FaucetUsedRecently"
-                ? "You can only request tokens once every 24 hours."
-                : docs.join(" ") || "Transaction failed.";
 
-            toastCustom(`⚠️ ${userMessage}`, false);
-            setTransaction(Transaction.error(userMessage));
-          } finally {
-            unsub();
+          if (!dispatchError.isModule) {
+            const message = dispatchError.toString();
+            setTransaction(Transaction.error(message));
+            reject(message);
+            return;
           }
+
+          const decoded = api.registry.findMetaError(dispatchError.asModule);
+          const { docs, name, section } = decoded;
+          const userMessage =
+            section === "faucet" && name === "FaucetUsedRecently"
+              ? "You can only request tokens once every 24 hours."
+              : docs.join(" ") || "Transaction failed.";
+
+          setTransaction(Transaction.error(userMessage));
+          reject(userMessage);
+        } catch (err) {
+          reject(err);
+        } finally {
+          unsub();
+        }
+      })
+        .then((u) => {
+          unsub = u; // assigned after tx.send resolves
+        })
+        .catch((err) => {
+          reject(err);
         });
-    } catch (err) {
-      if (err instanceof Error) {
-        const isDuplicate =
-          err.message.includes("1013") || err.message.includes("Transaction Already Imported");
+    });
 
-        const userMessage = isDuplicate
-          ? "Your transaction is already being processed."
-          : "Transaction failed.";
-
-        toastCustom(`⚠️ ${userMessage}`, false);
-
-        setTransaction(Transaction.error(userMessage));
-      } else {
-        console.error(err);
-        toastCustom("⚠️ Failed to decode incoming error, see logs for details.", false);
-        setTransaction(Transaction.error("Failed to decode incoming error, see logs for details."));
-      }
-    }
+    await toast.promise(
+      promise,
+      {
+        loading: <ToastMessage message="Requesting funds..." state={ToastState.Loading} />,
+        success: <ToastMessage message="Funds added successfully!" state={ToastState.Success} />,
+        error: (err) => (
+          <ToastMessage message={`Faucet request failed: ${err}`} state={ToastState.Error} />
+        ),
+      },
+      { duration: 5000 },
+    );
   };
 
   return (

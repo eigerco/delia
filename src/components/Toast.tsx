@@ -1,25 +1,38 @@
-import { toast } from "react-hot-toast";
+import type { ReactNode } from "react";
 
-export function toastCustom(message: string, success: boolean) {
-  toast.custom(
-    (t) => (
-      <div className="bg-white shadow rounded px-4 py-2 flex items-start justify-between gap-4 max-w-sm border">
-        <div
-          className={`text-sm break-words whitespace-normal overflow-hidden text-ellipsis ${
-            success ? "text-green-700" : "text-red-700"
-          }`}
-        >
-          {message}
-        </div>
-        <button
-          type="button"
-          onClick={() => toast.dismiss(t.id)}
-          className="text-gray-500 hover:text-black text-sm"
-        >
-          ✖
-        </button>
+export enum ToastState {
+  Loading = "loading",
+  Success = "success",
+  Error = "error",
+}
+
+export function ToastMessage({
+  message,
+  state,
+}: {
+  message: ReactNode;
+  state: ToastState;
+}) {
+  return (
+    <div className="px-4 py-2 flex items-start justify-between gap-4 max-w-sm">
+      <div
+        className={`text-sm break-words whitespace-normal overflow-hidden text-ellipsis ${getToastColour(
+          state,
+        )}`}
+      >
+        {message}
       </div>
-    ),
-    { duration: 5000 },
+    </div>
   );
+}
+
+function getToastColour(state: ToastState): string {
+  switch (state) {
+    case ToastState.Loading:
+      return "text-gray-700";
+    case ToastState.Success:
+      return "text-green-700";
+    case ToastState.Error:
+      return "text-red-700";
+  }
 }

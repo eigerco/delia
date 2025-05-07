@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useOutletContext } from "react-router";
 import { useCtx } from "../GlobalCtx";
+import { ToastMessage, ToastState } from "../components/Toast";
 import {
   DealProposalForm,
   calculateStartEndBlocks,
@@ -170,18 +171,29 @@ export function DealPreparation() {
         return await performDeal(providerInfo, dealInfo);
       },
       {
-        loading: `Uploading deal to provider ${providerInfo.accountId}`,
-        error: (err) => (
-          <p>{`Failed to upload deal to provider ${providerInfo.accountId} with error: ${err}`}</p>
+        loading: (
+          <ToastMessage
+            message={`Uploading deal to provider ${providerInfo.accountId}`}
+            state={ToastState.Loading}
+          />
         ),
-        success: `Successfully uploaded deal to provider ${providerInfo.accountId}`,
+        error: (err) => (
+          <ToastMessage
+            message={
+              <p>{`Failed to upload deal to provider ${providerInfo.accountId} with error: ${err}`}</p>
+            }
+            state={ToastState.Error}
+          />
+        ),
+        success: (
+          <ToastMessage
+            message={`Successfully uploaded deal to provider ${providerInfo.accountId}`}
+            state={ToastState.Success}
+          />
+        ),
       },
       {
-        success: {
-          // Extend the duration to match the others
-          // so the user has more time to check successes
-          duration: 4000,
-        },
+        duration: 5000,
       },
     );
   };
@@ -239,8 +251,10 @@ export function DealPreparation() {
         createDownloadTrigger("deal.json", new Blob([JSON.stringify(submissionResults.toJSON())]));
       },
       {
-        loading: "Submitting deals!",
-        success: "Successfully submitted all deals!",
+        loading: <ToastMessage message={"Submitting deals!"} state={ToastState.Loading} />,
+        success: (
+          <ToastMessage message={"Successfully submitted all deals!"} state={ToastState.Success} />
+        ),
       },
     );
 

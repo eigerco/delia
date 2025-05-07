@@ -1,8 +1,9 @@
 import { useState } from "react";
+import toast from "react-hot-toast";
 import { useCtx } from "../../GlobalCtx";
 import { sendTransaction } from "../../lib/sendTransaction";
 import { Transaction, TransactionState, type TransactionStatus } from "../../lib/transactionStatus";
-import { toastCustom } from "../Toast";
+import { ToastMessage, ToastState } from "../Toast";
 
 interface MarketDepositProps {
   selectedAddress: string;
@@ -25,22 +26,39 @@ export function MarketDeposit({ selectedAddress, walletBalance, onSuccess }: Mar
       throw new Error("State hasn't been properly initialized");
     }
 
-    await sendTransaction({
-      api,
-      tx: api.tx.market.addBalance(depositAmount),
-      selectedAddress,
-      onStatusChange: (status) => {
-        // We just expose the onSuccess to the upper levels
-        setDepositStatus(status);
-        if (status.state === TransactionState.Success) {
-          toastCustom("✅ Market deposit successful!", true);
-          toastCustom(`Tx Hash: ${status.txHash}`, true);
-          onSuccess();
-        } else if (status.state === TransactionState.Error) {
-          toastCustom(`⚠️ ${status.message}`, false);
-        }
+    await toast.promise(
+      sendTransaction({
+        api,
+        tx: api.tx.market.addBalance(depositAmount),
+        selectedAddress,
+        onStatusChange: (status) => {
+          setDepositStatus(status);
+          // We just expose the onSuccess to the upper levels
+          if (status.state === TransactionState.Success) {
+            onSuccess();
+          }
+        },
+      }),
+      {
+        loading: <ToastMessage message="Processing market deposit..." state={ToastState.Loading} />,
+        success: (txHash) => (
+          <ToastMessage
+            message={
+              <span>
+                Market deposit successful!
+                <br />
+                Tx Hash: <code className="break-all">{txHash}</code>
+              </span>
+            }
+            state={ToastState.Success}
+          />
+        ),
+        error: (err) => (
+          <ToastMessage message={`Deposit failed: ${err}`} state={ToastState.Error} />
+        ),
       },
-    });
+      { duration: 5000 },
+    );
 
     setDepositAmount(0n);
   };

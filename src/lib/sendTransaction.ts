@@ -14,48 +14,34 @@ export async function sendTransaction({
   tx,
   selectedAddress,
   onStatusChange,
-}: SendTransactionArgs) {
-  try {
+}: SendTransactionArgs): Promise<string> {
+  return new Promise((resolve, reject) => {
     onStatusChange(Transaction.loading());
 
-    const unsub = await tx.signAndSend(selectedAddress, ({ status, dispatchError, txHash }) => {
-      if (!status.isInBlock && !status.isFinalized) {
-        return;
-      }
+    tx.signAndSend(selectedAddress, ({ status, dispatchError, txHash }) => {
+      if (!status.isInBlock && !status.isFinalized) return;
+
       try {
         if (!dispatchError) {
           const txHashHex = txHash.toHex();
           onStatusChange(Transaction.success(txHashHex));
-          return;
+          resolve(txHashHex); // Resolve with txHash
+        } else if (!dispatchError.isModule) {
+          const message = dispatchError.toString();
+          onStatusChange(Transaction.error(message));
+          reject(message);
+        } else {
+          const decoded = api.registry.findMetaError(dispatchError.asModule);
+          const userMessage = decoded.docs.join(" ") || `${decoded.section}.${decoded.name}`;
+          onStatusChange(Transaction.error(userMessage));
+          reject(userMessage);
         }
-
-        if (!dispatchError.isModule) {
-          onStatusChange(Transaction.error(dispatchError.toString()));
-          return;
-        }
-
-        const decoded = api.registry.findMetaError(dispatchError.asModule);
-        const { docs, name, section } = decoded;
-        const userMessage = docs.join(" ") || `${section}.${name}`;
-
-        onStatusChange(Transaction.error(userMessage));
-      } finally {
-        unsub();
+      } catch (e) {
+        reject(e);
       }
+    }).catch((err) => {
+      onStatusChange(Transaction.error("Transaction failed"));
+      reject(err);
     });
-  } catch (err) {
-    console.error("Transaction failed", err);
-    if (err instanceof Error) {
-      const isDuplicate =
-        err.message.includes("1013") || err.message.includes("Transaction Already Imported");
-
-      const userMessage = isDuplicate
-        ? "Your transaction is already being processed."
-        : "Transaction failed.";
-
-      onStatusChange(Transaction.error(userMessage));
-    } else {
-      onStatusChange(Transaction.error("Failed to decode incoming error, see logs for details."));
-    }
-  }
+  });
 }
