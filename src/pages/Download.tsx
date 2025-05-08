@@ -6,6 +6,7 @@ import { Tooltip } from "react-tooltip";
 import { ZodError } from "zod";
 import { useCtx } from "../GlobalCtx";
 import { ReceiptUploader } from "../components/ReceiptUploader";
+import { ToastMessage, ToastState } from "../components/Toast";
 import { DownloadButton } from "../components/buttons/DownloadButton";
 import { createDownloadTrigger } from "../lib/download";
 import { resolvePeerIdMultiaddrs } from "../lib/resolvePeerIdMultiaddr";
@@ -84,7 +85,9 @@ export function Download() {
   const download = async () => {
     setIsDownloading(true);
     try {
-      await toast.promise(downloadInner(), { loading: "Downloading file!" });
+      await toast.promise(downloadInner(), {
+        loading: <ToastMessage message={"Downloading file!"} state={ToastState.Loading} />,
+      });
     } finally {
       setIsDownloading(false);
     }
@@ -130,7 +133,7 @@ export function Download() {
           text={isDownloading ? "Downloading..." : "Download"}
         />
       </div>
-      <Toaster position="top-center" reverseOrder={true} />
+      <Toaster position="bottom-left" reverseOrder={true} />
     </>
   );
 }

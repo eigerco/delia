@@ -1,6 +1,9 @@
 import { useState } from "react";
+import toast, { Toaster } from "react-hot-toast";
 import { useCtx } from "../../GlobalCtx";
+import { sendUnsigned } from "../../lib/sendTransaction";
 import { Transaction, TransactionState, type TransactionStatus } from "../../lib/transactionStatus";
+import { ToastMessage, ToastState } from "../Toast";
 
 interface FaucetPanelProps {
   selectedAddress: string;
@@ -9,57 +12,36 @@ interface FaucetPanelProps {
 
 export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
   const { collatorWsApi: api } = useCtx();
-  const [faucetStatus, setTransaction] = useState<TransactionStatus>(Transaction.idle);
+  const [faucetStatus, setFaucetStatus] = useState<TransactionStatus>(Transaction.idle);
 
   const handleDrip = async () => {
-    if (!api || !selectedAddress) return;
-
-    try {
-      setTransaction(Transaction.loading);
-
-      const unsub = await api.tx.faucet
-        .drip(selectedAddress)
-        .send(({ status, dispatchError, txHash }) => {
-          if (!status.isInBlock && !status.isFinalized) {
-            return;
-          }
-          try {
-            if (!dispatchError) {
-              const txHashHex = txHash.toHex();
-              setTransaction(Transaction.success(txHashHex));
-              onSuccess(txHashHex);
-              return;
-            }
-            if (!dispatchError.isModule) {
-              setTransaction(Transaction.error(dispatchError.toString()));
-              return;
-            }
-            const decoded = api.registry.findMetaError(dispatchError.asModule);
-            const { docs, name, section } = decoded;
-            const userMessage =
-              section === "faucet" && name === "FaucetUsedRecently"
-                ? "You can only request tokens once every 24 hours."
-                : docs.join(" ") || "Transaction failed.";
-            setTransaction(Transaction.error(userMessage));
-          } finally {
-            unsub();
-          }
-        });
-    } catch (err) {
-      if (err instanceof Error) {
-        const isDuplicate =
-          err.message.includes("1013") || err.message.includes("Transaction Already Imported");
-
-        const userMessage = isDuplicate
-          ? "Your transaction is already being processed."
-          : "Transaction failed.";
-
-        setTransaction(Transaction.error(userMessage));
-      } else {
-        console.error(err);
-        setTransaction(Transaction.error("Failed to decode incoming error, see logs for details."));
-      }
+    if (!api || !selectedAddress) {
+      throw new Error("State hasn't been properly initialized");
     }
+
+    await toast.promise(
+      sendUnsigned({
+        api,
+        tx: api.tx.faucet.drip(selectedAddress),
+        onStatusChange: (status) => {
+          setFaucetStatus(status);
+          if (status.state === TransactionState.Success) {
+            onSuccess(status.txHash);
+          }
+        },
+      }),
+      {
+        loading: <ToastMessage message="Requesting funds..." state={ToastState.Loading} />,
+        success: <ToastMessage message="Funds added successfully!" state={ToastState.Success} />,
+        error: (err) => (
+          <ToastMessage message={`Faucet request failed: ${err}`} state={ToastState.Error} />
+        ),
+      },
+      {
+        duration: 5000, // applies to success and error
+        loading: { duration: Number.POSITIVE_INFINITY }, // keep loading toast visible until resolution
+      },
+    );
   };
 
   return (
@@ -84,21 +66,7 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
           : "\uD83D\uDCB0 Request 10 Test Tokens"}
       </button>
 
-      {(() => {
-        switch (faucetStatus.state) {
-          case TransactionState.Success:
-            return (
-              <div className="text-sm text-green-600 space-y-1">
-                <p>✅ Funds added successfully!</p>
-                <p>Tx Hash: {faucetStatus.txHash}</p>
-              </div>
-            );
-          case TransactionState.Error:
-            return <p className="text-sm text-red-600">⚠️ {faucetStatus.message}</p>;
-          default:
-            return <></>;
-        }
-      })()}
+      <Toaster position="bottom-left" reverseOrder={true} />
     </div>
   );
 }

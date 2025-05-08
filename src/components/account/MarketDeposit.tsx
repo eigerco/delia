@@ -1,7 +1,9 @@
 import { useState } from "react";
+import toast from "react-hot-toast";
 import { useCtx } from "../../GlobalCtx";
 import { sendTransaction } from "../../lib/sendTransaction";
 import { Transaction, TransactionState, type TransactionStatus } from "../../lib/transactionStatus";
+import { ToastMessage, ToastState } from "../Toast";
 
 interface MarketDepositProps {
   selectedAddress: string;
@@ -13,6 +15,7 @@ export function MarketDeposit({ selectedAddress, walletBalance, onSuccess }: Mar
   const { collatorWsApi: api, tokenProperties } = useCtx();
   const [depositAmount, setDepositAmount] = useState(0n);
   const [depositStatus, setDepositStatus] = useState<TransactionStatus>(Transaction.idle);
+  const [isFocused, setIsFocused] = useState(false);
 
   if (!api) {
     throw new Error("State hasn't been properly initialized");
@@ -23,18 +26,42 @@ export function MarketDeposit({ selectedAddress, walletBalance, onSuccess }: Mar
       throw new Error("State hasn't been properly initialized");
     }
 
-    await sendTransaction({
-      api,
-      tx: api.tx.market.addBalance(depositAmount),
-      selectedAddress,
-      onStatusChange: (status) => {
-        // We just expose the onSuccess to the upper levels
-        setDepositStatus(status);
-        if (status.state === TransactionState.Success) {
-          onSuccess();
-        }
+    await toast.promise(
+      sendTransaction({
+        api,
+        tx: api.tx.market.addBalance(depositAmount),
+        selectedAddress,
+        onStatusChange: (status) => {
+          setDepositStatus(status);
+          // We just expose the onSuccess to the upper levels
+          if (status.state === TransactionState.Success) {
+            onSuccess();
+          }
+        },
+      }),
+      {
+        loading: <ToastMessage message="Processing market deposit..." state={ToastState.Loading} />,
+        success: (txHash) => (
+          <ToastMessage
+            message={
+              <span>
+                Market deposit successful!
+                <br />
+                Tx Hash: <code className="break-all">{txHash}</code>
+              </span>
+            }
+            state={ToastState.Success}
+          />
+        ),
+        error: (err) => (
+          <ToastMessage message={`Deposit failed: ${err}`} state={ToastState.Error} />
+        ),
       },
-    });
+      {
+        duration: 5000, // applies to success and error
+        loading: { duration: Number.POSITIVE_INFINITY }, // keep loading toast visible until resolution
+      },
+    );
 
     setDepositAmount(0n);
   };
@@ -43,6 +70,10 @@ export function MarketDeposit({ selectedAddress, walletBalance, onSuccess }: Mar
     depositStatus.state === TransactionState.Loading ||
     depositAmount <= 0n ||
     depositAmount > walletBalance;
+
+  const isZero = depositAmount <= 0n && isFocused;
+
+  const isTooLarge = depositAmount > 0n && BigInt(depositAmount) > walletBalance && isFocused;
 
   return (
     <div className="flex-1 min-w-0 flex flex-col gap-2">
@@ -53,6 +84,8 @@ export function MarketDeposit({ selectedAddress, walletBalance, onSuccess }: Mar
           type="number"
           value={depositAmount.toString()}
           onChange={(e) => setDepositAmount(BigInt(e.target.value))}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
           placeholder="Amount in Planck"
           className="px-3 py-2 border rounded text-sm"
         />
@@ -73,31 +106,13 @@ export function MarketDeposit({ selectedAddress, walletBalance, onSuccess }: Mar
         </button>
       </div>
 
-      {depositAmount <= 0n && (
-        <p className="text-sm text-red-600">⚠️ Deposit value must be greater than 0.</p>
-      )}
+      {isZero && <p className="text-sm text-red-600">⚠️ Deposit value must be greater than 0.</p>}
 
-      {depositAmount > 0n && BigInt(depositAmount) > walletBalance && (
+      {isTooLarge && (
         <p className="text-sm text-red-600">
           ⚠️ You cannot deposit more than your available wallet balance.
         </p>
       )}
-
-      {(() => {
-        switch (depositStatus.state) {
-          case TransactionState.Success:
-            return (
-              <div className="text-sm text-green-600 space-y-1">
-                <p>✅ Market deposit successful!</p>
-                <p>Tx Hash: {depositStatus.txHash}</p>
-              </div>
-            );
-          case TransactionState.Error:
-            return <p className="text-sm text-red-600">⚠️ {depositStatus.message}</p>;
-          default:
-            return <></>;
-        }
-      })()}
     </div>
   );
 }
