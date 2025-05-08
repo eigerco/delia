@@ -7,7 +7,7 @@ import App from "./App.tsx";
 import { DEAL_CREATION_PATH, DOWNLOAD_PATH } from "./lib/consts.ts";
 import { Account } from "./pages/Account.tsx";
 import { DealPreparation } from "./pages/DealPreparation";
-import { Download } from "./pages/Download";
+import { Retrieval } from "./pages/FileRetrieval.tsx";
 
 const router = createHashRouter([
   {
@@ -24,7 +24,7 @@ const router = createHashRouter([
       },
       {
         path: DOWNLOAD_PATH,
-        Component: Download,
+        Component: Retrieval,
       },
     ],
   },

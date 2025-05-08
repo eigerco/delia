@@ -4,9 +4,9 @@ import { useDropzone } from "react-dropzone";
 
 // Props returned by FileUploader.
 // Includes the !ORIGINAL! file and the CAR metadata.
-type FileUploaderProps = { onFileReady: (file: File, contents: string) => void };
+type ReceiptProps = { onFileReady: (file: File, contents: string) => void };
 
-export function ReceiptUploader({ onFileReady }: FileUploaderProps) {
+export function ReceiptUploader({ onFileReady }: ReceiptProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const onDrop = useCallback(

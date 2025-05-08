@@ -1,20 +1,12 @@
 import { type Multiaddr, multiaddr } from "@multiformats/multiaddr";
-import type { ApiPromise, WsProvider } from "@polkadot/api";
+import type { WsProvider } from "@polkadot/api";
 import { queryPeerId } from "./p2p/bootstrapRequestResponse";
 
-export type Collator = {
-  wsProvider: WsProvider;
-  apiPromise: ApiPromise;
-};
-
 export async function resolvePeerIdMultiaddrs(
-  collator: Collator,
+  collator: WsProvider,
   peerId: string,
 ): Promise<Multiaddr[]> {
-  const collatorMaddrs: string[] = await collator.wsProvider.send(
-    "polkaStorage_getP2pMultiaddrs",
-    [],
-  );
+  const collatorMaddrs: string[] = await collator.send("polkaStorage_getP2pMultiaddrs", []);
   // To be explicit: if it includes ws, it includes wss
   const wsMaddrs = collatorMaddrs.filter((maddr) => maddr.includes("ws")).map(multiaddr);
   if (wsMaddrs.length === 0) {
@@ -36,7 +28,7 @@ export async function resolvePeerIdMultiaddrs(
     finalMultiaddr
       .toString()
       // biome-ignore lint/style/noNonNullAssertion: wsAddress should be valid at this point
-      .replace("0.0.0.0", URL.parse(collator.wsProvider.endpoint)!.hostname), // double check this
+      .replace("0.0.0.0", URL.parse(collator.endpoint)!.hostname), // double check this
   );
   console.log(`queryAddr: ${queryAddr.toString()}`);
 
