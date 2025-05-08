@@ -16,12 +16,10 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
   const handleDrip = async () => {
     if (!api || !selectedAddress) return;
 
-    let unsub: () => void = () => {}; // initialized as no-op
-
-    const promise = new Promise<void>((resolve, reject) => {
+    const promise = async () => {
       const tx = api.tx.faucet.drip(selectedAddress);
 
-      tx.send(({ status, dispatchError, txHash }) => {
+      const unsub = await tx.send(({ status, dispatchError, txHash }) => {
         if (!status.isInBlock && !status.isFinalized) return;
 
         try {
@@ -29,15 +27,13 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
             const txHashHex = txHash.toHex();
             setTransaction(Transaction.success(txHashHex));
             onSuccess(txHashHex);
-            resolve();
             return;
           }
 
           if (!dispatchError.isModule) {
             const message = dispatchError.toString();
             setTransaction(Transaction.error(message));
-            reject(message);
-            return;
+            throw new Error(message);
           }
 
           const decoded = api.registry.findMetaError(dispatchError.asModule);
@@ -48,20 +44,14 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
               : docs.join(" ") || "Transaction failed.";
 
           setTransaction(Transaction.error(userMessage));
-          reject(userMessage);
+          throw new Error(userMessage);
         } catch (err) {
-          reject(err);
+          throw new Error(String(err));
         } finally {
           unsub();
         }
-      })
-        .then((u) => {
-          unsub = u; // assigned after tx.send resolves
-        })
-        .catch((err) => {
-          reject(err);
-        });
-    });
+      });
+    };
 
     await toast.promise(
       promise,
