@@ -3,7 +3,6 @@ import toast from "react-hot-toast";
 import { useCtx } from "../../GlobalCtx";
 import { sendTransaction } from "../../lib/sendTransaction";
 import { Transaction, TransactionState, type TransactionStatus } from "../../lib/transactionStatus";
-import { ToastMessage, ToastState } from "../Toast";
 
 interface MarketWithdrawalProps {
   selectedAddress: string;
@@ -44,28 +43,15 @@ export function MarketWithdrawal({
         },
       }),
       {
-        loading: (
-          <ToastMessage message="Processing market withdrawal..." state={ToastState.Loading} />
-        ),
+        loading: "Processing market withdrawal...",
         success: (txHash) => (
-          <ToastMessage
-            message={
-              <span>
-                Market withdrawal successful!
-                <br />
-                Tx Hash: <code className="break-all">{txHash}</code>
-              </span>
-            }
-            state={ToastState.Success}
-          />
+          <>
+            Market withdrawal successful!
+            <br />
+            Tx Hash: <code className="break-all">{txHash}</code>
+          </>
         ),
-        error: (err) => (
-          <ToastMessage message={`Withdrawal failed: ${err}`} state={ToastState.Error} />
-        ),
-      },
-      {
-        duration: 5000, // applies to success and error
-        loading: { duration: Number.POSITIVE_INFINITY }, // keep loading toast visible until resolution
+        error: (err) => `Withdrawal failed: ${err}`,
       },
     );
 

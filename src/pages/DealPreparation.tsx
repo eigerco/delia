@@ -6,7 +6,6 @@ import { Loader2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useOutletContext } from "react-router";
 import { useCtx } from "../GlobalCtx";
-import { ToastMessage, ToastState } from "../components/Toast";
 import {
   DealProposalForm,
   calculateStartEndBlocks,
@@ -161,30 +160,11 @@ export function DealPreparation() {
         return await performDeal(providerInfo, dealInfo);
       },
       {
-        loading: (
-          <ToastMessage
-            message={`Uploading deal to provider ${providerInfo.accountId}`}
-            state={ToastState.Loading}
-          />
-        ),
+        loading: `Uploading deal to provider ${providerInfo.accountId}`,
         error: (err) => (
-          <ToastMessage
-            message={
-              <p>{`Failed to upload deal to provider ${providerInfo.accountId} with error: ${err}`}</p>
-            }
-            state={ToastState.Error}
-          />
+          <p>{`Failed to upload deal to provider ${providerInfo.accountId} with error: ${err}`}</p>
         ),
-        success: (
-          <ToastMessage
-            message={`Successfully uploaded deal to provider ${providerInfo.accountId}`}
-            state={ToastState.Success}
-          />
-        ),
-      },
-      {
-        duration: 5000, // applies to success and error
-        loading: { duration: Number.POSITIVE_INFINITY }, // keep loading toast visible until resolution
+        success: `Successfully uploaded deal to provider ${providerInfo.accountId}`,
       },
     );
   };
@@ -242,10 +222,8 @@ export function DealPreparation() {
         createDownloadTrigger("deal.json", new Blob([JSON.stringify(submissionResults.toJSON())]));
       },
       {
-        loading: <ToastMessage message={"Submitting deals!"} state={ToastState.Loading} />,
-        success: (
-          <ToastMessage message={"Successfully submitted all deals!"} state={ToastState.Success} />
-        ),
+        loading: "Submitting deals!",
+        success: "Successfully submitted all deals!",
       },
     );
 

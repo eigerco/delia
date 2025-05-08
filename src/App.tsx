@@ -7,6 +7,7 @@ import { useCtx } from "./GlobalCtx";
 import { GlobalCtxProvider } from "./GlobalCtxProvider";
 import { ConnectWallet } from "./components/ConnectWallet";
 import { NavDropdown } from "./components/NavDropdown";
+import Toaster from "./components/Toaster";
 import { COLLATOR_LOCAL_RPC_URL } from "./lib/consts";
 import { setupTypeRegistry } from "./lib/registry";
 
@@ -82,6 +83,7 @@ function App() {
           <Inner context={{ accounts, selectedAccount, setSelectedAccount }} />
         )}
       </div>
+      <Toaster />
     </GlobalCtxProvider>
   );
 }

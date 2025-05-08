@@ -3,7 +3,6 @@ import toast from "react-hot-toast";
 import { useCtx } from "../../GlobalCtx";
 import { sendTransaction } from "../../lib/sendTransaction";
 import { Transaction, TransactionState, type TransactionStatus } from "../../lib/transactionStatus";
-import { ToastMessage, ToastState } from "../Toast";
 
 interface MarketDepositProps {
   selectedAddress: string;
@@ -40,26 +39,15 @@ export function MarketDeposit({ selectedAddress, walletBalance, onSuccess }: Mar
         },
       }),
       {
-        loading: <ToastMessage message="Processing market deposit..." state={ToastState.Loading} />,
+        loading: "Processing market deposit...",
         success: (txHash) => (
-          <ToastMessage
-            message={
-              <span>
-                Market deposit successful!
-                <br />
-                Tx Hash: <code className="break-all">{txHash}</code>
-              </span>
-            }
-            state={ToastState.Success}
-          />
+          <>
+            Market deposit successful!
+            <br />
+            Tx Hash: <code className="break-all">{txHash}</code>
+          </>
         ),
-        error: (err) => (
-          <ToastMessage message={`Deposit failed: ${err}`} state={ToastState.Error} />
-        ),
-      },
-      {
-        duration: 5000, // applies to success and error
-        loading: { duration: Number.POSITIVE_INFINITY }, // keep loading toast visible until resolution
+        error: (err) => `Deposit failed: ${err}`,
       },
     );
 

@@ -1,10 +1,9 @@
 import type { Multiaddr } from "@multiformats/multiaddr";
 import { useState } from "react";
-import { Toaster, toast } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import { ZodError } from "zod";
 import { useCtx } from "../GlobalCtx";
 import { ReceiptUploader } from "../components/ReceiptUploader";
-import { ToastMessage, ToastState } from "../components/Toast";
 import { Button } from "../components/buttons/Button";
 import { DealStatus } from "../components/retrieval/DealStatus";
 import { ExtractCheckbox } from "../components/retrieval/ExtractCheckbox";
@@ -80,7 +79,7 @@ export function Retrieval() {
     setIsDownloading(true);
     try {
       await toast.promise(downloadInner(), {
-        loading: <ToastMessage message={"Downloading file!"} state={ToastState.Loading} />,
+        loading: "Downloading file!",
       });
     } finally {
       setIsDownloading(false);
@@ -128,7 +127,6 @@ export function Retrieval() {
           <ExtractCheckbox extract={shouldExtract} setExtract={setShouldExtract} />
         </div>
       </div>
-      <Toaster position="bottom-left" reverseOrder={true} />
     </>
   );
 }
