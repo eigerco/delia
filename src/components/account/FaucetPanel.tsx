@@ -1,6 +1,7 @@
 import { useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import { useCtx } from "../../GlobalCtx";
+import { sendUnsigned } from "../../lib/sendTransaction";
 import { Transaction, TransactionState, type TransactionStatus } from "../../lib/transactionStatus";
 import { ToastMessage, ToastState } from "../Toast";
 
@@ -11,50 +12,24 @@ interface FaucetPanelProps {
 
 export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
   const { collatorWsApi: api } = useCtx();
-  const [faucetStatus, setTransaction] = useState<TransactionStatus>(Transaction.idle);
+  const [faucetStatus, setFaucetStatus] = useState<TransactionStatus>(Transaction.idle);
 
   const handleDrip = async () => {
-    if (!api || !selectedAddress) return;
-
-    const promise = async () => {
-      const tx = api.tx.faucet.drip(selectedAddress);
-
-      const unsub = await tx.send(({ status, dispatchError, txHash }) => {
-        if (!status.isInBlock && !status.isFinalized) return;
-
-        try {
-          if (!dispatchError) {
-            const txHashHex = txHash.toHex();
-            setTransaction(Transaction.success(txHashHex));
-            onSuccess(txHashHex);
-            return;
-          }
-
-          if (!dispatchError.isModule) {
-            const message = dispatchError.toString();
-            setTransaction(Transaction.error(message));
-            throw new Error(message);
-          }
-
-          const decoded = api.registry.findMetaError(dispatchError.asModule);
-          const { docs, name, section } = decoded;
-          const userMessage =
-            section === "faucet" && name === "FaucetUsedRecently"
-              ? "You can only request tokens once every 24 hours."
-              : docs.join(" ") || "Transaction failed.";
-
-          setTransaction(Transaction.error(userMessage));
-          throw new Error(userMessage);
-        } catch (err) {
-          throw new Error(String(err));
-        } finally {
-          unsub();
-        }
-      });
-    };
+    if (!api || !selectedAddress) {
+      throw new Error("State hasn't been properly initialized");
+    }
 
     await toast.promise(
-      promise,
+      sendUnsigned({
+        api,
+        tx: api.tx.faucet.drip(selectedAddress),
+        onStatusChange: (status) => {
+          setFaucetStatus(status);
+          if (status.state === TransactionState.Success) {
+            onSuccess(status.txHash);
+          }
+        },
+      }),
       {
         loading: <ToastMessage message="Requesting funds..." state={ToastState.Loading} />,
         success: <ToastMessage message="Funds added successfully!" state={ToastState.Success} />,
