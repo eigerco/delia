@@ -3,7 +3,6 @@ import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { useMemo } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Toaster } from "react-hot-toast";
 import { z } from "zod";
 import { useCtx } from "../../GlobalCtx";
 import { blockToTime } from "../../lib/conversion";
@@ -251,7 +250,6 @@ export function DealProposalForm({
           <ProviderSelector name="providers" control={control} error={errors.providers?.message} />
         </div>
       </div>
-      <Toaster position="bottom-left" reverseOrder={true} />
     </form>
   );
 }

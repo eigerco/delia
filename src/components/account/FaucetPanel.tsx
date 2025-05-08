@@ -1,9 +1,8 @@
 import { useState } from "react";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import { useCtx } from "../../GlobalCtx";
 import { sendUnsigned } from "../../lib/sendTransaction";
 import { Transaction, TransactionState, type TransactionStatus } from "../../lib/transactionStatus";
-import { ToastMessage, ToastState } from "../Toast";
 
 interface FaucetPanelProps {
   selectedAddress: string;
@@ -31,15 +30,9 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
         },
       }),
       {
-        loading: <ToastMessage message="Requesting funds..." state={ToastState.Loading} />,
-        success: <ToastMessage message="Funds added successfully!" state={ToastState.Success} />,
-        error: (err) => (
-          <ToastMessage message={`Faucet request failed: ${err}`} state={ToastState.Error} />
-        ),
-      },
-      {
-        duration: 5000, // applies to success and error
-        loading: { duration: Number.POSITIVE_INFINITY }, // keep loading toast visible until resolution
+        loading: "Requesting funds...",
+        success: "Funds added successfully!",
+        error: (err) => `Faucet request failed: ${err}`,
       },
     );
   };
@@ -65,8 +58,6 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
           ? "\u23F3 Requesting..."
           : "\uD83D\uDCB0 Request 10 Test Tokens"}
       </button>
-
-      <Toaster position="bottom-left" reverseOrder={true} />
     </div>
   );
 }
