@@ -6,14 +6,14 @@ import type { OnChainDealProposal, OnChainDealState } from "../../lib/jsonRpc";
 import type { SubmissionReceipt } from "../../lib/submissionReceipt";
 
 enum LoadState {
-  Start = 0,
+  Idle = 0,
   Loaded = 1,
   Loading = 2,
   Error = 3,
 }
 
 type State =
-  | { status: LoadState.Start }
+  | { status: LoadState.Idle }
   | {
       status: LoadState.Loading;
     }
@@ -29,12 +29,16 @@ namespace State {
     return { status: LoadState.Loading };
   }
 
-  export function start(): State {
-    return { status: LoadState.Start };
+  export function idle(): State {
+    return { status: LoadState.Idle };
   }
 
   export function error(message: string): State {
     return { status: LoadState.Error, message };
+  }
+
+  export function loaded(deals: Array<[number, OnChainDealProposal | null]>): State {
+    return { status: LoadState.Loaded, deals };
   }
 }
 
@@ -82,7 +86,7 @@ type DealStatusProps = { receipt: SubmissionReceipt };
 export function DealStatus({ receipt }: DealStatusProps) {
   const { collatorWsApi } = useCtx();
 
-  const [dealsStatus, setDealsStatus] = useState<State>(State.start());
+  const [dealsStatus, setDealsStatus] = useState<State>(State.idle());
 
   const query = useCallback(
     async (receipt: SubmissionReceipt) => {
@@ -98,7 +102,7 @@ export function DealStatus({ receipt }: DealStatusProps) {
               receipt.deals.map((deal) => deal.dealId),
               collatorWsApi,
             );
-            setDealsStatus({ status: LoadState.Loaded, deals });
+            setDealsStatus(State.loaded(deals));
           },
           { loading: "Fetching deal status" },
         );
