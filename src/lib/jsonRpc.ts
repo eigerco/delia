@@ -58,7 +58,9 @@ export type OnChainDealState =
         slashBlock: number | null;
       };
     }
-  | "published";
+  | {
+      published: null;
+    };
 
 export async function callRetrieveDeal(
   dealId: number,
