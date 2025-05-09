@@ -65,7 +65,7 @@ function DealState({ id, state }: { id: number; state: OnChainDealState | null }
     );
   }
 
-  if (state === "published") {
+  if ("published" in state) {
     return (
       <>
         <span className="font-bold">Deal {id}</span>
