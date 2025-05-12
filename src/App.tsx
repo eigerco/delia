@@ -12,7 +12,15 @@ import { COLLATOR_LOCAL_RPC_URL } from "./lib/consts";
 import { setupTypeRegistry } from "./lib/registry";
 
 function WsAddressInput({ onChange }: { onChange: (newValue: string) => void }) {
-  const [wsAddress, setWsAddress] = useState(COLLATOR_LOCAL_RPC_URL);
+  const [wsAddress, setWsAddress] = useState(() => {
+    // Check localStorage first, fall back to default
+    return localStorage.getItem("wsAddress") || COLLATOR_LOCAL_RPC_URL;
+  });
+
+  useEffect(() => {
+    // Save value to localStorage whenever it changes
+    localStorage.setItem("wsAddress", wsAddress);
+  }, [wsAddress]);
 
   return (
     <>
@@ -43,7 +51,15 @@ function App() {
   const [accounts, setAccounts] = useState<InjectedAccountWithMeta[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<InjectedAccountWithMeta | null>(null);
   const [loaded, setLoaded] = useState<boolean>(false);
-  const [wsAddress, setWsAddress] = useState(COLLATOR_LOCAL_RPC_URL);
+  const [wsAddress, setWsAddress] = useState(() => {
+    // Check localStorage first, fall back to default
+    return localStorage.getItem("wsAddress") || COLLATOR_LOCAL_RPC_URL;
+  });
+
+  useEffect(() => {
+    // Save value to localStorage whenever it changes
+    localStorage.setItem("wsAddress", wsAddress);
+  }, [wsAddress]);
 
   const registry = useMemo(() => setupTypeRegistry(), []);
 

@@ -49,6 +49,7 @@ type ProviderSelectorProps = {
 };
 
 const NoProviders = () => {
+  const wsAddress = localStorage.getItem("wsAddress") || COLLATOR_LOCAL_RPC_URL;
   return (
     <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
       <Server className="mx-auto h-12 w-12 text-gray-400 mb-2" />
@@ -56,7 +57,7 @@ const NoProviders = () => {
       <p className="text-sm mt-2 text-gray-400">
         Run a storage provider node and register it on chain
       </p>
-      <p className="text-xs mt-1 text-gray-400 font-mono">endpoint: {COLLATOR_LOCAL_RPC_URL}</p>
+      <p className="text-xs mt-1 text-gray-400 font-mono">endpoint: {wsAddress}</p>
     </div>
   );
 };
