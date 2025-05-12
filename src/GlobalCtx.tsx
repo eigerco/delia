@@ -78,6 +78,7 @@ export class TokenProperties {
 export type Ctx = {
   registry: TypeRegistry;
   wsAddress: string;
+  setWsAddress: (newValue: string) => void;
   latestFinalizedBlock: { number: number; timestamp: Date } | null;
   collatorWsProvider: WsProvider | null;
   collatorWsApi: ApiPromise | null;

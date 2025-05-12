@@ -2,6 +2,7 @@ import { ApiPromise, WsProvider } from "@polkadot/api";
 import type { TypeRegistry, u64 } from "@polkadot/types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GlobalCtx, TokenProperties } from "./GlobalCtx";
+import { COLLATOR_LOCAL_RPC_URL } from "./lib/consts";
 
 export type Status =
   | { type: "connecting" }
@@ -12,10 +13,16 @@ export type Status =
   | { type: "failed"; error: string };
 
 export function GlobalCtxProvider({
-  wsAddress,
   registry,
   children,
-}: React.PropsWithChildren<{ registry: TypeRegistry; wsAddress: string }>) {
+}: React.PropsWithChildren<{ registry: TypeRegistry }>) {
+  const [wsAddress, setWsAddress] = useState(() => {
+    return localStorage.getItem("wsAddress") || COLLATOR_LOCAL_RPC_URL;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("wsAddress", wsAddress);
+  }, [wsAddress]);
   const collatorWsProviderRef = useRef<WsProvider | null>(null);
   const collatorWsRef = useRef<ApiPromise | null>(null);
   const [status, setStatus] = useState<Status>({ type: "connecting" });
@@ -104,6 +111,7 @@ export function GlobalCtxProvider({
     () => ({
       registry,
       wsAddress,
+      setWsAddress,
       latestFinalizedBlock:
         latestFinalizedBlock && latestBlockTimestamp
           ? { number: latestFinalizedBlock, timestamp: latestBlockTimestamp }
