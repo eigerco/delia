@@ -4,7 +4,6 @@ import { AlertCircle, Loader2, RefreshCw, Server } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { type Control, Controller, type Path } from "react-hook-form";
 import { useCtx } from "../../GlobalCtx";
-import { COLLATOR_LOCAL_RPC_URL } from "../../lib/consts";
 import {
   type DealParams,
   type StorageProviderInfo,
@@ -49,6 +48,7 @@ type ProviderSelectorProps = {
 };
 
 const NoProviders = () => {
+  const { wsAddress } = useCtx();
   return (
     <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
       <Server className="mx-auto h-12 w-12 text-gray-400 mb-2" />
@@ -56,7 +56,7 @@ const NoProviders = () => {
       <p className="text-sm mt-2 text-gray-400">
         Run a storage provider node and register it on chain
       </p>
-      <p className="text-xs mt-1 text-gray-400 font-mono">endpoint: {COLLATOR_LOCAL_RPC_URL}</p>
+      <p className="text-xs mt-1 text-gray-400 font-mono">endpoint: {wsAddress}</p>
     </div>
   );
 };

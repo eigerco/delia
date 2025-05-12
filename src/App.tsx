@@ -8,11 +8,19 @@ import { GlobalCtxProvider } from "./GlobalCtxProvider";
 import { ConnectWallet } from "./components/ConnectWallet";
 import { NavDropdown } from "./components/NavDropdown";
 import Toaster from "./components/Toaster";
-import { COLLATOR_LOCAL_RPC_URL } from "./lib/consts";
 import { setupTypeRegistry } from "./lib/registry";
 
-function WsAddressInput({ onChange }: { onChange: (newValue: string) => void }) {
-  const [wsAddress, setWsAddress] = useState(COLLATOR_LOCAL_RPC_URL);
+function WsAddressInput() {
+  const { wsAddress, setWsAddress } = useCtx();
+
+  // We use a local state copy so users can type freely
+  // without triggering a reconnect on every keystroke.
+  const [localValue, setLocalValue] = useState(wsAddress);
+
+  // Keep localValue in sync with context if it changes externally
+  useEffect(() => {
+    setLocalValue(wsAddress);
+  }, [wsAddress]);
 
   return (
     <>
@@ -22,16 +30,17 @@ function WsAddressInput({ onChange }: { onChange: (newValue: string) => void }) 
       <input
         id="ws-address"
         type="text"
-        className="p-1 border rounded  focus:ring-blue-500 focus:border-blue-500 mr-2"
-        value={wsAddress}
-        onChange={(e) => setWsAddress(e.target.value)}
+        className="p-1 border rounded focus:ring-blue-500 focus:border-blue-500 mr-2"
+        value={localValue}
+        onChange={(e) => setLocalValue(e.target.value)}
       />
       <button
         type="submit"
         className="transition-colors hover:text-blue-400"
-        onClick={(_) => {
-          onChange(wsAddress);
+        onClick={() => {
+          setWsAddress(localValue); // Triggers reconnection
         }}
+        title="Connect"
       >
         <RefreshCw />
       </button>
@@ -43,7 +52,6 @@ function App() {
   const [accounts, setAccounts] = useState<InjectedAccountWithMeta[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<InjectedAccountWithMeta | null>(null);
   const [loaded, setLoaded] = useState<boolean>(false);
-  const [wsAddress, setWsAddress] = useState(COLLATOR_LOCAL_RPC_URL);
 
   const registry = useMemo(() => setupTypeRegistry(), []);
 
@@ -68,14 +76,14 @@ function App() {
     );
 
   return (
-    <GlobalCtxProvider registry={registry} wsAddress={wsAddress}>
+    <GlobalCtxProvider registry={registry}>
       <div className="m-8">
         <div className="flex mb-4 items-center">
           <h1 className="grow text-xl font-bold">📦 Delia</h1>
           <div className="relative mr-6">
             <NavDropdown />
           </div>
-          <WsAddressInput onChange={setWsAddress} />
+          <WsAddressInput />
         </div>
         {accounts.length === 0 ? (
           <ConnectWallet onConnect={setAccounts} />
