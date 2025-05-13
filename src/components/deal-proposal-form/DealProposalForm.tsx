@@ -29,10 +29,14 @@ const storageProviderInfoSchema = z.custom<StorageProviderInfo>(isStorageProvide
 
 function validationSchema() {
   return z.object({
-    duration: z.object({
-      months: z.coerce.number().max(24),
-      days: z.coerce.number().min(1).max(30),
-    }),
+    duration: z
+      .object({
+        months: z.coerce.number().min(0).max(24),
+        days: z.coerce.number().min(0).max(30),
+      })
+      .refine(({ months, days }) => !(months === 0 && days === 0), {
+        message: "Deal duration cannot be 0",
+      }),
     piece: z.object({
       pieceCid: z.string(),
       payloadCid: z.string(),
