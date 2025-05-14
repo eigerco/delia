@@ -35,15 +35,6 @@ function validationSchema() {
         days: z.coerce.number().min(0).max(30),
       })
       .refine(({ months, days }) => !(months === 0 && days === 0), "Deal duration cannot be 0"),
-    // .superRefine(({ months, days }, ctx) => {
-    //   // debugger;
-    //   if (months === 0 && days === 0) {
-    //     ctx.addIssue({
-    //       code: z.ZodIssueCode.custom,
-    //       message: "Deal duration cannot be 0",
-    //     });
-    //   }
-    // }),
     piece: z.object({
       pieceCid: z.string(),
       payloadCid: z.string(),
