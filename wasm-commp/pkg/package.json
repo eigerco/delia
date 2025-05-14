@@ -1,0 +1,19 @@
+{
+  "name": "wasm-commp",
+  "type": "module",
+  "collaborators": [
+    "aidan46"
+  ],
+  "description": "WASM-based CommP calculation",
+  "version": "0.1.0",
+  "files": [
+    "wasm_commp_bg.wasm",
+    "wasm_commp.js",
+    "wasm_commp.d.ts"
+  ],
+  "main": "wasm_commp.js",
+  "types": "wasm_commp.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
