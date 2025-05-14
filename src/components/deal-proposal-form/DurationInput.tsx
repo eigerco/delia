@@ -1,4 +1,6 @@
+import { HelpCircle } from "lucide-react";
 import { type Control, Controller, type FieldError, type Path } from "react-hook-form";
+import { Tooltip } from "react-tooltip";
 import type { FormValues } from "./types";
 
 interface DurationFieldProps {
@@ -68,6 +70,14 @@ const DurationInput = ({
                     placeholder="0"
                   />
                   <span className="ml-2 text-sm">months</span>
+                  <span id="tooltip-months" className="cursor-help inline-flex items-center ml-1">
+                    <HelpCircle className="inline w-4 h-4 text-gray-400" />
+                  </span>
+                  <Tooltip
+                    anchorSelect="#tooltip-months"
+                    content={"1 month is considered to be 30 days."}
+                    place="right"
+                  />
                 </div>
 
                 {/* Days input */}

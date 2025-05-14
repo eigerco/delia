@@ -31,10 +31,14 @@ function validationSchema() {
   return z.object({
     duration: z
       .object({
-        months: z.coerce.number().min(0).max(24),
-        days: z.coerce.number().min(0).max(30),
+        months: z.coerce.number().int("The number of months must be a whole number").min(0).max(12),
+        days: z.coerce.number().int("The number of days must be a whole number").min(0).max(30),
       })
-      .refine(({ months, days }) => !(months === 0 && days === 0), "Deal duration cannot be 0"),
+      .refine(({ months, days }) => !(months === 0 && days === 0), "Deal duration cannot be 0")
+      .refine(
+        ({ months, days }) => months * 30 + days < 365,
+        "The total deal duration cannot be bigger than one year (365 days).",
+      ),
     piece: z.object({
       pieceCid: z.string(),
       payloadCid: z.string(),
