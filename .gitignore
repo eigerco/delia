@@ -28,3 +28,4 @@ dist-ssr
 
 # cargo target folder
 *target/
+.vercel
