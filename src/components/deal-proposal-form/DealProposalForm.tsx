@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { useMemo } from "react";
 import { useCallback, useEffect, useState } from "react";
-import { FieldError, useForm } from "react-hook-form";
+import { type FieldError, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useCtx } from "../../GlobalCtx";
 import { blockToTime } from "../../lib/conversion";
