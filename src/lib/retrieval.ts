@@ -62,17 +62,13 @@ async function retrieveContentInner(
   extractContents: boolean,
 ): Promise<Blob> {
   // Connect to the providers
-  await Promise.all(
-    providers.map(async (maddr) => {
-      try {
-        console.log("Connecting to provider ${provider}...");
-        await helia.libp2p.dial(maddr);
-        console.log("Connected!");
-      } catch {
-        console.error(`Failed to connect to ${maddr}`);
-      }
-    }),
-  );
+  try {
+    console.log("Connecting to provider ${provider}...");
+    await helia.libp2p.dial(providers);
+    console.log("Connected!");
+  } catch (err) {
+    console.error(`Failed to dial multiaddresses ${providers} with error: ${err}`);
+  }
 
   const downloadContents = async () => {
     const contents = [];
