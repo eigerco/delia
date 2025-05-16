@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { useMemo } from "react";
 import { useCallback, useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { type FieldError, useForm } from "react-hook-form";
 import { z } from "zod";
 import { useCtx } from "../../GlobalCtx";
 import { blockToTime } from "../../lib/conversion";
@@ -29,10 +29,16 @@ const storageProviderInfoSchema = z.custom<StorageProviderInfo>(isStorageProvide
 
 function validationSchema() {
   return z.object({
-    duration: z.object({
-      months: z.coerce.number().max(24),
-      days: z.coerce.number().min(1).max(30),
-    }),
+    duration: z
+      .object({
+        months: z.coerce.number().int("The number of months must be a whole number").min(0).max(12),
+        days: z.coerce.number().int("The number of days must be a whole number").min(0).max(30),
+      })
+      .refine(({ months, days }) => !(months === 0 && days === 0), "Deal duration cannot be 0")
+      .refine(
+        ({ months, days }) => months * 30 + days < 365,
+        "The total deal duration cannot be bigger than one year (365 days).",
+      ),
     piece: z.object({
       pieceCid: z.string(),
       payloadCid: z.string(),
@@ -173,7 +179,14 @@ export function DealProposalForm({
                   required={true}
                   control={control}
                   maxMonths={24} // Limit to 2 years
-                  error={errors.duration?.months || errors.duration?.days}
+                  error={
+                    errors.duration?.months ||
+                    errors.duration?.days ||
+                    // In this case, duration does not have .months or .days fields
+                    // it instead has a .message and its friends
+                    // we could make this check more comprehensive but this is Good Enough (TM)
+                    (errors.duration as FieldError)
+                  }
                 />
 
                 <Collapsible title="Details">
