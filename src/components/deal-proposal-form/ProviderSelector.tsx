@@ -9,7 +9,6 @@ import {
   type StorageProviderInfo,
   isStorageProviderInfo,
 } from "../../lib/storageProvider";
-import { ProviderButton } from "../buttons/ProviderButton";
 import type { FormValues } from "./types";
 
 type Status =
@@ -38,6 +37,7 @@ const anyJsonToSpInfo = (key: string, value: any): StorageProviderInfo | string 
   }
   spInfo.accountId = key;
   spInfo.peerId = base58Encode(hexToU8a(spInfo.peerId));
+  spInfo.sectorSize = spInfo.sectorSize.replace("_", "");
   return spInfo;
 };
 
@@ -64,7 +64,7 @@ const NoProviders = () => {
 export function ProviderSelector({ control, name, error }: ProviderSelectorProps) {
   const [status, setStatus] = useState<Status>({ type: "connecting" });
   const [providers, setProviders] = useState<Map<string, StorageProviderInfo>>(new Map());
-  const { collatorWsApi: polkaStorageApi } = useCtx();
+  const { collatorWsApi: polkaStorageApi, tokenProperties } = useCtx();
 
   const getStorageProviders = useCallback(async () => {
     if (!polkaStorageApi) {
@@ -130,27 +130,63 @@ export function ProviderSelector({ control, name, error }: ProviderSelectorProps
                   {providers.size === 0 ? (
                     <NoProviders />
                   ) : (
-                    Array.from(providers.entries()).map(([accountId, provider]) => {
-                      // as StorageProviderInfo[], because I can't figure out how to enforce that FormValues[name] passed here will be `StorageProviderInfo[]` typed at typescript level.
-                      const v = (field.value as StorageProviderInfo[]) || [];
-                      const isSelected = v.some((sp) => sp.peerId === provider.peerId);
+                    <div className="flex flex-col">
+                      <div className="max-w-full overflow-x-auto scroll-smooth">
+                        <table className="table-auto font-normal border border-collapse w-full">
+                          <thead>
+                            <tr>
+                              <th className="border" />
+                              <th className="border whitespace-nowrap px-2">Sector Size</th>
+                              <th className="border whitespace-nowrap px-2">Price per Block</th>
+                              <th className="border whitespace-nowrap px-2">Account ID</th>
+                              <th className="border whitespace-nowrap px-2">Peer ID</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Array.from(providers.entries()).map(([accountId, provider]) => {
+                              // as StorageProviderInfo[], because I can't figure out how to enforce that FormValues[name] passed here will be `StorageProviderInfo[]` typed at typescript level.
+                              const v = (field.value as StorageProviderInfo[]) || [];
+                              const isSelected = v.some((sp) => sp.peerId === provider.peerId);
 
-                      return (
-                        <li key={`${accountId}`} style={{ listStyleType: "none" }}>
-                          <ProviderButton
-                            accountId={accountId}
-                            provider={provider}
-                            isSelected={isSelected}
-                            onSelect={(accountId) => {
-                              const newValue = isSelected
-                                ? v.filter((sp) => sp.accountId !== accountId)
-                                : [...v, provider];
-                              field.onChange(newValue);
-                            }}
-                          />
-                        </li>
-                      );
-                    })
+                              return (
+                                // biome-ignore lint/a11y/useKeyWithClickEvents: TODO
+                                <tr
+                                  className="cursor-pointer hover:bg-blue-50"
+                                  key={`${accountId}`}
+                                  onClick={(_) => {
+                                    const newValue = isSelected
+                                      ? v.filter((sp) => sp.accountId !== accountId)
+                                      : [...v, provider];
+                                    field.onChange(newValue);
+                                  }}
+                                >
+                                  <th className="px-2 border">
+                                    <input type="checkbox" checked={isSelected} readOnly />
+                                  </th>
+                                  <th className="px-2 border text-sm font-normal font-mono">
+                                    {provider.sectorSize}
+                                  </th>
+                                  <th className="px-2 border text-sm font-normal whitespace-nowrap">
+                                    {tokenProperties.formatUnit(
+                                      tokenProperties.planckToUnit(
+                                        provider.dealParams.minimumPricePerBlock,
+                                      ),
+                                      true,
+                                    )}
+                                  </th>
+                                  <th className="px-2 w-3xs truncate border text-sm font-normal font-mono ">
+                                    {accountId}
+                                  </th>
+                                  <th className="px-2 truncate border text-sm font-normal font-mono">
+                                    {provider.peerId}
+                                  </th>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   )}
                   {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
                 </div>
@@ -172,15 +208,15 @@ export function ProviderSelector({ control, name, error }: ProviderSelectorProps
   };
 
   return (
-    <div>
-      <div className="flex py-4">
-        <h2 className="flex items-center text-lg font-semibold pr-2">Select Storage Provider</h2>
+    <div className="pb-4">
+      <div className="flex gap-2 pb-2">
+        <p className="flex items-center">Select Storage Provider</p>
         <button
           type="button"
           className="transition-colors hover:text-blue-400"
           onClick={(_) => getStorageProviders()}
         >
-          <RefreshCw />
+          <RefreshCw width={16} />
         </button>
       </div>
       <Body />
