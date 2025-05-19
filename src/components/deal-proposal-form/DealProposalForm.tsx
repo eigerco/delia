@@ -245,6 +245,7 @@ export function DealProposalForm({
                   <span className="text-blue-600">
                     {tokenProperties.formatUnit(tokenProperties.planckToUnit(totalPrice), true)}
                   </span>
+                  )
                 </p>
               </div>
             )}
