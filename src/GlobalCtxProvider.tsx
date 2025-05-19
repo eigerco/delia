@@ -1,6 +1,7 @@
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import type { TypeRegistry, u64 } from "@polkadot/types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router";
 import { GlobalCtx, TokenProperties } from "./GlobalCtx";
 import { COLLATOR_LOCAL_RPC_URL } from "./lib/consts";
 
@@ -16,13 +17,32 @@ export function GlobalCtxProvider({
   registry,
   children,
 }: React.PropsWithChildren<{ registry: TypeRegistry }>) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [wsAddress, setWsAddress] = useState(() => {
-    return localStorage.getItem("wsAddress") || COLLATOR_LOCAL_RPC_URL;
+    return searchParams.get("rpc") || localStorage.getItem("wsAddress") || COLLATOR_LOCAL_RPC_URL;
   });
 
+  // setSearchParams() only updates if the value actually changes,
+  // so React Router doesn’t re-render if you set the same query params.
+  // Reference: https://reactrouter.com/api/hooks/useSearchParams#notes
   useEffect(() => {
     localStorage.setItem("wsAddress", wsAddress);
-  }, [wsAddress]);
+
+    const nodeUrl = searchParams.get("rpc");
+    const newParams = new URLSearchParams(searchParams);
+    if (!wsAddress || wsAddress === COLLATOR_LOCAL_RPC_URL) {
+      if (nodeUrl) {
+        // Remove ?rpc if it's reset or equal to the default
+        newParams.delete("rpc");
+        setSearchParams(newParams);
+      }
+    } else if (nodeUrl !== wsAddress) {
+      // Otherwise update the URL
+      newParams.set("rpc", wsAddress);
+      setSearchParams(newParams);
+    }
+  }, [wsAddress, searchParams, setSearchParams]);
+
   const collatorWsProviderRef = useRef<WsProvider | null>(null);
   const collatorWsRef = useRef<ApiPromise | null>(null);
   const [status, setStatus] = useState<Status>({ type: "connecting" });
