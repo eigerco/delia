@@ -19,28 +19,30 @@ export function GlobalCtxProvider({
 }: React.PropsWithChildren<{ registry: TypeRegistry }>) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [wsAddress, setWsAddress] = useState(() => {
-    return (
-      searchParams.get("node_url") || localStorage.getItem("wsAddress") || COLLATOR_LOCAL_RPC_URL
-    );
+    return searchParams.get("rpc") || localStorage.getItem("wsAddress") || COLLATOR_LOCAL_RPC_URL;
   });
 
+  // setSearchParams() only updates if the value actually changes,
+  // so React Router doesn’t re-render if you set the same query params.
+  // Reference: https://reactrouter.com/api/hooks/useSearchParams#notes
   useEffect(() => {
     localStorage.setItem("wsAddress", wsAddress);
 
-    const nodeUrl = searchParams.get("node_url");
+    const nodeUrl = searchParams.get("rpc");
     const newParams = new URLSearchParams(searchParams);
     if (!wsAddress || wsAddress === COLLATOR_LOCAL_RPC_URL) {
       if (nodeUrl) {
-        // Remove ?node_url if it's reset or equal to the default
-        newParams.delete("node_url");
+        // Remove ?rpc if it's reset or equal to the default
+        newParams.delete("rpc");
         setSearchParams(newParams);
       }
     } else if (nodeUrl !== wsAddress) {
       // Otherwise update the URL
-      newParams.set("node_url", wsAddress);
+      newParams.set("rpc", wsAddress);
       setSearchParams(newParams);
     }
   }, [wsAddress, searchParams, setSearchParams]);
+
   const collatorWsProviderRef = useRef<WsProvider | null>(null);
   const collatorWsRef = useRef<ApiPromise | null>(null);
   const [status, setStatus] = useState<Status>({ type: "connecting" });
