@@ -58,16 +58,22 @@ async function setupHelia(): Promise<HeliaLibp2p<Libp2p<{ identify: Identify }>>
 async function retrieveContentInner(
   helia: HeliaLibp2p<Libp2p<{ identify: Identify }>>,
   payloadCid: CID,
-  providers: Multiaddr[],
+  providers: Multiaddr[][],
   extractContents: boolean,
 ): Promise<Blob> {
-  // Connect to the providers
-  try {
-    console.log("Connecting to provider ${provider}...");
-    await helia.libp2p.dial(providers);
-    console.log("Connected!");
-  } catch (err) {
-    console.error(`Failed to dial multiaddresses ${providers} with error: ${err}`);
+  // const p = providers.flat()
+  for (const provider of providers) {
+    try {
+      console.log(`Connecting to provider ${provider}...`);
+      await helia.libp2p.dial(provider);
+      console.log("Connected!");
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  if (helia.libp2p.getConnections().length) {
+    throw new Error("Failed to connect to storage providers");
   }
 
   const downloadContents = async () => {
@@ -92,7 +98,7 @@ async function retrieveContentInner(
 
 export async function retrieveContent(
   payloadCid: CID,
-  providers: Multiaddr[],
+  providers: Multiaddr[][],
   extractContents = true,
 ): Promise<Blob> {
   const helia = await setupHelia();
