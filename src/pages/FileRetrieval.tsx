@@ -1,4 +1,3 @@
-import type { Multiaddr } from "@multiformats/multiaddr";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { ZodError } from "zod";
@@ -58,9 +57,11 @@ export function Retrieval() {
         resolvePeerIdMultiaddrs(collatorWsProvider, deal.storageProviderPeerId),
       ),
     );
-    const providers = (Array.prototype.concat(...multiaddrs) as Multiaddr[]).filter(
-      (maddr) => maddr.protoNames().includes("wss") || maddr.protoNames().includes("ws"),
-    );
+    const providers = multiaddrs.map((maddrGroup) => {
+      return maddrGroup.filter(
+        (maddr) => maddr.protoNames().includes("wss") || maddr.protoNames().includes("ws"),
+      );
+    });
     if (providers.length === 0) {
       throw new Error("Could not find storage providers for your request!");
     }
