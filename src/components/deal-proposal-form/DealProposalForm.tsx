@@ -149,10 +149,10 @@ export function DealProposalForm({
         fetchBalance();
       })}
     >
-      <div className="flex bg-white rounded-lg shadow p-6 mb-4">
+      <div className="flex flex-col bg-white rounded-lg shadow p-6 mb-4">
         <div>
           <h2 className="text-xl font-bold mb-4">Deal Creation</h2>
-          <div className="flex flex-col min-w-md max-w-md">
+          <div className="flex flex-col">
             <div className="grid grid-cols-1 gap-4 mb-4">
               <HookAccountSelector id="client" register={register} accounts={accounts} />
               <Balance status={balanceStatus} balanceType="Market" />
@@ -226,43 +226,39 @@ export function DealProposalForm({
                 </Collapsible>
               </div>
             </div>
-
-            {totalPrice > 0 && (
-              <div className="p-3 mb-4 bg-blue-50 border border-blue-200 rounded">
-                <ul className="list-disc pb-2">
-                  {providers.map((p) => (
-                    <li key={p.accountId} className="ml-2 text-xs text-gray-500">
-                      Provider: <i>{p.accountId.slice(0, 32)}...</i>
-                      <br />
-                      {durationInBlocks * p.dealParams.minimumPricePerBlock} {" Planck"} ={" "}
-                      {durationInBlocks} blocks × {p.dealParams.minimumPricePerBlock} Planck/block
-                    </li>
-                  ))}
-                </ul>
-
-                <p className="font-semibold text-sm">
-                  Total Deal Price: <span className="text-blue-600">{totalPrice}</span> Planck (
-                  <span className="text-blue-600">
-                    {tokenProperties.formatUnit(tokenProperties.planckToUnit(totalPrice), true)}
-                  </span>
-                  )
-                </p>
-              </div>
-            )}
-            <div className={"pt-4"}>
-              <input
-                type="submit"
-                disabled={isSubmitting}
-                className={`px-4 py-2 bg-blue-200 rounded-sm  ${isSubmitting ? "bg-grey-200 cursor-progress" : "hover:bg-blue-600"}`}
-                value="Continue"
-              />
-            </div>
           </div>
         </div>
-        <div className="bg-black mx-8 min-w-px max-w-px" />
+
         <div>
           <ProviderSelector name="providers" control={control} error={errors.providers?.message} />
         </div>
+
+        {totalPrice > 0 && (
+          <div className="p-3 mb-4 bg-blue-50 border border-blue-200 rounded">
+            <ul className="list-disc pb-2">
+              {providers.map((p) => (
+                <li key={p.accountId} className="ml-2 text-xs text-gray-500">
+                  Provider: <i>{p.accountId.slice(0, 32)}...</i>
+                  <br />
+                  {durationInBlocks * p.dealParams.minimumPricePerBlock} {" Planck"} ={" "}
+                  {durationInBlocks} blocks × {p.dealParams.minimumPricePerBlock} Planck/block
+                </li>
+              ))}
+            </ul>
+
+            <p className="font-semibold text-sm">
+              Total Deal Price: <span className="text-blue-600">{totalPrice}</span> Planck (
+              <span className="text-blue-600">{tokenProperties.formatUnit(totalPrice, true)}</span>)
+            </p>
+          </div>
+        )}
+
+        <input
+          type="submit"
+          disabled={isSubmitting}
+          className={`px-4 py-2 bg-blue-200 rounded-sm  ${isSubmitting ? "bg-grey-200 cursor-progress" : "hover:bg-blue-600 hover:text-white"}`}
+          value="Continue"
+        />
       </div>
     </form>
   );

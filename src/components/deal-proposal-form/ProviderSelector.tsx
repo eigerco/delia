@@ -2,14 +2,14 @@ import { hexToU8a } from "@polkadot/util";
 import { base58Encode } from "@polkadot/util-crypto";
 import { AlertCircle, Loader2, RefreshCw, Server } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { type Control, Controller, type Path } from "react-hook-form";
+import type { Control, Path } from "react-hook-form";
 import { useCtx } from "../../GlobalCtx";
 import {
   type DealParams,
   type StorageProviderInfo,
   isStorageProviderInfo,
 } from "../../lib/storageProvider";
-import { ProviderButton } from "../buttons/ProviderButton";
+import { ProviderSelectionTable } from "./ProviderSelectionTable";
 import type { FormValues } from "./types";
 
 type Status =
@@ -38,6 +38,7 @@ const anyJsonToSpInfo = (key: string, value: any): StorageProviderInfo | string 
   }
   spInfo.accountId = key;
   spInfo.peerId = base58Encode(hexToU8a(spInfo.peerId));
+  spInfo.sectorSize = spInfo.sectorSize.replace("_", "");
   return spInfo;
 };
 
@@ -130,40 +131,14 @@ export function ProviderSelector({ control, name, error }: ProviderSelectorProps
       case "connected": {
         return (
           <div className="grid grid-cols-1 gap-4 w-full">
-            <Controller
-              control={control}
-              name={name}
-              render={({ field }) => (
-                <div className="w-full">
-                  {providers.size === 0 ? (
-                    <NoProviders />
-                  ) : (
-                    Array.from(providers.entries()).map(([accountId, provider]) => {
-                      // as StorageProviderInfo[], because I can't figure out how to enforce that FormValues[name] passed here will be `StorageProviderInfo[]` typed at typescript level.
-                      const v = (field.value as StorageProviderInfo[]) || [];
-                      const isSelected = v.some((sp) => sp.peerId === provider.peerId);
-
-                      return (
-                        <li key={`${accountId}`} style={{ listStyleType: "none" }}>
-                          <ProviderButton
-                            accountId={accountId}
-                            provider={provider}
-                            isSelected={isSelected}
-                            onSelect={(accountId) => {
-                              const newValue = isSelected
-                                ? v.filter((sp) => sp.accountId !== accountId)
-                                : [...v, provider];
-                              field.onChange(newValue);
-                            }}
-                          />
-                        </li>
-                      );
-                    })
-                  )}
-                  {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-                </div>
+            <div className="w-full">
+              {providers.size === 0 ? (
+                <NoProviders />
+              ) : (
+                <ProviderSelectionTable providers={providers} control={control} name={name} />
               )}
-            />
+              {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+            </div>
           </div>
         );
       }
@@ -180,15 +155,15 @@ export function ProviderSelector({ control, name, error }: ProviderSelectorProps
   };
 
   return (
-    <div>
-      <div className="flex py-4">
-        <h2 className="flex items-center text-lg font-semibold pr-2">Select Storage Provider</h2>
+    <div className="pb-4">
+      <div className="flex gap-2 pb-2">
+        <p className="flex items-center">Select Storage Provider</p>
         <button
           type="button"
           className="transition-colors hover:text-blue-400"
           onClick={(_) => getStorageProviders()}
         >
-          <RefreshCw />
+          <RefreshCw width={16} />
         </button>
       </div>
       <Body />
