@@ -7,9 +7,15 @@ type ProviderSelectionTableProps = {
   providers: Map<string, StorageProviderInfo>;
   control: Control<FormValues>;
   name: Path<FormValues>;
+  totalPrice: number;
 };
 
-export function ProviderSelectionTable({ providers, control, name }: ProviderSelectionTableProps) {
+export function ProviderSelectionTable({
+  providers,
+  control,
+  name,
+  totalPrice,
+}: ProviderSelectionTableProps) {
   const { tokenProperties } = useCtx();
 
   return (
@@ -18,7 +24,7 @@ export function ProviderSelectionTable({ providers, control, name }: ProviderSel
       name={name}
       render={({ field }) => (
         <div className="max-w-full overflow-x-auto scroll-smooth">
-          <table className="table-auto border border-collapse w-full">
+          <table className="table-auto border-collapse w-full">
             <thead>
               <tr>
                 <th className="border" />
@@ -59,6 +65,17 @@ export function ProviderSelectionTable({ providers, control, name }: ProviderSel
                 );
               })}
             </tbody>
+            {totalPrice > 0 && (
+              <tfoot>
+                <tr>
+                  <td />
+                  <th className="text-right px-2">Total Price:</th>
+                  <td className="px-2 border bg-blue-50">
+                    {tokenProperties.formatUnit(totalPrice, true)}
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       )}

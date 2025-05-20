@@ -46,6 +46,7 @@ type ProviderSelectorProps = {
   control: Control<FormValues>;
   name: Path<FormValues>;
   error?: string;
+  totalPrice: number;
 };
 
 const NoProviders = () => {
@@ -62,7 +63,7 @@ const NoProviders = () => {
   );
 };
 
-export function ProviderSelector({ control, name, error }: ProviderSelectorProps) {
+export function ProviderSelector({ control, name, error, totalPrice }: ProviderSelectorProps) {
   const [status, setStatus] = useState<Status>({ type: "connecting" });
   const [providers, setProviders] = useState<Map<string, StorageProviderInfo>>(new Map());
   const { collatorWsApi: polkaStorageApi } = useCtx();
@@ -135,7 +136,12 @@ export function ProviderSelector({ control, name, error }: ProviderSelectorProps
               {providers.size === 0 ? (
                 <NoProviders />
               ) : (
-                <ProviderSelectionTable providers={providers} control={control} name={name} />
+                <ProviderSelectionTable
+                  providers={providers}
+                  control={control}
+                  name={name}
+                  totalPrice={totalPrice}
+                />
               )}
               {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
             </div>

@@ -118,7 +118,7 @@ export function DealProposalForm({
     .map((p) => p.dealParams.minimumPricePerBlock * durationInBlocks)
     .reduce((a, b) => a + b, 0);
 
-  const { collatorWsApi: api, tokenProperties } = useCtx();
+  const { collatorWsApi: api } = useCtx();
   const client = watch("client");
   const [balanceStatus, setBalanceStatus] = useState<BalanceStatus>(BalanceStatus.idle);
 
@@ -230,28 +230,13 @@ export function DealProposalForm({
         </div>
 
         <div>
-          <ProviderSelector name="providers" control={control} error={errors.providers?.message} />
+          <ProviderSelector
+            name="providers"
+            control={control}
+            error={errors.providers?.message}
+            totalPrice={totalPrice}
+          />
         </div>
-
-        {totalPrice > 0 && (
-          <div className="p-3 mb-4 bg-blue-50 border border-blue-200 rounded">
-            <ul className="list-disc pb-2">
-              {providers.map((p) => (
-                <li key={p.accountId} className="ml-2 text-xs text-gray-500">
-                  Provider: <i>{p.accountId.slice(0, 32)}...</i>
-                  <br />
-                  {durationInBlocks * p.dealParams.minimumPricePerBlock} {" Planck"} ={" "}
-                  {durationInBlocks} blocks × {p.dealParams.minimumPricePerBlock} Planck/block
-                </li>
-              ))}
-            </ul>
-
-            <p className="font-semibold text-sm">
-              Total Deal Price: <span className="text-blue-600">{totalPrice}</span> Planck (
-              <span className="text-blue-600">{tokenProperties.formatUnit(totalPrice, true)}</span>)
-            </p>
-          </div>
-        )}
 
         <input
           type="submit"
