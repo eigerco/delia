@@ -14,7 +14,7 @@ function colorText(ty: ToastType): string {
 export default function Toaster() {
   return (
     <HotToaster
-      position="bottom-left"
+      position="top-center"
       reverseOrder={true}
       toastOptions={{ success: { duration: 5000 }, error: { duration: 5000 } }}
     >
@@ -23,7 +23,7 @@ export default function Toaster() {
           {({ icon, message }) => (
             <>
               <div
-                className={`flex items-center text-sm break-words whitespace-normal overflow-hidden text-ellipsis ${colorText(t.type)}`}
+                className={`flex items-center text-base break-words whitespace-normal overflow-hidden text-ellipsis ${colorText(t.type)}`}
               >
                 {icon}
                 {message}
