@@ -72,10 +72,6 @@ async function retrieveContentInner(
     }
   }
 
-  if (helia.libp2p.getConnections().length) {
-    throw new Error("Failed to connect to storage providers");
-  }
-
   const downloadContents = async () => {
     const contents = [];
     console.log("Fetching blocks and extracting contents...");
