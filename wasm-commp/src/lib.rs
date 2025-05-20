@@ -131,6 +131,17 @@ mod tests {
     use super::*;
     use wasm_bindgen_test::wasm_bindgen_test;
 
+    /// Macro for testing the `padded_piece_size` function with specific input sizes.
+    ///
+    /// Parameters:
+    /// - `$name`: The name of the generated test function.
+    /// - `$input_size`: The number of bytes in the input buffer.
+    /// - `$expected`: The expected padded piece size as a string.
+    ///
+    /// This macro:
+    /// 1. Constructs a buffer of `$input_size` bytes (zeroed),
+    /// 2. Calls `padded_piece_size()` on the buffer,
+    /// 3. Asserts that the returned string matches `$expected`.
     macro_rules! padded_piece_test {
         ($name:ident, $input_size:expr, $expected:expr) => {
             #[wasm_bindgen_test]
@@ -161,4 +172,49 @@ mod tests {
     padded_piece_test!(padded_3000_bytes, 3000, "4096");
     // Input is exactly 4096 bytes, becomes 4128 -> next_power_of_two = 8192.
     padded_piece_test!(padded_4096_bytes, 4096, "8192");
+
+    /// Macro for defining CommP-related tests.
+    ///
+    /// Parameters:
+    /// - `$name`: The name of the test function.
+    /// - `$input`: The input byte array for `commp_from_bytes`.
+    /// - `|$cid|`: A binding name for the resulting CID string inside the test block.
+    /// - `$assert`: The test body block that receives the CID and performs assertions.
+    ///
+    /// This macro expands into a `#[wasm_bindgen_test]` function that:
+    /// 1. Calls `commp_from_bytes` on the given input,
+    /// 2. Binds the resulting CID string to the given identifier,
+    /// 3. Executes the assertion block using that CID.
+    macro_rules! commp_case {
+        ($name:ident, $input:expr, |$cid:ident| $assert:block) => {
+            #[wasm_bindgen_test]
+            fn $name() {
+                let $cid = commp_from_bytes(&$input).unwrap().as_string().unwrap();
+                $assert
+            }
+        };
+    }
+
+    // Ensure that repeated calls with the same input yield the same CID (deterministic behavior).
+    commp_case!(same_input_same_cid, vec![0x42; 127], |cid| {
+        let cid2 = commp_from_bytes(&vec![0x42; 127])
+            .unwrap()
+            .as_string()
+            .unwrap();
+        assert_eq!(cid, cid2, "CID must be identical across same input");
+    });
+
+    // Ensure that different input content produces different CIDs.
+    commp_case!(different_input_different_cid, vec![0x00; 127], |cid| {
+        let cid2 = commp_from_bytes(&vec![0xFF; 127])
+            .unwrap()
+            .as_string()
+            .unwrap();
+        assert_ne!(cid, cid2, "Different input should yield different CID");
+    });
+
+    // Ensure that the generated CID follows the expected CIDv1 format ("baga..." prefix).
+    commp_case!(cid_has_expected_prefix, vec![0x42; 127], |cid| {
+        assert!(cid.starts_with("baga"), "CID should start with baga");
+    });
 }
