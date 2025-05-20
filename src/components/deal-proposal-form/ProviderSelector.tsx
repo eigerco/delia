@@ -2,13 +2,14 @@ import { hexToU8a } from "@polkadot/util";
 import { base58Encode } from "@polkadot/util-crypto";
 import { AlertCircle, Loader2, RefreshCw, Server } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { type Control, Controller, type Path } from "react-hook-form";
+import type { Control, Path } from "react-hook-form";
 import { useCtx } from "../../GlobalCtx";
 import {
   type DealParams,
   type StorageProviderInfo,
   isStorageProviderInfo,
 } from "../../lib/storageProvider";
+import { ProviderSelectionTable } from "./ProviderSelectionTable";
 import type { FormValues } from "./types";
 
 type Status =
@@ -64,7 +65,7 @@ const NoProviders = () => {
 export function ProviderSelector({ control, name, error }: ProviderSelectorProps) {
   const [status, setStatus] = useState<Status>({ type: "connecting" });
   const [providers, setProviders] = useState<Map<string, StorageProviderInfo>>(new Map());
-  const { collatorWsApi: polkaStorageApi, tokenProperties } = useCtx();
+  const { collatorWsApi: polkaStorageApi } = useCtx();
 
   const getStorageProviders = useCallback(async () => {
     if (!polkaStorageApi) {
@@ -130,76 +131,14 @@ export function ProviderSelector({ control, name, error }: ProviderSelectorProps
       case "connected": {
         return (
           <div className="grid grid-cols-1 gap-4 w-full">
-            <Controller
-              control={control}
-              name={name}
-              render={({ field }) => (
-                <div className="w-full">
-                  {providers.size === 0 ? (
-                    <NoProviders />
-                  ) : (
-                    <div className="flex flex-col">
-                      <div className="max-w-full overflow-x-auto scroll-smooth">
-                        <table className="table-auto font-normal border border-collapse w-full">
-                          <thead>
-                            <tr>
-                              <th className="border" />
-                              <th className="border whitespace-nowrap px-2">Sector Size</th>
-                              <th className="border whitespace-nowrap px-2">Price per Block</th>
-                              <th className="border whitespace-nowrap px-2">Account ID</th>
-                              <th className="border whitespace-nowrap px-2">Peer ID</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {Array.from(providers.entries()).map(([accountId, provider]) => {
-                              // as StorageProviderInfo[], because I can't figure out how to enforce that FormValues[name] passed here will be `StorageProviderInfo[]` typed at typescript level.
-                              const v = (field.value as StorageProviderInfo[]) || [];
-                              const isSelected = v.some((sp) => sp.peerId === provider.peerId);
-
-                              return (
-                                // biome-ignore lint/a11y/useKeyWithClickEvents: TODO
-                                <tr
-                                  className="cursor-pointer hover:bg-blue-50"
-                                  key={`${accountId}`}
-                                  onClick={(_) => {
-                                    const newValue = isSelected
-                                      ? v.filter((sp) => sp.accountId !== accountId)
-                                      : [...v, provider];
-                                    field.onChange(newValue);
-                                  }}
-                                >
-                                  <th className="px-2 border">
-                                    <input type="checkbox" checked={isSelected} readOnly />
-                                  </th>
-                                  <th className="px-2 border text-sm font-normal font-mono">
-                                    {provider.sectorSize}
-                                  </th>
-                                  <th className="px-2 border text-sm font-normal whitespace-nowrap">
-                                    {tokenProperties.formatUnit(
-                                      tokenProperties.planckToUnit(
-                                        provider.dealParams.minimumPricePerBlock,
-                                      ),
-                                      true,
-                                    )}
-                                  </th>
-                                  <th className="px-2 w-3xs truncate border text-sm font-normal font-mono ">
-                                    {accountId}
-                                  </th>
-                                  <th className="px-2 truncate border text-sm font-normal font-mono">
-                                    {provider.peerId}
-                                  </th>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-                  {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-                </div>
+            <div className="w-full">
+              {providers.size === 0 ? (
+                <NoProviders />
+              ) : (
+                <ProviderSelectionTable providers={providers} control={control} name={name} />
               )}
-            />
+              {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+            </div>
           </div>
         );
       }

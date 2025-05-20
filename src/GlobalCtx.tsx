@@ -46,10 +46,6 @@ export class TokenProperties {
     return wholeNumber + fractionNumber;
   }
 
-  planckToUnit(planck: number): number {
-    return planck / this.tokenDecimals;
-  }
-
   formatUnit(unit: number | bigint, withSi = false): string {
     if (unit === 0 || unit === 0n) {
       // 0 never gets a unit assigned to it

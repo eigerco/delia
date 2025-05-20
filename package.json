@@ -9,7 +9,7 @@
     "build:wasm": "wasm-pack build --target web ./wasm-commp",
     "build": "pnpm run build:wasm && tsc -b && vite build",
     "preview": "vite preview",
-    "lint": "biome lint ./src",
+    "lint": "biome lint ./src && biome format ./src && tsc",
     "fmt": "biome format --write ./src",
     "fmt-check": "biome format ./src",
     "prepare": "husky"
