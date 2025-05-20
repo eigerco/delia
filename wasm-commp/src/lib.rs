@@ -125,3 +125,40 @@ pub fn calculate_piece_commitment<R: Read>(
 
     Ok(raw.into())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    macro_rules! padded_piece_test {
+        ($name:ident, $input_size:expr, $expected:expr) => {
+            #[wasm_bindgen_test]
+            fn $name() {
+                let data = vec![0; $input_size];
+                let result = padded_piece_size(&data).unwrap().as_string().unwrap();
+                assert_eq!(
+                    result, $expected,
+                    "input: {} bytes, expected padded size: {}, got: {}",
+                    $input_size, $expected, result
+                );
+            }
+        };
+    }
+
+    // Input is 127 bytes, just below the 128 threshold.
+    // Should round up to 128 padded bytes.
+    padded_piece_test!(padded_127_bytes, 127, "128");
+    // Input is exactly 128 bytes.
+    // Because of the `(size + size/127)` rule, it becomes 129 -> next_power_of_two = 256.
+    padded_piece_test!(padded_128_bytes, 128, "256");
+    // Input is 254 bytes, which becomes 256 after formula,
+    // and 256 is already a power of two.
+    padded_piece_test!(padded_254_bytes, 254, "256");
+    // Input is 1024 bytes, becomes 1032 -> next_power_of_two = 2048.
+    padded_piece_test!(padded_1024_bytes, 1024, "2048");
+    // Input is 3000 bytes, padded to 3023 -> next_power_of_two = 4096.
+    padded_piece_test!(padded_3000_bytes, 3000, "4096");
+    // Input is exactly 4096 bytes, becomes 4128 -> next_power_of_two = 8192.
+    padded_piece_test!(padded_4096_bytes, 4096, "8192");
+}
