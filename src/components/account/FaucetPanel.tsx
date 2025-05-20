@@ -39,7 +39,7 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
 
   return (
     <div className="border rounded p-4 bg-gray-50 space-y-3 w-full">
-      <h3 className="text-lg font-semibold">💧 Transaction Drip</h3>
+      <h3 className="text-lg font-semibold">💧 Faucet Drip</h3>
       <p className="text-sm">
         Use this to request testnet funds from the faucet. No signature is required.
       </p>
