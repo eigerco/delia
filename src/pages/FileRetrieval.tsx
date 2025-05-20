@@ -81,6 +81,8 @@ export function Retrieval() {
     try {
       await toast.promise(downloadInner(), {
         loading: "Downloading file!",
+        success: () => <>Download successful!</>,
+        error: (err) => `${err.message}`,
       });
     } finally {
       setIsDownloading(false);
