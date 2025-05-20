@@ -2,7 +2,8 @@ import type { ApiPromise } from "@polkadot/api";
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useCtx } from "../../GlobalCtx";
-import type { OnChainDealProposal, OnChainDealState } from "../../lib/jsonRpc";
+import { formatDuration, secondsToDuration } from "../../lib/conversion";
+import type { OnChainDealProposal } from "../../lib/jsonRpc";
 import type { SubmissionReceipt } from "../../lib/submissionReceipt";
 
 enum LoadState {
@@ -55,7 +56,9 @@ const queryDealStatus = async (
   return results.map((result, idx) => [dealIds[idx], result.toJSON()]);
 };
 
-function DealState({ id, state }: { id: number; state: OnChainDealState | null }) {
+function DealState({ id, deal }: { id: number; deal: OnChainDealProposal | null }) {
+  const state = deal?.state;
+
   if (!state) {
     return (
       <>
@@ -74,10 +77,16 @@ function DealState({ id, state }: { id: number; state: OnChainDealState | null }
     );
   }
 
+  const dealDurationInBlocks = deal.endBlock - state.active.sectorStartBlock;
+  const dealDurationInSeconds = dealDurationInBlocks * 6; // approximation
+  const dealDuration = secondsToDuration(dealDurationInSeconds);
+  const duration = formatDuration(dealDuration);
+
   return (
     <>
       <span className="font-bold">Deal {id}</span>
-      {`: active since block ${state.active.sectorStartBlock}, available for retrieval.`}
+      {`: active since block ${state.active.sectorStartBlock}, retrieval is available until block ${deal.endBlock} `}
+      <span className="italic">(approximately {duration})</span>.
     </>
   );
 }
@@ -124,10 +133,6 @@ export function DealStatus({ receipt }: DealStatusProps) {
 
   return (
     <div className="flex flex-col gap-2">
-      {/* <Button disabled={State.isLoading(dealsStatus)} onClick={query}>
-        Query receipt deals
-      </Button> */}
-
       {(() => {
         switch (dealsStatus.status) {
           case LoadState.Error:
@@ -146,7 +151,7 @@ export function DealStatus({ receipt }: DealStatusProps) {
                   {dealsStatus.deals.map(([id, deal]) => {
                     return (
                       <li className="list-disc list-inside" key={id}>
-                        <DealState id={id} state={deal?.state ?? null} />
+                        <DealState id={id} deal={deal} />
                       </li>
                     );
                   })}
