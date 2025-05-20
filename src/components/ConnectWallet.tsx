@@ -64,12 +64,23 @@ export function ConnectWallet({
     case ConnectionStatus.Failed: {
       return (
         <div className="text-center py-8">
-          <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg">
+          <div className="flex flex-col gap-2 mb-4 p-4 bg-red-50 text-red-700 rounded-lg">
             <p className="font-medium">Connection Failed</p>
-            <p className="text-sm mt-1">{error}</p>
-            <p className="text-sm mt-2">
-              Please ensure the Polkadot.js extension is installed and enabled.
-            </p>
+
+            <p className="text-sm">Error message: {error}</p>
+
+            <div>
+              <p className="text-sm font-bold">Troubleshooting:</p>
+              <div className="flex justify-center">
+                <ul className="text-left text-sm list-decimal list-inside">
+                  <li>Ensure the Polkadot.js extension is installed and enabled</li>
+                  <li>Open the Polkadot extension</li>
+                  <li>Click on "Connect Accounts"</li>
+                  <li>Select the accounts you want to enable for Polka Storage</li>
+                  <li>Confirm your selection by clicking on "Connect X accounts"</li>
+                </ul>
+              </div>
+            </div>
           </div>
           <RefreshButton />
         </div>
