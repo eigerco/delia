@@ -19,7 +19,7 @@ export const DisabledInputInfo = ({
             <span id={`tooltip-${name}`} className="cursor-help inline-flex items-center ml-1">
               <HelpCircle className="inline w-4 h-4 text-gray-400" />
             </span>
-            <Tooltip anchorSelect={`#tooltip-${name}-cid`} content={tooltip} />
+            <Tooltip anchorSelect={`#tooltip-${name}`} content={tooltip} />
           </>
         )}
       </label>
