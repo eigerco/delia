@@ -99,6 +99,14 @@ export function ProviderSelector({ control, name, error }: ProviderSelectorProps
       spInfo.dealParams = dealParams;
     }
 
+    // Remove providers without deal parameters
+    for (const [providerId, spInfo] of newProviders.entries()) {
+      if (!spInfo.dealParams) {
+        console.warn("Provider has no deal parameters, removing from list", providerId);
+        newProviders.delete(providerId);
+      }
+    }
+
     setProviders(newProviders);
     setStatus({ type: "loaded" });
   }, [polkaStorageApi]);
