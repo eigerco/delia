@@ -49,7 +49,7 @@ export function ProviderButton({ accountId, provider, isSelected, onSelect }: Pr
             <Tooltip anchorSelect={`#peer-id-tooltip-${accountId}`} content={peerId} />
 
             <span>
-              Sector Size: {provider.sectorSize} bytes
+              Sector Size: {provider.sectorSize.replace(/^_/, "")} bytes
               <span id="tooltip-sector-size" className="cursor-help inline-flex items-center ml-1">
                 <HelpCircle className="inline w-4 h-4 text-gray-400" />
               </span>
