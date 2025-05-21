@@ -217,4 +217,15 @@ mod tests {
     commp_case!(cid_has_expected_prefix, vec![0x42; 127], |cid| {
         assert!(cid.starts_with("baga"), "CID should start with baga");
     });
+
+    // Ensure that the generated CID is 64 bytes
+    commp_case!(cid_length_is_consistent, vec![0x42; 127], |cid| {
+        assert_eq!(cid.len(), 64, "CID length should match 64");
+    });
+
+    #[wasm_bindgen_test]
+    fn commp_rejects_empty_input() {
+        let result = commp_from_bytes(&[]);
+        assert!(result.is_err(), "Empty input should result in error");
+    }
 }
