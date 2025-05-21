@@ -1,7 +1,7 @@
 import type { ApiPromise } from "@polkadot/api";
 import { web3FromSource } from "@polkadot/extension-dapp";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
-import type { AccountData, AccountInfo } from "@polkadot/types/interfaces";
+import type { AccountInfo } from "@polkadot/types/interfaces";
 import { useCallback, useEffect, useState } from "react";
 import { useOutletContext } from "react-router";
 import { useCtx } from "../GlobalCtx";
@@ -15,13 +15,15 @@ async function fetchBalancesFor(
   api: ApiPromise | null,
   account: InjectedAccountWithMeta,
   setWalletBalance: (status: BalanceStatus) => void,
-  setMarketBalance: (status: BalanceStatus) => void,
+  setMarketFreeBalance: (status: BalanceStatus) => void,
+  setMarketLockedBalance: (status: BalanceStatus) => void,
   setLastUpdated: (d: Date) => void,
 ) {
   if (!api) return;
 
   try {
-    setMarketBalance(BalanceStatus.loading());
+    setMarketFreeBalance(BalanceStatus.loading());
+    setMarketLockedBalance(BalanceStatus.loading());
     setWalletBalance(BalanceStatus.loading());
 
     const accountInfo = await api.query.system.account(account.address);
@@ -30,15 +32,19 @@ async function fetchBalancesFor(
     setWalletBalance(BalanceStatus.fetched(freeBalance));
 
     const result = await api.query.market.balanceTable(account.address);
-    const balanceInfo = result as AccountData;
+    // biome-ignore lint/suspicious/noExplicitAny: Use a correct type
+    const balanceInfo = result as any;
     const marketBalance = balanceInfo.free.toBigInt();
-    setMarketBalance(BalanceStatus.fetched(marketBalance));
+    const marketLockedBalance = balanceInfo.locked.toBigInt();
+    setMarketFreeBalance(BalanceStatus.fetched(marketBalance));
+    setMarketLockedBalance(BalanceStatus.fetched(marketLockedBalance));
 
     setLastUpdated(new Date());
   } catch (err) {
     console.error("Failed to fetch balances", err);
     setWalletBalance(BalanceStatus.error("Failed to fetch wallet balance"));
-    setMarketBalance(BalanceStatus.error("Failed to fetch market balance"));
+    setMarketFreeBalance(BalanceStatus.error("Failed to fetch market balance"));
+    setMarketLockedBalance(BalanceStatus.error("Failed to fetch market locked balance"));
   }
 }
 
@@ -52,12 +58,20 @@ export function Account() {
 
   const [selectedAddress, setSelectedAddress] = useState(accounts[0].address);
   const [walletBalance, setWalletBalance] = useState(BalanceStatus.idle);
-  const [marketBalance, setMarketBalance] = useState(BalanceStatus.idle);
+  const [marketFreeBalance, setMarketFreeBalance] = useState(BalanceStatus.idle);
+  const [marketLockedBalance, setMarketLockedBalance] = useState(BalanceStatus.idle);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const fetchBalances = useCallback(
     (account: InjectedAccountWithMeta) => {
-      void fetchBalancesFor(api, account, setWalletBalance, setMarketBalance, setLastUpdated);
+      void fetchBalancesFor(
+        api,
+        account,
+        setWalletBalance,
+        setMarketFreeBalance,
+        setMarketLockedBalance,
+        setLastUpdated,
+      );
     },
     [api],
   );
@@ -106,7 +120,7 @@ export function Account() {
       <MarketPanel
         selectedAddress={selectedAddress}
         walletBalance={walletBalance.state === "fetched" ? walletBalance.value : 0n}
-        marketBalance={marketBalance.state === "fetched" ? marketBalance.value : 0n}
+        marketBalance={marketFreeBalance.state === "fetched" ? marketFreeBalance.value : 0n}
         onSuccess={() => {
           const selected = accounts.find((a) => a.address === selectedAddress);
           if (selected) {
@@ -118,7 +132,8 @@ export function Account() {
       <BalancePanel
         selectedAddress={selectedAddress}
         walletBalance={walletBalance}
-        marketBalance={marketBalance}
+        marketFreeBalance={marketFreeBalance}
+        marketLockedBalance={marketLockedBalance}
         lastUpdated={lastUpdated}
         onRefresh={() => {
           const acc = accounts.find((a) => a.address === selectedAddress);
