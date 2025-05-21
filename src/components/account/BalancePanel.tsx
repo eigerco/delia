@@ -5,7 +5,8 @@ import { Balance, type BalanceStatus } from "../Balance";
 interface BalancePanelProps {
   selectedAddress: string;
   walletBalance: BalanceStatus;
-  marketBalance: BalanceStatus;
+  marketFreeBalance: BalanceStatus;
+  marketLockedBalance: BalanceStatus;
   lastUpdated: Date | null;
   onRefresh: () => void;
 }
@@ -13,7 +14,8 @@ interface BalancePanelProps {
 export function BalancePanel({
   selectedAddress,
   walletBalance,
-  marketBalance,
+  marketFreeBalance,
+  marketLockedBalance,
   lastUpdated,
   onRefresh,
 }: BalancePanelProps) {
@@ -23,8 +25,21 @@ export function BalancePanel({
     <div className="border rounded p-4 bg-gray-50 space-y-3">
       <h3 className="text-lg font-semibold">💼 Balances</h3>
 
-      <Balance status={walletBalance} balanceType="Wallet" />
-      <Balance status={marketBalance} balanceType="Market" />
+      <Balance
+        status={walletBalance}
+        balanceType="Wallet"
+        tooltip="Balance available in your wallet"
+      />
+      <Balance
+        status={marketFreeBalance}
+        balanceType="Market Free"
+        tooltip="Market balance available for withdrawal or creating new deals"
+      />
+      <Balance
+        status={marketLockedBalance}
+        balanceType="Market Locked"
+        tooltip="Market balance locked in active storage deals"
+      />
 
       <div className="relative w-fit">
         <button

@@ -1,3 +1,5 @@
+import { HelpCircle } from "lucide-react";
+import { Tooltip } from "react-tooltip";
 import { useCtx } from "../GlobalCtx";
 
 export namespace BalanceStatus {
@@ -34,15 +36,19 @@ export type BalanceStatus =
 export function Balance({
   status,
   balanceType,
+  tooltip,
 }: {
   status: BalanceStatus;
   balanceType: string;
+  tooltip?: string;
 }) {
   const { tokenProperties } = useCtx();
 
   if (status.state === BalanceState.Idle) return null;
 
   let balanceContent: React.ReactNode;
+
+  const balanceId = `balance-${balanceType.replace(/\s+/g, "-").toLowerCase()}`;
 
   switch (status.state) {
     case BalanceState.Loading:
@@ -60,7 +66,17 @@ export function Balance({
 
   return (
     <div className="flex items-center gap-2 text-sm">
-      <div className="w-32">{balanceType} Balance:</div>
+      <div className="w-50 flex items-center">
+        <span>{balanceType} Balance:</span>
+        {tooltip && (
+          <div className="flex justify-center mx-1">
+            <span id={`tooltip-${balanceId}`} className="cursor-help flex items-center">
+              <HelpCircle className="w-4 h-4 text-gray-400" />
+            </span>
+            <Tooltip anchorSelect={`#tooltip-${balanceId}`} content={tooltip} place="right" />
+          </div>
+        )}
+      </div>
       {balanceContent}
     </div>
   );
