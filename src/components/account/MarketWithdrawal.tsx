@@ -67,20 +67,35 @@ export function MarketWithdrawal({
 
   const isTooLarge = withdrawAmount > 0n && BigInt(withdrawAmount) > marketBalance && isFocused;
 
+  const setMaxAmount = () => {
+    setWithdrawAmount(marketBalance);
+  };
+
   return (
     <div className="flex-1 min-w-0 flex flex-col gap-2">
       <h3 className="text-lg font-semibold">💰 Withdraw Market Balance</h3>
       <p className="text-sm text-gray-600">Enter the amount to withdraw (Planck units).</p>
       <div className="flex items-center gap-2">
-        <input
-          type="number"
-          value={withdrawAmount.toString()}
-          onChange={(e) => setWithdrawAmount(BigInt(e.target.value))}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          placeholder="Amount in Planck"
-          className="px-3 py-2 border rounded text-sm"
-        />
+        <div className="relative">
+          <input
+            type="number"
+            value={withdrawAmount.toString()}
+            onChange={(e) => setWithdrawAmount(BigInt(e.target.value))}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            placeholder="Amount in Planck"
+            className="w-full px-3 py-2 border rounded text-sm pr-16"
+          />
+          <button
+            type="button"
+            onClick={setMaxAmount}
+            className={
+              "absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 rounded text-xs transition bg-blue-600 text-white hover:bg-blue-700"
+            }
+          >
+            MAX
+          </button>
+        </div>
 
         <span>= {tokenProperties.formatUnit(withdrawAmount, true)}</span>
 
