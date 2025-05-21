@@ -116,15 +116,14 @@ pub fn calculate_piece_commitment<R: Read>(
     let mut buffer = [0; NODE_SIZE];
     let num_leafs = piece_size.div_ceil(NODE_SIZE as u64) as usize;
 
-    // Use a `for` loop instead of `.map()` so we can use the `?` operator
-    // for proper error propagation when reading from the Fr32Reader.
-    let mut leaves = Vec::with_capacity(num_leafs);
-    for _ in 0..num_leafs {
-        fr32_reader
-            .read_exact(&mut buffer)
-            .map_err(|e| JsValue::from_str(&format!("Read error: {}", e)))?;
-        leaves.push(buffer);
-    }
+    let leaves = (0..num_leafs)
+        .map(|_| {
+            fr32_reader.read_exact(&mut buffer)..map_err(|e| {
+                JsValue::from_str(&format!("Read error: {}", e))
+            })?;
+            Ok(buffer)
+        })
+        .collect::<Result<Vec<_>, JsValue>>()?;
 
     let tree = MerkleTree::<Sha256>::from_leaves(&leaves);
     let raw = tree
