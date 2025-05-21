@@ -63,8 +63,6 @@ export function MarketWithdrawal({
     withdrawAmount === 0n ||
     withdrawAmount > marketBalance;
 
-  const isMaxDisabled = withdrawStatus.state === TransactionState.Loading || marketBalance <= 0n;
-
   const isZero = withdrawAmount <= 0n && isFocused;
 
   const isTooLarge = withdrawAmount > 0n && BigInt(withdrawAmount) > marketBalance && isFocused;
@@ -90,13 +88,10 @@ export function MarketWithdrawal({
           />
           <button
             type="button"
-            disabled={isMaxDisabled}
             onClick={setMaxAmount}
-            className={`absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 rounded text-xs transition ${
-              isMaxDisabled
-                ? "bg-gray-300 cursor-not-allowed"
-                : "bg-blue-600 text-white hover:bg-blue-700"
-            }`}
+            className={
+              "absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 rounded text-xs transition bg-blue-600 text-white hover:bg-blue-700"
+            }
           >
             MAX
           </button>
