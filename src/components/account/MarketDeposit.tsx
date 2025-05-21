@@ -68,15 +68,17 @@ export function MarketDeposit({ selectedAddress, walletBalance, onSuccess }: Mar
       <h3 className="text-lg font-semibold">🛒 Deposit Market Balance</h3>
       <p className="text-sm text-gray-600">Enter the amount to deposit (Planck units).</p>
       <div className="flex items-center gap-2">
-        <input
-          type="number"
-          value={depositAmount.toString()}
-          onChange={(e) => setDepositAmount(BigInt(e.target.value))}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          placeholder="Amount in Planck"
-          className="px-3 py-2 border rounded text-sm"
-        />
+        <div className="relative">
+          <input
+            type="number"
+            value={depositAmount.toString()}
+            onChange={(e) => setDepositAmount(BigInt(e.target.value))}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            placeholder="Amount in Planck"
+            className="px-3 py-2 border rounded text-sm"
+          />
+        </div>
 
         <span>= {tokenProperties.formatUnit(depositAmount, true)}</span>
 
