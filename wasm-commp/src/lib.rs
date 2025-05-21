@@ -58,6 +58,10 @@ pub fn setup_logging() {
 /// A JS string containing the CID.
 #[wasm_bindgen(js_name = "commpFromBytes")]
 pub fn commp_from_bytes(data: &[u8]) -> Result<JsValue, JsValue> {
+    if data.is_empty() {
+        return Err(JsValue::from_str("Input data must not be empty"));
+    }
+
     let file_size = data.len() as u64;
     let padded_piece_size = PaddedPieceSize::from_arbitrary_size(file_size);
 
@@ -66,8 +70,7 @@ pub fn commp_from_bytes(data: &[u8]) -> Result<JsValue, JsValue> {
     let buffered = Cursor::new(data);
     let mut zero_padding_reader = ZeroPaddingReader::new(buffered, padded_with_zeroes);
 
-    let commitment =
-        calculate_piece_commitment(&mut zero_padding_reader, padded_piece_size).unwrap();
+    let commitment = calculate_piece_commitment(&mut zero_padding_reader, padded_piece_size)?;
 
     info!("CID from Rust: {}", commitment.cid());
 
@@ -113,15 +116,20 @@ pub fn calculate_piece_commitment<R: Read>(
     let mut buffer = [0; NODE_SIZE];
     let num_leafs = piece_size.div_ceil(NODE_SIZE as u64) as usize;
 
-    let leaves = (0..num_leafs)
-        .map(|_| {
-            fr32_reader.read_exact(&mut buffer).unwrap();
-            buffer
-        })
-        .collect::<Vec<[u8; 32]>>();
+    // Use a `for` loop instead of `.map()` so we can use the `?` operator
+    // for proper error propagation when reading from the Fr32Reader.
+    let mut leaves = Vec::with_capacity(num_leafs);
+    for _ in 0..num_leafs {
+        fr32_reader
+            .read_exact(&mut buffer)
+            .map_err(|e| JsValue::from_str(&format!("Read error: {}", e)))?;
+        leaves.push(buffer);
+    }
 
     let tree = MerkleTree::<Sha256>::from_leaves(&leaves);
-    let raw = tree.root().unwrap();
+    let raw = tree
+        .root()
+        .ok_or_else(|| JsValue::from_str("Merkle tree is empty"))?;
 
     Ok(raw.into())
 }
