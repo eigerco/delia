@@ -118,9 +118,9 @@ pub fn calculate_piece_commitment<R: Read>(
 
     let leaves = (0..num_leafs)
         .map(|_| {
-            fr32_reader.read_exact(&mut buffer)..map_err(|e| {
-                JsValue::from_str(&format!("Read error: {}", e))
-            })?;
+            fr32_reader
+                .read_exact(&mut buffer)
+                .map_err(|e| JsValue::from_str(&format!("Read error: {}", e)))?;
             Ok(buffer)
         })
         .collect::<Result<Vec<_>, JsValue>>()?;
