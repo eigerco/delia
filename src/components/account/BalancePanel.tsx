@@ -1,6 +1,6 @@
-import { Tooltip } from "react-tooltip";
 import { getRelativeTime } from "../../lib/time";
 import { Balance, type BalanceStatus } from "../Balance";
+import { Button } from "../buttons/Button";
 
 interface BalancePanelProps {
   selectedAddress: string;
@@ -42,21 +42,14 @@ export function BalancePanel({
       />
 
       <div className="relative w-fit">
-        <button
-          id="refresh-balances-btn"
-          type="button"
+        <Button
           onClick={onRefresh}
-          className="px-3 py-2 bg-gray-200 hover:bg-gray-300 rounded text-sm transition"
+          variant="secondary"
+          size="md"
+          tooltip={lastUpdated ? `Last updated ${getRelativeTime(lastUpdated)}` : ""}
         >
           🔄 Refresh Balances
-        </button>
-        {lastUpdated && (
-          <Tooltip
-            anchorSelect="#refresh-balances-btn"
-            content={`Last updated ${getRelativeTime(lastUpdated)}`}
-            place="right"
-          />
-        )}
+        </Button>
       </div>
     </div>
   );

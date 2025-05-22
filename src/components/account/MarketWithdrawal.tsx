@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { useCtx } from "../../GlobalCtx";
 import { sendTransaction } from "../../lib/sendTransaction";
 import { Transaction, TransactionState, type TransactionStatus } from "../../lib/transactionStatus";
+import { Button } from "../buttons/Button";
 
 interface MarketWithdrawalProps {
   selectedAddress: string;
@@ -86,31 +87,30 @@ export function MarketWithdrawal({
             placeholder="Amount in Planck"
             className="w-full px-3 py-2 border rounded text-sm pr-16"
           />
-          <button
-            type="button"
-            onClick={setMaxAmount}
-            className={
-              "absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 rounded text-xs transition bg-blue-600 text-white hover:bg-blue-700"
-            }
-          >
+          <Button onClick={setMaxAmount} variant="max" size="sm">
             MAX
-          </button>
+          </Button>
         </div>
 
         <span>= {tokenProperties.formatUnit(withdrawAmount, true)}</span>
 
-        <button
-          type="button"
+        <Button
           disabled={isWithdrawalDisabled}
+          loading={withdrawStatus.state === TransactionState.Loading}
           onClick={handleWithdraw}
-          className={`px-3 py-2 rounded text-sm transition ${
-            isWithdrawalDisabled
-              ? "bg-gray-300 cursor-not-allowed"
-              : "bg-red-600 text-white hover:bg-red-700"
-          }`}
+          variant="primary"
+          tooltip={
+            withdrawAmount === 0n
+              ? "Enter an amount greater than 0"
+              : withdrawAmount > marketBalance
+                ? "Amount exceeds your market balance"
+                : withdrawStatus.state === TransactionState.Loading
+                  ? "Transaction in progress"
+                  : ""
+          }
         >
-          {withdrawStatus.state === TransactionState.Loading ? "⏳ Processing..." : "➖ Withdraw"}
-        </button>
+          {withdrawStatus.state === TransactionState.Loading ? "Processing..." : "➖ Withdraw"}
+        </Button>
       </div>
 
       {isZero && <p className="text-sm text-red-600">⚠️ Withdraw amount must be greater than 0</p>}

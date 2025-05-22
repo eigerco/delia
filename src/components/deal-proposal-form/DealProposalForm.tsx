@@ -9,6 +9,7 @@ import { blockToTime } from "../../lib/conversion";
 import { type StorageProviderInfo, isStorageProviderInfo } from "../../lib/storageProvider";
 import { Balance, BalanceStatus } from "../Balance";
 import Collapsible from "../Collapsible";
+import { Button } from "../buttons/Button";
 import { HookAccountSelector } from "./AccountSelector";
 import { DisabledInputInfo } from "./DisabledInputInfo";
 import DurationInput, { type DurationValue } from "./DurationInput";
@@ -106,7 +107,8 @@ export function DealProposalForm({
     mode: "onChange",
   });
 
-  const [duration, providers] = watch(["duration", "providers"]);
+  const formValues = watch();
+  const { duration, providers, piece } = formValues;
   const { startBlock, endBlock, durationInBlocks } = calculateStartEndBlocks(
     currentBlock,
     duration,
@@ -119,8 +121,23 @@ export function DealProposalForm({
     .reduce((a, b) => a + b, 0);
 
   const { collatorWsApi: api } = useCtx();
-  const client = watch("client");
+  const client = formValues.client;
   const [balanceStatus, setBalanceStatus] = useState<BalanceStatus>(BalanceStatus.idle);
+
+  // Check if form is valid for submission
+  const isFormComplete =
+    // Check if piece is uploaded
+    piece?.pieceCid &&
+    piece?.payloadCid &&
+    piece?.file &&
+    // Check if client is selected
+    client &&
+    // Check if providers are selected
+    providers.length > 0 &&
+    // Check if duration is valid
+    (duration?.months > 0 || duration?.days > 0) &&
+    // Check if there are no errors
+    Object.keys(errors).length === 0;
 
   const fetchBalance = useCallback(async () => {
     if (!api || !client) return;
@@ -143,12 +160,7 @@ export function DealProposalForm({
   }, [client, fetchBalance]);
 
   return (
-    <form
-      onSubmit={handleSubmit(async (data) => {
-        await onSubmit(data);
-        fetchBalance();
-      })}
-    >
+    <form onSubmit={(e) => e.preventDefault()}>
       <div className="flex flex-col bg-white rounded-lg shadow p-6 mb-4">
         <div>
           <h2 className="text-xl font-bold mb-4">Deal Creation</h2>
@@ -238,12 +250,25 @@ export function DealProposalForm({
           />
         </div>
 
-        <input
-          type="submit"
-          disabled={isSubmitting}
-          className={`px-4 py-2 bg-blue-200 rounded-sm  ${isSubmitting ? "bg-grey-200 cursor-progress" : "hover:bg-blue-600 hover:text-white"}`}
-          value="Continue"
-        />
+        <Button
+          onClick={handleSubmit(async (data) => {
+            await onSubmit(data);
+            fetchBalance();
+          })}
+          disabled={isSubmitting || !isFormComplete}
+          loading={isSubmitting}
+          className="w-full"
+          variant="primary"
+          tooltip={
+            isSubmitting
+              ? "Submitting deal proposal..."
+              : !isFormComplete
+                ? "Enter the deal information first"
+                : ""
+          }
+        >
+          Continue
+        </Button>
       </div>
     </form>
   );

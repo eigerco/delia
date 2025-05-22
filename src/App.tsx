@@ -36,7 +36,7 @@ function WsAddressInput() {
       />
       <button
         type="submit"
-        className="transition-colors hover:text-blue-400"
+        className="transition-colors hover:text-blue-600"
         onClick={() => {
           setWsAddress(localValue); // Triggers reconnection
         }}

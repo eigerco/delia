@@ -123,11 +123,25 @@ export function Retrieval() {
 
         {inputReceipt?.status === "ok" && <DealStatus receipt={inputReceipt.receipt} />}
 
-        <div className="flex gap-4">
-          <Button onClick={download} disabled={isDownloading} className="grow">
+        <div className="flex flex-col gap-2">
+          <ExtractCheckbox extract={shouldExtract} setExtract={setShouldExtract} />
+          <Button
+            onClick={download}
+            disabled={isDownloading || !inputReceipt || inputReceipt.status === "error"}
+            loading={isDownloading}
+            className="w-full"
+            tooltip={
+              isDownloading
+                ? "Download in progress"
+                : !inputReceipt
+                  ? "Upload a receipt file first"
+                  : inputReceipt.status === "error"
+                    ? "Fix receipt file errors"
+                    : ""
+            }
+          >
             {isDownloading ? "Downloading..." : "Download"}
           </Button>
-          <ExtractCheckbox extract={shouldExtract} setExtract={setShouldExtract} />
         </div>
       </div>
     </>

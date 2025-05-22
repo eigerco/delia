@@ -1,11 +1,9 @@
+import { Button } from "./Button";
+
 export function RefreshButton() {
   return (
-    <button
-      type="button"
-      onClick={() => window.location.reload()}
-      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-    >
-      {"Try again"}
-    </button>
+    <Button onClick={() => window.location.reload()} variant="primary" size="md">
+      Try again
+    </Button>
   );
 }
