@@ -12,7 +12,8 @@
     "lint": "biome lint ./src && biome format ./src && tsc",
     "fmt": "biome format --write ./src",
     "fmt-check": "biome format ./src",
-    "prepare": "husky"
+    "prepare": "husky",
+    "wasm-test": "wasm-pack test --node ./wasm-commp"
   },
   "dependencies": {
     "@chainsafe/libp2p-noise": "^16.0.3",

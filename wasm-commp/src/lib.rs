@@ -58,6 +58,10 @@ pub fn setup_logging() {
 /// A JS string containing the CID.
 #[wasm_bindgen(js_name = "commpFromBytes")]
 pub fn commp_from_bytes(data: &[u8]) -> Result<JsValue, JsValue> {
+    if data.is_empty() {
+        return Err(JsValue::from_str("Input data must not be empty"));
+    }
+
     let file_size = data.len() as u64;
     let padded_piece_size = PaddedPieceSize::from_arbitrary_size(file_size);
 
@@ -66,8 +70,7 @@ pub fn commp_from_bytes(data: &[u8]) -> Result<JsValue, JsValue> {
     let buffered = Cursor::new(data);
     let mut zero_padding_reader = ZeroPaddingReader::new(buffered, padded_with_zeroes);
 
-    let commitment =
-        calculate_piece_commitment(&mut zero_padding_reader, padded_piece_size).unwrap();
+    let commitment = calculate_piece_commitment(&mut zero_padding_reader, padded_piece_size)?;
 
     info!("CID from Rust: {}", commitment.cid());
 
@@ -115,13 +118,121 @@ pub fn calculate_piece_commitment<R: Read>(
 
     let leaves = (0..num_leafs)
         .map(|_| {
-            fr32_reader.read_exact(&mut buffer).unwrap();
-            buffer
+            fr32_reader
+                .read_exact(&mut buffer)
+                .map_err(|e| JsValue::from_str(&format!("Read error: {}", e)))?;
+            Ok(buffer)
         })
-        .collect::<Vec<[u8; 32]>>();
+        .collect::<Result<Vec<_>, JsValue>>()?;
 
     let tree = MerkleTree::<Sha256>::from_leaves(&leaves);
-    let raw = tree.root().unwrap();
+    let raw = tree
+        .root()
+        .ok_or_else(|| JsValue::from_str("Merkle tree is empty"))?;
 
     Ok(raw.into())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    /// Macro for testing the `padded_piece_size` function with specific input sizes.
+    ///
+    /// Parameters:
+    /// - `$name`: The name of the generated test function.
+    /// - `$input_size`: The number of bytes in the input buffer.
+    /// - `$expected`: The expected padded piece size as a string.
+    ///
+    /// This macro:
+    /// 1. Constructs a buffer of `$input_size` bytes (zeroed),
+    /// 2. Calls `padded_piece_size()` on the buffer,
+    /// 3. Asserts that the returned string matches `$expected`.
+    macro_rules! padded_piece_test {
+        ($name:ident, $input_size:expr, $expected:expr) => {
+            #[wasm_bindgen_test]
+            fn $name() {
+                let data = vec![0; $input_size];
+                let result = padded_piece_size(&data).unwrap().as_string().unwrap();
+                assert_eq!(
+                    result, $expected,
+                    "input: {} bytes, expected padded size: {}, got: {}",
+                    $input_size, $expected, result
+                );
+            }
+        };
+    }
+
+    // Input is 127 bytes, just below the 128 threshold.
+    // Should round up to 128 padded bytes.
+    padded_piece_test!(padded_127_bytes, 127, "128");
+    // Input is exactly 128 bytes.
+    // Because of the `(size + size/127)` rule, it becomes 129 -> next_power_of_two = 256.
+    padded_piece_test!(padded_128_bytes, 128, "256");
+    // Input is 254 bytes, which becomes 256 after formula,
+    // and 256 is already a power of two.
+    padded_piece_test!(padded_254_bytes, 254, "256");
+    // Input is 1024 bytes, becomes 1032 -> next_power_of_two = 2048.
+    padded_piece_test!(padded_1024_bytes, 1024, "2048");
+    // Input is 3000 bytes, padded to 3023 -> next_power_of_two = 4096.
+    padded_piece_test!(padded_3000_bytes, 3000, "4096");
+    // Input is exactly 4096 bytes, becomes 4128 -> next_power_of_two = 8192.
+    padded_piece_test!(padded_4096_bytes, 4096, "8192");
+
+    /// Macro for defining CommP-related tests.
+    ///
+    /// Parameters:
+    /// - `$name`: The name of the test function.
+    /// - `$input`: The input byte array for `commp_from_bytes`.
+    /// - `|$cid|`: A binding name for the resulting CID string inside the test block.
+    /// - `$assert`: The test body block that receives the CID and performs assertions.
+    ///
+    /// This macro expands into a `#[wasm_bindgen_test]` function that:
+    /// 1. Calls `commp_from_bytes` on the given input,
+    /// 2. Binds the resulting CID string to the given identifier,
+    /// 3. Executes the assertion block using that CID.
+    macro_rules! commp_case {
+        ($name:ident, $input:expr, |$cid:ident| $assert:block) => {
+            #[wasm_bindgen_test]
+            fn $name() {
+                let $cid = commp_from_bytes(&$input).unwrap().as_string().unwrap();
+                $assert
+            }
+        };
+    }
+
+    // Ensure that repeated calls with the same input yield the same CID (deterministic behavior).
+    commp_case!(same_input_same_cid, vec![0x42; 127], |cid| {
+        let cid2 = commp_from_bytes(&vec![0x42; 127])
+            .unwrap()
+            .as_string()
+            .unwrap();
+        assert_eq!(cid, cid2, "CID must be identical across same input");
+    });
+
+    // Ensure that different input content produces different CIDs.
+    commp_case!(different_input_different_cid, vec![0x00; 127], |cid| {
+        let cid2 = commp_from_bytes(&vec![0xFF; 127])
+            .unwrap()
+            .as_string()
+            .unwrap();
+        assert_ne!(cid, cid2, "Different input should yield different CID");
+    });
+
+    // Ensure that the generated CID follows the expected CIDv1 format ("baga..." prefix).
+    commp_case!(cid_has_expected_prefix, vec![0x42; 127], |cid| {
+        assert!(cid.starts_with("baga"), "CID should start with baga");
+    });
+
+    // Ensure that the generated CID is 64 bytes
+    commp_case!(cid_length_is_consistent, vec![0x42; 127], |cid| {
+        assert_eq!(cid.len(), 64, "CID length should match 64");
+    });
+
+    #[wasm_bindgen_test]
+    fn commp_rejects_empty_input() {
+        let result = commp_from_bytes(&[]);
+        assert!(result.is_err(), "Empty input should result in error");
+    }
 }
