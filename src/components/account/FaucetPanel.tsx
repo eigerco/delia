@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { useCtx } from "../../GlobalCtx";
 import { sendUnsigned } from "../../lib/sendTransaction";
 import { Transaction, TransactionState, type TransactionStatus } from "../../lib/transactionStatus";
+import { Button } from "../buttons/Button";
 
 interface FaucetPanelProps {
   selectedAddress: string;
@@ -44,20 +45,17 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
         Use this to request testnet funds from the faucet. No signature is required.
       </p>
 
-      <button
-        type="button"
+      <Button
         disabled={faucetStatus.state === TransactionState.Loading}
-        className={`px-3 py-2 rounded text-sm transition ${
-          faucetStatus.state === TransactionState.Loading
-            ? "bg-gray-300 cursor-not-allowed"
-            : "bg-blue-600 text-white hover:bg-blue-700"
-        }`}
+        loading={faucetStatus.state === TransactionState.Loading}
         onClick={handleDrip}
+        variant="primary"
+        tooltip={faucetStatus.state === TransactionState.Loading ? "Request in progress" : ""}
       >
         {faucetStatus.state === TransactionState.Loading
-          ? "\u23F3 Requesting..."
-          : "\uD83D\uDCB0 Request 10 Test Tokens"}
-      </button>
+          ? "Requesting..."
+          : "💰 Request 10 Test Tokens"}
+      </Button>
     </div>
   );
 }

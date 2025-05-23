@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { useCtx } from "../../GlobalCtx";
 import { sendTransaction } from "../../lib/sendTransaction";
 import { Transaction, TransactionState, type TransactionStatus } from "../../lib/transactionStatus";
+import { Button } from "../buttons/Button";
 
 interface MarketDepositProps {
   selectedAddress: string;
@@ -40,13 +41,7 @@ export function MarketDeposit({ selectedAddress, walletBalance, onSuccess }: Mar
       }),
       {
         loading: "Processing market deposit...",
-        success: (txHash) => (
-          <>
-            Market deposit successful!
-            <br />
-            Tx Hash: <code className="break-all">{txHash}</code>
-          </>
-        ),
+        success: (_txHash) => "Market deposit successful!",
         error: (err) => `Deposit failed: ${err}`,
       },
     );
@@ -82,18 +77,23 @@ export function MarketDeposit({ selectedAddress, walletBalance, onSuccess }: Mar
 
         <span>= {tokenProperties.formatUnit(depositAmount, true)}</span>
 
-        <button
-          type="button"
+        <Button
           disabled={isDepositDisabled}
+          loading={depositStatus.state === TransactionState.Loading}
           onClick={handleDeposit}
-          className={`px-3 py-2 rounded text-sm transition ${
-            isDepositDisabled
-              ? "bg-gray-300 cursor-not-allowed"
-              : "bg-green-600 text-white hover:bg-green-700"
-          }`}
+          variant="primary"
+          tooltip={
+            depositAmount <= 0n
+              ? "Enter an amount greater than 0"
+              : depositAmount > walletBalance
+                ? "Amount exceeds your wallet balance"
+                : depositStatus.state === TransactionState.Loading
+                  ? "Transaction in progress"
+                  : ""
+          }
         >
-          {depositStatus.state === TransactionState.Loading ? "⏳ Processing..." : "➕ Deposit"}
-        </button>
+          {depositStatus.state === TransactionState.Loading ? "Processing..." : "➕ Deposit"}
+        </Button>
       </div>
 
       {isZero && <p className="text-sm text-red-600">⚠️ Deposit value must be greater than 0.</p>}
