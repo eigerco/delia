@@ -26,21 +26,10 @@ export function Button({
 }: ButtonProps) {
   const baseClasses = "transition font-medium rounded flex items-center justify-center";
 
-  const sizeClasses = {
-    sm: "px-2 py-1 text-xs",
-    md: "px-3 py-2 text-sm",
-    lg: "px-4 py-2.5 text-base",
-  };
-
-  const variantClasses = {
-    primary: "bg-blue-600 text-white hover:bg-blue-700",
-    secondary: "bg-gray-200 text-gray-800 hover:bg-gray-300",
-    success: "bg-green-600 text-white hover:bg-green-700",
-    danger: "bg-red-600 text-white hover:bg-red-700",
-  };
+  const sizeClasses = getSizeClass(size);
+  const variantClasses = getVariantClass(variant);
 
   const disabledClasses = "bg-gray-300 text-gray-500 cursor-not-allowed";
-
   const isDisabled = disabled || loading;
 
   // Decide whether to show the tooltip
@@ -66,8 +55,8 @@ export function Button({
     <ButtonWithWrapper>
       <button
         type="button"
-        className={`${baseClasses} ${sizeClasses[size]} ${
-          isDisabled ? disabledClasses : variantClasses[variant]
+        className={`${baseClasses} ${sizeClasses} ${
+          isDisabled ? disabledClasses : variantClasses
         } ${className}`}
         onClick={onClick}
         disabled={isDisabled}
@@ -105,4 +94,28 @@ export function Button({
       </button>
     </ButtonWithWrapper>
   );
+}
+
+function getSizeClass(size: ButtonSize): string {
+  switch (size) {
+    case "sm":
+      return "px-2 py-1 text-xs";
+    case "md":
+      return "px-3 py-2 text-sm";
+    case "lg":
+      return "px-4 py-2.5 text-base";
+  }
+}
+
+function getVariantClass(variant: ButtonVariant): string {
+  switch (variant) {
+    case "primary":
+      return "bg-blue-600 text-white hover:bg-blue-700";
+    case "secondary":
+      return "bg-gray-200 text-gray-800 hover:bg-gray-300";
+    case "success":
+      return "bg-green-600 text-white hover:bg-green-700";
+    case "danger":
+      return "bg-red-600 text-white hover:bg-red-700";
+  }
 }
