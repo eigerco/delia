@@ -87,7 +87,12 @@ export function MarketWithdrawal({
             placeholder="Amount in Planck"
             className="w-full px-3 py-2 border rounded text-sm pr-16"
           />
-          <Button onClick={setMaxAmount} variant="max" size="sm">
+          <Button
+            onClick={setMaxAmount}
+            variant="primary"
+            size="sm"
+            className="text-xs px-2 py-1 absolute right-1 top-1/2 transform -translate-y-1/2"
+          >
             MAX
           </Button>
         </div>

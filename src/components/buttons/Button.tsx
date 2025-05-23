@@ -1,6 +1,6 @@
 import type React from "react";
 
-type ButtonVariant = "primary" | "success" | "danger" | "secondary" | "max";
+type ButtonVariant = "primary" | "secondary" | "success" | "danger";
 type ButtonSize = "sm" | "md" | "lg";
 
 type ButtonProps = React.PropsWithChildren<{
@@ -34,10 +34,9 @@ export function Button({
 
   const variantClasses = {
     primary: "bg-blue-600 text-white hover:bg-blue-700",
+    secondary: "bg-gray-200 text-gray-800 hover:bg-gray-300",
     success: "bg-green-600 text-white hover:bg-green-700",
     danger: "bg-red-600 text-white hover:bg-red-700",
-    secondary: "bg-gray-200 text-gray-800 hover:bg-gray-300",
-    max: "bg-blue-600 text-white hover:bg-blue-700 text-xs px-2 py-1 absolute right-1 top-1/2 transform -translate-y-1/2",
   };
 
   const disabledClasses = "bg-gray-300 text-gray-500 cursor-not-allowed";
