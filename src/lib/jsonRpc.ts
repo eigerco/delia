@@ -43,7 +43,6 @@ export type OnChainDealProposal = {
   pieceCid: string;
   pieceSize: number;
   provider: string;
-  providerCollateral: number;
   startBlock: number;
   state: OnChainDealState;
   storagePricePerBlock: number;
