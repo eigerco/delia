@@ -48,11 +48,6 @@ async function executeDeal(
 ): Promise<DealId> {
   const peerIdMultiaddress = await resolvePeerIdMultiaddrs(collatorWsProvider, providerInfo.peerId);
 
-  // TODO(@th7nder,18/04/2025): https://github.com/eigerco/polka-storage/issues/835
-  // Collateral hardcoded as 2 * total deal price.
-  // It should be set on-chain not here.
-  const collateral = 2 * dealInfo.durationInBlocks * providerInfo.pricePerBlock;
-
   let targetStorageProvider:
     | {
         services: Services.StorageProviderServices;
@@ -91,7 +86,6 @@ async function executeDeal(
       dealInfo.proposal,
       providerInfo.accountId,
       providerInfo.pricePerBlock,
-      collateral,
       dealInfo.startBlock,
       dealInfo.endBlock,
     ),
@@ -119,7 +113,6 @@ async function executeDeal(
     dealInfo.proposal,
     providerInfo.accountId,
     providerInfo.pricePerBlock,
-    collateral,
     dealInfo.startBlock,
     dealInfo.endBlock,
     registry,

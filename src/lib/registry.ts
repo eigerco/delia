@@ -18,7 +18,6 @@ export function setupTypeRegistry(): TypeRegistry {
       start_block: "u64",
       end_block: "u64",
       storage_price_per_block: "u128",
-      provider_collateral: "u128",
       state: "DealState",
     },
   });

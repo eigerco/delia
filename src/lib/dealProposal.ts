@@ -18,7 +18,6 @@ export const toRpc = (
   validated: FormValues,
   provider: string,
   pricePerBlock: number,
-  collateral: number,
   startBlock: number,
   endBlock: number,
 ): RpcFields => ({
@@ -30,7 +29,6 @@ export const toRpc = (
   start_block: startBlock,
   end_block: endBlock,
   storage_price_per_block: pricePerBlock,
-  provider_collateral: collateral,
   state: "Published",
 });
 
@@ -39,7 +37,6 @@ export const toSCALEable = (
   validated: FormValues,
   provider: string,
   pricePerBlock: number,
-  collateral: number,
   startBlock: number,
   endBlock: number,
 ): SCALEableFields => ({
@@ -51,7 +48,6 @@ export const toSCALEable = (
   start_block: startBlock,
   end_block: endBlock,
   storage_price_per_block: pricePerBlock,
-  provider_collateral: collateral,
   deal_state: { Published: null },
 });
 
@@ -67,21 +63,13 @@ export const createSignedRpc = async (
   validated: FormValues,
   provider: string,
   pricePerBlock: number,
-  collateral: number,
   startBlock: number,
   endBlock: number,
   registry: TypeRegistry,
   account: InjectedAccountWithMeta,
 ): Promise<SignedRpcFields> => {
-  const rpc = toRpc(validated, provider, pricePerBlock, collateral, startBlock, endBlock);
-  const scaleable = toSCALEable(
-    validated,
-    provider,
-    pricePerBlock,
-    collateral,
-    startBlock,
-    endBlock,
-  );
+  const rpc = toRpc(validated, provider, pricePerBlock, startBlock, endBlock);
+  const scaleable = toSCALEable(validated, provider, pricePerBlock, startBlock, endBlock);
   const scale = encodeSCALEable(scaleable, registry);
   const signed = await signRaw(account, u8aToHex(scale));
 
@@ -100,7 +88,6 @@ export type RpcFields = {
   start_block: number;
   end_block: number;
   storage_price_per_block: number;
-  provider_collateral: number;
   state: "Published";
 };
 
@@ -118,6 +105,5 @@ export type SCALEableFields = {
   start_block: number;
   end_block: number;
   storage_price_per_block: number;
-  provider_collateral: number;
   deal_state: { Published: null };
 };
