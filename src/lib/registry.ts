@@ -6,7 +6,7 @@ export function setupTypeRegistry(): TypeRegistry {
     DealState: {
       _enum: {
         Published: null,
-        Active: "u64",
+        Active: "BlockNumber",
       },
     },
     DealProposal: {
@@ -15,8 +15,8 @@ export function setupTypeRegistry(): TypeRegistry {
       client: "AccountId",
       provider: "AccountId",
       label: "Bytes",
-      start_block: "u64",
-      end_block: "u64",
+      start_block: "BlockNumber",
+      end_block: "BlockNumber",
       storage_price_per_block: "u128",
       state: "DealState",
     },
