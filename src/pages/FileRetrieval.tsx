@@ -36,6 +36,7 @@ export function Retrieval() {
   const [inputReceipt, setInputReceipt] = useState<InputReceipt | null>(null);
   const [shouldExtract, setShouldExtract] = useState<boolean>(true);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [canDownload, setCanDownload] = useState(false);
 
   const downloadInner = async () => {
     if (!collatorWsProvider || !collatorWsApi) {
@@ -121,13 +122,20 @@ export function Retrieval() {
           <></>
         )}
 
-        {inputReceipt?.status === "ok" && <DealStatus receipt={inputReceipt.receipt} />}
+        {inputReceipt?.status === "ok" && (
+          <DealStatus
+            receipt={inputReceipt.receipt}
+            onCanDownload={(canDownload) => setCanDownload(canDownload)}
+          />
+        )}
 
         <div className="flex flex-col gap-2">
           <ExtractCheckbox extract={shouldExtract} setExtract={setShouldExtract} />
           <Button
             onClick={download}
-            disabled={isDownloading || !inputReceipt || inputReceipt.status === "error"}
+            disabled={
+              isDownloading || !inputReceipt || inputReceipt.status === "error" || !canDownload
+            }
             loading={isDownloading}
             className="w-full"
             tooltip={
