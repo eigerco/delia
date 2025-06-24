@@ -117,7 +117,7 @@ export function DealStatus({ receipt, onCanDownload }: DealStatusProps) {
             setDealsStatus(State.loaded(deals));
 
             if (onCanDownload) {
-              const canDownload = deals.every(([, deal]) => deal?.state && "active" in deal.state);
+              const canDownload = deals.some(([, deal]) => deal?.state && "active" in deal.state);
               onCanDownload(canDownload);
             }
           },
