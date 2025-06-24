@@ -1,13 +1,12 @@
-import { web3AccountsSubscribe, web3Enable } from "@polkadot/extension-dapp";
+import { isWeb3Injected, web3Accounts, web3Enable } from "@polkadot/extension-dapp";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { Loader2 } from "lucide-react";
-import React, { useState } from "react";
-import { RefreshButton } from "./buttons/RefreshButton";
+import { useCallback, useEffect, useState } from "react";
+import { Button } from "./buttons/Button";
 
-enum ConnectionStatus {
-  Connecting = 0,
-  Connected = 1,
-  Failed = 2,
+enum WalletError {
+  NoExtension = "no_extension",
+  NoAccounts = "no_accounts",
 }
 
 export function ConnectWallet({
@@ -15,76 +14,100 @@ export function ConnectWallet({
 }: {
   onConnect: (accounts: InjectedAccountWithMeta[]) => void;
 }) {
-  const [status, setStatus] = useState(ConnectionStatus.Connecting);
-  const [error, setError] = useState<string | null>(null);
+  const [connecting, setConnecting] = useState(false);
+  const [connectedAccounts, setConnectedAccounts] = useState<InjectedAccountWithMeta[] | null>(
+    null,
+  );
+  const [error, setError] = useState<WalletError | null>(null);
 
-  React.useEffect(() => {
-    const connectWallet = async () => {
-      const extensions = await web3Enable("Delia");
-      if (extensions.length === 0) {
-        setError("No extension found, please install the Polkadot.js extension");
-        setStatus(ConnectionStatus.Failed);
+  const connect = useCallback(async () => {
+    setConnecting(true);
+    setError(null);
+
+    try {
+      if (!isWeb3Injected) {
+        setError(WalletError.NoExtension);
         return;
       }
 
-      web3AccountsSubscribe((accounts) => {
-        if (accounts.length === 0) {
-          setError("No accounts found. Please create an account in your Polkadot.js extension");
-          setStatus(ConnectionStatus.Failed);
-          return;
-        }
+      const extensions = await web3Enable("Delia");
+      if (extensions.length === 0) {
+        return;
+      }
 
-        onConnect(accounts);
-        setStatus(ConnectionStatus.Connected);
-      });
-    };
+      const accounts = await web3Accounts();
+      if (accounts.length === 0) {
+        setError(WalletError.NoAccounts);
+        return;
+      }
 
-    connectWallet();
+      setConnectedAccounts(accounts);
+      onConnect(accounts);
+    } finally {
+      setConnecting(false);
+    }
   }, [onConnect]);
 
-  switch (status) {
-    case ConnectionStatus.Connecting: {
-      return (
-        <div className="items-center py-8">
-          <Loader2 className="animate-spin mx-auto mb-4" size={32} />
-          <p>Connecting to Polkadot.js extension...</p>
-          <p className="text-sm text-gray-500 mt-2">
-            Please accept the connection request in the extension
-          </p>
-        </div>
-      );
+  useEffect(() => {
+    if (isWeb3Injected && !connectedAccounts) {
+      // Let React render before blocking popup call
+      const timeout = setTimeout(() => connect(), 0);
+      return () => clearTimeout(timeout);
     }
-    case ConnectionStatus.Connected: {
-      return (
-        <div className="text-center py-8">
-          <p className="text-sm text-gray-500 mt-2">Connected</p>
-        </div>
-      );
-    }
-    case ConnectionStatus.Failed: {
-      return (
-        <div className="text-center py-8">
-          <div className="flex flex-col gap-2 mb-4 p-4 bg-red-50 text-red-700 rounded-lg">
-            <p className="font-medium">Connection Failed</p>
+  }, [connectedAccounts, connect]);
 
-            <p className="text-sm">Error message: {error}</p>
-
-            <div>
-              <p className="text-sm font-bold">Troubleshooting:</p>
-              <div className="flex justify-center">
-                <ul className="text-left text-sm list-decimal list-inside">
-                  <li>Ensure the Polkadot.js extension is installed and enabled</li>
-                  <li>Open the Polkadot extension</li>
-                  <li>Click on "Connect Accounts"</li>
-                  <li>Select the accounts you want to enable for Polka Storage</li>
-                  <li>Confirm your selection by clicking on "Connect X accounts"</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-          <RefreshButton />
-        </div>
-      );
-    }
+  if (connecting) {
+    return (
+      <div className="py-6 text-center">
+        <Loader2 className="animate-spin mx-auto mb-2" size={24} />
+        <p className="text-sm text-gray-600">Connecting to wallet...</p>
+      </div>
+    );
   }
+
+  if (connectedAccounts) {
+    return (
+      <div className="py-6 text-center">
+        <p className="text-sm text-gray-600">Connected</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="py-6 text-center">
+      <Button
+        onClick={connect}
+        className="mx-auto px-5 py-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold shadow-md hover:shadow-lg transition duration-200 ease-in-out"
+      >
+        <div className="flex items-center gap-2">
+          <img src="static/polkadotjs.png" alt="Polkadot" className="w-5 h-5" />
+          <span>Connect Wallet</span>
+        </div>
+      </Button>
+
+      {error === WalletError.NoExtension && (
+        <p className="mt-2 text-sm text-red-500">
+          Polkadot.js extension not found.{" "}
+          <a
+            href="https://polkadot.js.org/extension/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline text-blue-600"
+          >
+            Install it here
+          </a>
+        </p>
+      )}
+
+      {error === WalletError.NoAccounts && (
+        <p className="mt-2 text-sm text-red-500">
+          No accounts found.{" "}
+          <span className="block">
+            Please open the <strong>Polkadot.js extension</strong>, go to{" "}
+            <em>“Manage Website Access”</em>, and ensure accounts are authorized for this site.
+          </span>
+        </p>
+      )}
+    </div>
+  );
 }
