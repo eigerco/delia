@@ -24,28 +24,28 @@ export function ConnectWallet({
     setConnecting(true);
     setError(null);
 
-    if (!isWeb3Injected) {
-      setError(WalletError.NoExtension);
-      setConnecting(false);
-      return;
-    }
+    try {
+      if (!isWeb3Injected) {
+        setError(WalletError.NoExtension);
+        return;
+      }
 
-    const extensions = await web3Enable("Delia");
-    if (extensions.length === 0) {
-      setConnecting(false);
-      return;
-    }
+      const extensions = await web3Enable("Delia");
+      if (extensions.length === 0) {
+        return;
+      }
 
-    const accounts = await web3Accounts();
-    if (accounts.length === 0) {
-      setError(WalletError.NoAccounts);
-      setConnecting(false);
-      return;
-    }
+      const accounts = await web3Accounts();
+      if (accounts.length === 0) {
+        setError(WalletError.NoAccounts);
+        return;
+      }
 
-    setConnectedAccounts(accounts);
-    onConnect(accounts);
-    setConnecting(false);
+      setConnectedAccounts(accounts);
+      onConnect(accounts);
+    } finally {
+      setConnecting(false);
+    }
   }, [onConnect]);
 
   useEffect(() => {
