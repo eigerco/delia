@@ -91,8 +91,11 @@ function DealState({ id, deal }: { id: number; deal: OnChainDealProposal | null 
   );
 }
 
-type DealStatusProps = { receipt: SubmissionReceipt };
-export function DealStatus({ receipt }: DealStatusProps) {
+type DealStatusProps = {
+  receipt: SubmissionReceipt;
+  onCanDownload: (canDownload: boolean) => void;
+};
+export function DealStatus({ receipt, onCanDownload }: DealStatusProps) {
   const { collatorWsApi } = useCtx();
 
   const [dealsStatus, setDealsStatus] = useState<State>(State.idle());
@@ -112,19 +115,20 @@ export function DealStatus({ receipt }: DealStatusProps) {
               collatorWsApi,
             );
             setDealsStatus(State.loaded(deals));
+
+            if (onCanDownload) {
+              const canDownload = deals.some(([, deal]) => deal?.state && "active" in deal.state);
+              onCanDownload(canDownload);
+            }
           },
           { loading: "Fetching deal status" },
         );
       } catch (error) {
-        if (error instanceof Error) {
-          setDealsStatus(State.error(error.message));
-        } else {
-          // This ain't great but what can we do here?
-          setDealsStatus(State.error(JSON.stringify(error)));
-        }
+        setDealsStatus(State.error(error instanceof Error ? error.message : JSON.stringify(error)));
+        if (onCanDownload) onCanDownload(false);
       }
     },
-    [collatorWsApi],
+    [collatorWsApi, onCanDownload],
   );
 
   useEffect(() => {
