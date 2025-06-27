@@ -89,7 +89,7 @@ export function ProviderSelector({ control, name, error, totalPrice }: ProviderS
       newProviders.set(key.args[0].toString(), spInfo);
     }
 
-    const params = await polkaStorageApi.query.market.spDealParameters.entries();
+    const params = await polkaStorageApi.query.storageProvider.spDealParameters.entries();
     for (const [key, value] of params) {
       const providerId = key.args[0].toString();
       const dealParams = value.toJSON() as unknown as DealParams;
