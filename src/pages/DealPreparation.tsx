@@ -205,11 +205,23 @@ export function DealPreparation() {
             pricePerBlock: spInfo.dealParams.minimumPricePerBlock,
           };
 
-          submissionResults.deals.push({
-            storageProviderAccountId: providerInfo.accountId,
-            storageProviderPeerId: providerInfo.peerId,
-            dealId: await performDealToastWrapper(providerInfo, dealInfo),
-          });
+          try {
+            submissionResults.deals.push({
+              storageProviderAccountId: providerInfo.accountId,
+              storageProviderPeerId: providerInfo.peerId,
+              dealId: await performDealToastWrapper(providerInfo, dealInfo),
+            });
+          } catch (err) {
+            if (err instanceof Error) {
+              console.error(err.message);
+            } else {
+              console.error(err);
+            }
+          }
+        }
+
+        if (submissionResults.deals.length === 0) {
+          throw new Error("All deals failed. No receipt generated.");
         }
 
         createDownloadTrigger("deal.json", new Blob([JSON.stringify(submissionResults.toJSON())]));
