@@ -48,7 +48,7 @@ const queryDealStatus = async (
   collatorWsApi: ApiPromise,
 ): Promise<Array<[number, OnChainDealProposal | null]>> => {
   const queries = dealIds.map((id) => {
-    return [collatorWsApi.query.market.proposals, id];
+    return [collatorWsApi.query.storageProvider.proposals, id];
   });
   // @ts-ignore: queries is marked with the wrong type but it's correct
   const results = await collatorWsApi.queryMulti(queries);

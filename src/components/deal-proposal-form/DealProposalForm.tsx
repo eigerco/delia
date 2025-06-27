@@ -144,7 +144,7 @@ export function DealProposalForm({
 
     setBalanceStatus(BalanceStatus.loading);
     try {
-      const result = await api.query.market.balanceTable(client);
+      const result = await api.query.balances.account(client);
       const record = result.toJSON() as Record<string, number>;
       setBalanceStatus(BalanceStatus.fetched(BigInt(record.free)));
     } catch (err) {
