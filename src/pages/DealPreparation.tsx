@@ -220,6 +220,10 @@ export function DealPreparation() {
           }
         }
 
+        if (submissionResults.deals.length === 0) {
+          throw new Error("All deals failed. No receipt generated.");
+        }
+
         createDownloadTrigger("deal.json", new Blob([JSON.stringify(submissionResults.toJSON())]));
       },
       {
