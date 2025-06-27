@@ -13,8 +13,8 @@ import {
 import type { FormValues } from "../components/deal-proposal-form/types";
 import { createSignedRpc, toRpc } from "../lib/dealProposal";
 import { createDownloadTrigger } from "../lib/download";
-import { uploadFile } from "../lib/fileUpload";
-import { callProposeDeal, callPublishDeal } from "../lib/jsonRpc";
+import { proposeDeal, uploadFile } from "../lib/fileUpload";
+import { callPublishDeal } from "../lib/jsonRpc";
 import { Services } from "../lib/p2p/servicesRequestResponse";
 import { resolvePeerIdMultiaddrs } from "../lib/resolvePeerIdMultiaddr";
 import { SubmissionReceipt } from "../lib/submissionReceipt";
@@ -81,7 +81,7 @@ async function executeDeal(
     throw new Error("Could not find a client account address");
   }
 
-  const proposeDealResponse = await callProposeDeal(
+  const proposeDealResponse = await proposeDeal(
     toRpc(
       dealInfo.proposal,
       providerInfo.accountId,
@@ -91,9 +91,9 @@ async function executeDeal(
     ),
     {
       ip: targetStorageProvider.address.address,
-      port: targetStorageProvider.services.rpc.port,
+      port: targetStorageProvider.services.upload.port,
     },
-    targetStorageProvider.services.rpc.secure_url,
+    targetStorageProvider.services.upload.secure_url,
   );
 
   const response = await uploadFile(

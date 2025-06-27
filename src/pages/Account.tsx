@@ -31,7 +31,7 @@ async function fetchBalancesFor(
     const freeBalance: bigint = data.free.toBigInt();
     setWalletBalance(BalanceStatus.fetched(freeBalance));
 
-    const result = await api.query.market.balanceTable(account.address);
+    const result = await api.query.balances.account(account.address);
     // biome-ignore lint/suspicious/noExplicitAny: Use a correct type
     const balanceInfo = result as any;
     const marketBalance = balanceInfo.free.toBigInt();
