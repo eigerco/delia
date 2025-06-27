@@ -1,6 +1,8 @@
+import type { Multiaddr } from "@multiformats/multiaddr";
+
 export interface StorageProviderInfo {
   accountId: string;
-  peerId: string;
+  multiaddr: Multiaddr;
   sectorSize: string;
   windowPostPartitionSectors: string;
   windowPostProofType: string;
@@ -19,7 +21,7 @@ export interface DealParams {
 
 export function isStorageProviderInfo(obj: object): obj is StorageProviderInfo {
   return (
-    "peerId" in obj &&
+    "multiaddr" in obj &&
     "sectorSize" in obj &&
     "windowPostPartitionSectors" in obj &&
     "windowPostProofType" in obj

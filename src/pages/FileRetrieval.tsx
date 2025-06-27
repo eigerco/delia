@@ -1,3 +1,4 @@
+import { multiaddr } from "@multiformats/multiaddr";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { ZodError } from "zod";
@@ -7,7 +8,6 @@ import { Button } from "../components/buttons/Button";
 import { DealStatus } from "../components/retrieval/DealStatus";
 import { ExtractCheckbox } from "../components/retrieval/ExtractCheckbox";
 import { createDownloadTrigger } from "../lib/download";
-import { resolvePeerIdMultiaddrs } from "../lib/resolvePeerIdMultiaddr";
 import { retrieveContent } from "../lib/retrieval";
 import { SubmissionReceipt } from "../lib/submissionReceipt";
 
@@ -54,14 +54,10 @@ export function Retrieval() {
     // namely, we can make this whole resolution deal batched on the server side
     const multiaddrs = await Promise.all(
       // submissionReceipt.deals
-      inputReceipt.receipt.deals.map((deal) =>
-        resolvePeerIdMultiaddrs(collatorWsProvider, deal.storageProviderPeerId),
-      ),
+      inputReceipt.receipt.deals.map((deal) => multiaddr(deal.storageProviderMultiaddr)),
     );
-    const providers = multiaddrs.map((maddrGroup) => {
-      return maddrGroup.filter(
-        (maddr) => maddr.protoNames().includes("wss") || maddr.protoNames().includes("ws"),
-      );
+    const providers = multiaddrs.filter((maddr) => {
+      return maddr.protoNames().includes("wss") || maddr.protoNames().includes("ws");
     });
     if (providers.length === 0) {
       throw new Error("Could not find storage providers for your request!");
@@ -69,12 +65,11 @@ export function Retrieval() {
 
     const contents = await retrieveContent(
       inputReceipt.receipt.payloadCid,
-      providers,
+      // TODO: a better solution for this type here (works for now)
+      [providers],
       shouldExtract,
     );
     createDownloadTrigger(inputReceipt.receipt.filename, contents);
-    // const contents = await retrieveContent(submissionReceipt.payloadCid, providers, shouldExtract);
-    // createDownloadTrigger(submissionReceipt.filename, contents);
   };
 
   const download = async () => {
