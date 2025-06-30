@@ -4,24 +4,34 @@ import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "./buttons/Button";
 
+enum ConnectState {
+  Idle = 0,
+  Polling = 1,
+  Connecting = 2,
+  Connected = 3,
+}
+
 enum WalletError {
   NoExtension = "no_extension",
   NoAccounts = "no_accounts",
 }
+
+const MAX_ATTEMPTS = 20;
+const POLL_INTERVAL_MS = 100;
 
 export function ConnectWallet({
   onConnect,
 }: {
   onConnect: (accounts: InjectedAccountWithMeta[]) => void;
 }) {
-  const [connecting, setConnecting] = useState(false);
+  const [state, setState] = useState(ConnectState.Idle);
   const [connectedAccounts, setConnectedAccounts] = useState<InjectedAccountWithMeta[] | null>(
     null,
   );
   const [error, setError] = useState<WalletError | null>(null);
 
   const connect = useCallback(async () => {
-    setConnecting(true);
+    setState(ConnectState.Connecting);
     setError(null);
 
     try {
@@ -43,20 +53,77 @@ export function ConnectWallet({
 
       setConnectedAccounts(accounts);
       onConnect(accounts);
+      setState(ConnectState.Connected);
     } finally {
-      setConnecting(false);
+      if (state !== ConnectState.Connected) {
+        setState(ConnectState.Idle);
+      }
     }
-  }, [onConnect]);
+  }, [onConnect, state]);
 
   useEffect(() => {
-    if (isWeb3Injected && !connectedAccounts) {
-      // Let React render before blocking popup call
-      const timeout = setTimeout(() => connect(), 0);
-      return () => clearTimeout(timeout);
-    }
+    if (connectedAccounts) return;
+
+    setState(ConnectState.Polling);
+
+    let attempts = 0;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    intervalId = setInterval(() => {
+      const injected = (window as Window & { injectedWeb3?: Record<string, unknown> }).injectedWeb3;
+
+      if (injected && Object.keys(injected).length > 0) {
+        if (intervalId) clearInterval(intervalId);
+        connect();
+        return;
+      }
+
+      attempts += 1;
+      if (attempts >= MAX_ATTEMPTS) {
+        if (intervalId) clearInterval(intervalId);
+        setState(ConnectState.Idle);
+        console.warn("ConnectWallet: Timeout waiting for injectedWeb3");
+      }
+    }, POLL_INTERVAL_MS);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [connectedAccounts, connect]);
 
-  if (connecting) {
+  const renderError = () => {
+    if (error === WalletError.NoExtension) {
+      return (
+        <p className="mt-2 text-sm text-red-500">
+          Polkadot.js extension not found.{" "}
+          <a
+            href="https://polkadot.js.org/extension/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline text-blue-600"
+          >
+            Install it here
+          </a>
+        </p>
+      );
+    }
+
+    if (error === WalletError.NoAccounts) {
+      return (
+        <p className="mt-2 text-sm text-red-500">
+          No accounts found.{" "}
+          <span className="block">
+            Please open the <strong>Polkadot.js extension</strong>, go to{" "}
+            <em>“Manage Website Access”</em>, and ensure accounts are authorized for this site.
+          </span>
+        </p>
+      );
+    }
+
+    return null;
+  };
+
+  if (state === ConnectState.Polling || state === ConnectState.Connecting) {
     return (
       <div className="py-6 text-center">
         <Loader2 className="animate-spin mx-auto mb-2" size={24} />
@@ -65,7 +132,7 @@ export function ConnectWallet({
     );
   }
 
-  if (connectedAccounts) {
+  if (state === ConnectState.Connected && connectedAccounts) {
     return (
       <div className="py-6 text-center">
         <p className="text-sm text-gray-600">Connected</p>
@@ -85,29 +152,7 @@ export function ConnectWallet({
         </div>
       </Button>
 
-      {error === WalletError.NoExtension && (
-        <p className="mt-2 text-sm text-red-500">
-          Polkadot.js extension not found.{" "}
-          <a
-            href="https://polkadot.js.org/extension/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline text-blue-600"
-          >
-            Install it here
-          </a>
-        </p>
-      )}
-
-      {error === WalletError.NoAccounts && (
-        <p className="mt-2 text-sm text-red-500">
-          No accounts found.{" "}
-          <span className="block">
-            Please open the <strong>Polkadot.js extension</strong>, go to{" "}
-            <em>“Manage Website Access”</em>, and ensure accounts are authorized for this site.
-          </span>
-        </p>
-      )}
+      {renderError()}
     </div>
   );
 }
