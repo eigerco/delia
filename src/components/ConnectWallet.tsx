@@ -67,25 +67,28 @@ export function ConnectWallet({
     setState(ConnectState.Polling);
 
     let attempts = 0;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
 
-    const interval = setInterval(() => {
+    intervalId = setInterval(() => {
       const injected = (window as Window & { injectedWeb3?: Record<string, unknown> }).injectedWeb3;
 
       if (injected && Object.keys(injected).length > 0) {
-        clearInterval(interval);
+        if (intervalId) clearInterval(intervalId);
         connect();
         return;
       }
 
       attempts += 1;
       if (attempts >= MAX_ATTEMPTS) {
-        clearInterval(interval);
+        if (intervalId) clearInterval(intervalId);
         setState(ConnectState.Idle);
         console.warn("ConnectWallet: Timeout waiting for injectedWeb3");
       }
     }, POLL_INTERVAL_MS);
 
-    return () => clearInterval(interval);
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [connectedAccounts, connect]);
 
   const renderError = () => {
