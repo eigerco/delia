@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
+import type { AccountInfo } from "@polkadot/types/interfaces";
 import { useMemo } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { type FieldError, useForm } from "react-hook-form";
@@ -144,9 +145,10 @@ export function DealProposalForm({
 
     setBalanceStatus(BalanceStatus.loading);
     try {
-      const result = await api.query.balances.account(client);
-      const record = result.toJSON() as Record<string, number>;
-      setBalanceStatus(BalanceStatus.fetched(BigInt(record.free)));
+      const accountInfo = await api.query.system.account(client);
+      const { data } = accountInfo as AccountInfo;
+      const freeBalance: bigint = data.free.toBigInt();
+      setBalanceStatus(BalanceStatus.fetched(freeBalance));
     } catch (err) {
       console.error("Error fetching market balance:", err);
       setBalanceStatus(BalanceStatus.error("Failed to fetch market balance"));
