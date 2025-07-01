@@ -13,8 +13,7 @@ import {
 import type { FormValues } from "../components/deal-proposal-form/types";
 import { createSignedRpc, toRpc } from "../lib/dealProposal";
 import { createDownloadTrigger } from "../lib/download";
-import { proposeDeal, uploadFile } from "../lib/fileUpload";
-import { callPublishDeal } from "../lib/jsonRpc";
+import { proposeDeal, publishDeal, uploadFile } from "../lib/fileUpload";
 import { Services } from "../lib/p2p/servicesRequestResponse";
 import { resolvePeerIdMultiaddrs } from "../lib/resolvePeerIdMultiaddr";
 import { SubmissionReceipt } from "../lib/submissionReceipt";
@@ -118,13 +117,13 @@ async function executeDeal(
     registry,
     clientAccount,
   );
-  const dealId = await callPublishDeal(
+  const dealId = await publishDeal(
     signedRpc,
     {
       ip: targetStorageProvider.address.address,
-      port: targetStorageProvider.services.rpc.port,
+      port: targetStorageProvider.services.upload.port,
     },
-    targetStorageProvider.services.rpc.secure_url,
+    targetStorageProvider.services.upload.secure_url,
   );
 
   return dealId;
