@@ -5,8 +5,6 @@ import { Button } from "../buttons/Button";
 interface BalancePanelProps {
   selectedAddress: string;
   walletBalance: BalanceStatus;
-  marketFreeBalance: BalanceStatus;
-  marketLockedBalance: BalanceStatus;
   lastUpdated: Date | null;
   onRefresh: () => void;
 }
@@ -14,8 +12,6 @@ interface BalancePanelProps {
 export function BalancePanel({
   selectedAddress,
   walletBalance,
-  marketFreeBalance,
-  marketLockedBalance,
   lastUpdated,
   onRefresh,
 }: BalancePanelProps) {
@@ -29,16 +25,6 @@ export function BalancePanel({
         status={walletBalance}
         balanceType="Wallet"
         tooltip="Balance available in your wallet"
-      />
-      <Balance
-        status={marketFreeBalance}
-        balanceType="Market Free"
-        tooltip="Market balance available for withdrawal or creating new deals"
-      />
-      <Balance
-        status={marketLockedBalance}
-        balanceType="Market Locked"
-        tooltip="Market balance locked in active storage deals"
       />
 
       <div className="relative w-fit">

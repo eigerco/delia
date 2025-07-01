@@ -9,21 +9,16 @@ import { BalanceStatus } from "../components/Balance";
 import { AccountDropdown } from "../components/account/AccountDropdown";
 import { BalancePanel } from "../components/account/BalancePanel";
 import { FaucetPanel } from "../components/account/FaucetPanel";
-import { MarketPanel } from "../components/account/MarketPanel";
 
 async function fetchBalancesFor(
   api: ApiPromise | null,
   account: InjectedAccountWithMeta,
   setWalletBalance: (status: BalanceStatus) => void,
-  setMarketFreeBalance: (status: BalanceStatus) => void,
-  setMarketLockedBalance: (status: BalanceStatus) => void,
   setLastUpdated: (d: Date) => void,
 ) {
   if (!api) return;
 
   try {
-    setMarketFreeBalance(BalanceStatus.loading());
-    setMarketLockedBalance(BalanceStatus.loading());
     setWalletBalance(BalanceStatus.loading());
 
     const accountInfo = await api.query.system.account(account.address);
@@ -31,20 +26,10 @@ async function fetchBalancesFor(
     const freeBalance: bigint = data.free.toBigInt();
     setWalletBalance(BalanceStatus.fetched(freeBalance));
 
-    const result = await api.query.balances.account(account.address);
-    // biome-ignore lint/suspicious/noExplicitAny: Use a correct type
-    const balanceInfo = result as any;
-    const marketBalance = balanceInfo.free.toBigInt();
-    const marketLockedBalance = balanceInfo.locked.toBigInt();
-    setMarketFreeBalance(BalanceStatus.fetched(marketBalance));
-    setMarketLockedBalance(BalanceStatus.fetched(marketLockedBalance));
-
     setLastUpdated(new Date());
   } catch (err) {
     console.error("Failed to fetch balances", err);
     setWalletBalance(BalanceStatus.error("Failed to fetch wallet balance"));
-    setMarketFreeBalance(BalanceStatus.error("Failed to fetch market balance"));
-    setMarketLockedBalance(BalanceStatus.error("Failed to fetch market locked balance"));
   }
 }
 
@@ -58,20 +43,11 @@ export function Account() {
 
   const [selectedAddress, setSelectedAddress] = useState(accounts[0].address);
   const [walletBalance, setWalletBalance] = useState(BalanceStatus.idle);
-  const [marketFreeBalance, setMarketFreeBalance] = useState(BalanceStatus.idle);
-  const [marketLockedBalance, setMarketLockedBalance] = useState(BalanceStatus.idle);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const fetchBalances = useCallback(
     (account: InjectedAccountWithMeta) => {
-      void fetchBalancesFor(
-        api,
-        account,
-        setWalletBalance,
-        setMarketFreeBalance,
-        setMarketLockedBalance,
-        setLastUpdated,
-      );
+      void fetchBalancesFor(api, account, setWalletBalance, setLastUpdated);
     },
     [api],
   );
@@ -107,39 +83,30 @@ export function Account() {
         onChange={setSelectedAddress}
       />
 
-      <FaucetPanel
-        selectedAddress={selectedAddress}
-        onSuccess={() => {
-          const selected = accounts.find((a) => a.address === selectedAddress);
-          if (selected) {
-            void fetchBalances(selected);
-          }
-        }}
-      />
-
-      <MarketPanel
-        selectedAddress={selectedAddress}
-        walletBalance={walletBalance.state === "fetched" ? walletBalance.value : 0n}
-        marketBalance={marketFreeBalance.state === "fetched" ? marketFreeBalance.value : 0n}
-        onSuccess={() => {
-          const selected = accounts.find((a) => a.address === selectedAddress);
-          if (selected) {
-            void fetchBalances(selected);
-          }
-        }}
-      />
-
-      <BalancePanel
-        selectedAddress={selectedAddress}
-        walletBalance={walletBalance}
-        marketFreeBalance={marketFreeBalance}
-        marketLockedBalance={marketLockedBalance}
-        lastUpdated={lastUpdated}
-        onRefresh={() => {
-          const acc = accounts.find((a) => a.address === selectedAddress);
-          if (acc) fetchBalances(acc);
-        }}
-      />
+      <div className="flex flex-col gap-4 md:flex-row">
+        <div className="flex-1">
+          <BalancePanel
+            selectedAddress={selectedAddress}
+            walletBalance={walletBalance}
+            lastUpdated={lastUpdated}
+            onRefresh={() => {
+              const acc = accounts.find((a) => a.address === selectedAddress);
+              if (acc) fetchBalances(acc);
+            }}
+          />
+        </div>
+        <div className="flex-1">
+          <FaucetPanel
+            selectedAddress={selectedAddress}
+            onSuccess={() => {
+              const selected = accounts.find((a) => a.address === selectedAddress);
+              if (selected) {
+                void fetchBalances(selected);
+              }
+            }}
+          />
+        </div>
+      </div>
     </div>
   );
 }
