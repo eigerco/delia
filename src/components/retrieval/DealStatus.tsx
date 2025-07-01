@@ -3,8 +3,33 @@ import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useCtx } from "../../GlobalCtx";
 import { formatDuration, secondsToDuration } from "../../lib/conversion";
-import type { OnChainDealProposal } from "../../lib/jsonRpc";
 import type { SubmissionReceipt } from "../../lib/submissionReceipt";
+
+// NOTE(@jmg-duarte,07/05/2025): #52 should make this type obsolete
+type OnChainDealProposal = {
+  client: string;
+  endBlock: number;
+  label: string;
+  pieceCid: string;
+  pieceSize: number;
+  provider: string;
+  startBlock: number;
+  state: OnChainDealState;
+  storagePricePerBlock: number;
+};
+
+type OnChainDealState =
+  | {
+      active: {
+        lastUpdatedBlock: number | null;
+        sectorNumber: number;
+        sectorStartBlock: number;
+        slashBlock: number | null;
+      };
+    }
+  | {
+      published: null;
+    };
 
 enum LoadState {
   Idle = 0,

@@ -39,6 +39,6 @@ export namespace Services {
   export function isStorageProviderService(
     services: Services,
   ): services is StorageProviderServices {
-    return "rpc" in services && "upload" in services;
+    return "upload" in services;
   }
 }
