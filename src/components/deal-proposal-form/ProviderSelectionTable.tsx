@@ -38,7 +38,7 @@ export function ProviderSelectionTable({
               {Array.from(providers.entries()).map(([accountId, provider]) => {
                 // as StorageProviderInfo[], because I can't figure out how to enforce that FormValues[name] passed here will be `StorageProviderInfo[]` typed at typescript level.
                 const v = (field.value as StorageProviderInfo[]) || [];
-                const isSelected = v.some((sp) => sp.peerId === provider.peerId);
+                const isSelected = v.some((sp) => sp.multiaddr === provider.multiaddr);
 
                 return (
                   // biome-ignore lint/a11y/useKeyWithClickEvents: TODO
@@ -60,7 +60,9 @@ export function ProviderSelectionTable({
                       {tokenProperties.formatUnit(provider.dealParams.minimumPricePerBlock, true)}
                     </td>
                     <td className="px-2 w-3xs truncate border text-sm  font-mono ">{accountId}</td>
-                    <td className="px-2 truncate border text-sm  font-mono">{provider.peerId}</td>
+                    <td className="px-2 truncate border text-sm  font-mono">
+                      {provider.multiaddr.toString()}
+                    </td>
                   </tr>
                 );
               })}

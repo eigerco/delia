@@ -1,3 +1,4 @@
+import { multiaddr } from "@multiformats/multiaddr";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { ZodError } from "zod";
@@ -7,8 +8,6 @@ import { Button } from "../components/buttons/Button";
 import { DealStatus } from "../components/retrieval/DealStatus";
 import { ExtractCheckbox } from "../components/retrieval/ExtractCheckbox";
 import { createDownloadTrigger } from "../lib/download";
-import { resolvePeerIdMultiaddrs } from "../lib/resolvePeerIdMultiaddr";
-import { retrieveContent } from "../lib/retrieval";
 import { SubmissionReceipt } from "../lib/submissionReceipt";
 
 export type InputReceipt =
@@ -50,31 +49,23 @@ export function Retrieval() {
       return;
     }
 
-    // This has a bunch of improvements that can be applied,
-    // namely, we can make this whole resolution deal batched on the server side
-    const multiaddrs = await Promise.all(
-      // submissionReceipt.deals
-      inputReceipt.receipt.deals.map((deal) =>
-        resolvePeerIdMultiaddrs(collatorWsProvider, deal.storageProviderPeerId),
-      ),
-    );
-    const providers = multiaddrs.map((maddrGroup) => {
-      return maddrGroup.filter(
-        (maddr) => maddr.protoNames().includes("wss") || maddr.protoNames().includes("ws"),
-      );
-    });
-    if (providers.length === 0) {
-      throw new Error("Could not find storage providers for your request!");
+    if (inputReceipt.receipt.deals.length === 0) {
+      throw new Error("Could not find deals for your request!");
     }
 
-    const contents = await retrieveContent(
-      inputReceipt.receipt.payloadCid,
-      providers,
-      shouldExtract,
+    // This has a bunch of improvements that can be applied,
+    // namely, we can make this whole resolution deal batched on the server side
+    const providers = inputReceipt.receipt.deals.map((deal) =>
+      multiaddr(deal.storageProviderMultiaddr),
     );
-    createDownloadTrigger(inputReceipt.receipt.filename, contents);
-    // const contents = await retrieveContent(submissionReceipt.payloadCid, providers, shouldExtract);
-    // createDownloadTrigger(submissionReceipt.filename, contents);
+
+    const { address, port } = providers[0].nodeAddress();
+    const url = `http://${address}:${port}/api/v0/download/${inputReceipt.receipt.pieceCid}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to download file: ${response.statusText}`);
+    }
+    createDownloadTrigger(inputReceipt.receipt.filename, await response.blob());
   };
 
   const download = async () => {

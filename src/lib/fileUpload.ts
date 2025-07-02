@@ -6,7 +6,7 @@ export async function uploadFile(
   dealCid: string,
   address: { ip: string; port?: number } = DEFAULT_LOCAL_STORAGE_ADDRESS,
   secure_addr: string | undefined = undefined,
-) {
+): Promise<Response> {
   if (!address.port) {
     address.port = DEFAULT_LOCAL_STORAGE_ADDRESS.port;
   }
@@ -16,7 +16,7 @@ export async function uploadFile(
 
   const addr = secure_addr ? secure_addr : `http://${address.ip}:${address.port}`;
 
-  return await fetch(`${addr}/upload/${dealCid}`, {
+  return await fetch(`${addr}/api/v0/upload/${dealCid}`, {
     method: "PUT",
     body,
   });

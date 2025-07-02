@@ -7,14 +7,14 @@ const FIL_COMMITMENT_UNSEALED_CODEC = 0xf101;
 
 namespace DealResult {
   export const schema = z.object({
-    storageProviderPeerId: z.string(),
+    storageProviderMultiaddr: z.string(),
     storageProviderAccountId: z.string(),
     dealId: z.number(),
   });
 }
 
 type DealResult = {
-  storageProviderPeerId: string;
+  storageProviderMultiaddr: string;
   storageProviderAccountId: string;
   dealId: number;
 };

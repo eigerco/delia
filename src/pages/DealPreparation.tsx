@@ -1,5 +1,4 @@
-import type { NodeAddress } from "@multiformats/multiaddr";
-import type { WsProvider } from "@polkadot/api";
+import type { Multiaddr } from "@multiformats/multiaddr";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import type { TypeRegistry } from "@polkadot/types";
 import { Loader2 } from "lucide-react";
@@ -14,8 +13,6 @@ import type { FormValues } from "../components/deal-proposal-form/types";
 import { createSignedRpc, toRpc } from "../lib/dealProposal";
 import { createDownloadTrigger } from "../lib/download";
 import { proposeDeal, publishDeal, uploadFile } from "../lib/fileUpload";
-import { Services } from "../lib/p2p/servicesRequestResponse";
-import { resolvePeerIdMultiaddrs } from "../lib/resolvePeerIdMultiaddr";
 import { SubmissionReceipt } from "../lib/submissionReceipt";
 
 type OutletContextType = {
@@ -32,7 +29,7 @@ type DealInfo = {
 
 type ProviderInfo = {
   accountId: string;
-  peerId: string;
+  multiaddr: Multiaddr;
   pricePerBlock: number;
 };
 
@@ -42,38 +39,9 @@ async function executeDeal(
   accounts: InjectedAccountWithMeta[],
   providerInfo: ProviderInfo,
   dealInfo: DealInfo,
-  collatorWsProvider: WsProvider,
   registry: TypeRegistry,
 ): Promise<DealId> {
-  const peerIdMultiaddress = await resolvePeerIdMultiaddrs(collatorWsProvider, providerInfo.peerId);
-
-  let targetStorageProvider:
-    | {
-        services: Services.StorageProviderServices;
-        address: NodeAddress;
-      }
-    | undefined;
-  for (const maddr of peerIdMultiaddress) {
-    try {
-      const response = await Services.sendRequest("All", maddr);
-      if (Services.isStorageProviderService(response.services)) {
-        targetStorageProvider = {
-          services: response.services,
-          address: maddr.nodeAddress(),
-        };
-        console.log("selected maddr: ", maddr.toString());
-        break;
-      }
-    } catch (err) {
-      console.warn("failed to connect to ", maddr.toString());
-    }
-  }
-
-  console.log("SERVICES!", targetStorageProvider?.services);
-
-  if (!targetStorageProvider) {
-    throw new Error("Could not find an address to upload the files to.");
-  }
+  const { address, port } = providerInfo.multiaddr.nodeAddress();
 
   const clientAccount = accounts.find((v) => v.address === dealInfo.proposal.client);
   if (!clientAccount) {
@@ -89,21 +57,15 @@ async function executeDeal(
       dealInfo.endBlock,
     ),
     {
-      ip: targetStorageProvider.address.address,
-      port: targetStorageProvider.services.upload.port,
+      ip: address,
+      port: port,
     },
-    targetStorageProvider.services.upload.secure_url,
   );
 
-  const response = await uploadFile(
-    dealInfo.file,
-    proposeDealResponse,
-    {
-      ip: targetStorageProvider.address.address,
-      port: targetStorageProvider.services.upload.port,
-    },
-    targetStorageProvider.services.upload.secure_url,
-  );
+  const response = await uploadFile(dealInfo.file, proposeDealResponse, {
+    ip: address,
+    port: port,
+  });
   if (!response.ok) {
     throw new Error(response.statusText);
   }
@@ -117,14 +79,10 @@ async function executeDeal(
     registry,
     clientAccount,
   );
-  const dealId = await publishDeal(
-    signedRpc,
-    {
-      ip: targetStorageProvider.address.address,
-      port: targetStorageProvider.services.upload.port,
-    },
-    targetStorageProvider.services.upload.secure_url,
-  );
+  const dealId = await publishDeal(signedRpc, {
+    ip: address,
+    port: port,
+  });
 
   return dealId;
 }
@@ -140,7 +98,7 @@ export function DealPreparation() {
     if (!collatorWsApi) {
       throw new Error("Collator chain connection not setup!");
     }
-    return await executeDeal(accounts, providerInfo, dealInfo, collatorWsProvider, registry);
+    return await executeDeal(accounts, providerInfo, dealInfo, registry);
   };
 
   const performDealToastWrapper = async (
@@ -200,14 +158,14 @@ export function DealPreparation() {
         for (const spInfo of dealProposal.providers) {
           const providerInfo: ProviderInfo = {
             accountId: spInfo.accountId,
-            peerId: spInfo.peerId,
+            multiaddr: spInfo.multiaddr,
             pricePerBlock: spInfo.dealParams.minimumPricePerBlock,
           };
 
           try {
             submissionResults.deals.push({
               storageProviderAccountId: providerInfo.accountId,
-              storageProviderPeerId: providerInfo.peerId,
+              storageProviderMultiaddr: providerInfo.multiaddr.toString(),
               dealId: await performDealToastWrapper(providerInfo, dealInfo),
             });
           } catch (err) {

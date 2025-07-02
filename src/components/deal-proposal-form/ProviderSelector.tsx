@@ -1,5 +1,5 @@
+import { multiaddr } from "@multiformats/multiaddr";
 import { hexToU8a } from "@polkadot/util";
-import { base58Encode } from "@polkadot/util-crypto";
 import { AlertCircle, Loader2, RefreshCw, Server } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { Control, Path } from "react-hook-form";
@@ -37,7 +37,8 @@ const anyJsonToSpInfo = (key: string, value: any): StorageProviderInfo | string 
     return `Provider ${key} "info" field is not valid, skipping...`;
   }
   spInfo.accountId = key;
-  spInfo.peerId = base58Encode(hexToU8a(spInfo.peerId));
+  // @ts-ignore: this is an hack to get the proper type
+  spInfo.multiaddr = multiaddr(hexToU8a(spInfo.multiaddr));
   spInfo.sectorSize = spInfo.sectorSize.replace("_", "");
   return spInfo;
 };
