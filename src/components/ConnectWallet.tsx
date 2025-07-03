@@ -62,7 +62,7 @@ export function ConnectWallet({
   }, [onConnect, state]);
 
   useEffect(() => {
-    if (connectedAccounts) return;
+    if (connectedAccounts || error) return;
 
     setState(ConnectState.Polling);
 
@@ -89,7 +89,7 @@ export function ConnectWallet({
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [connectedAccounts, connect]);
+  }, [connectedAccounts, connect, error]);
 
   const renderError = () => {
     if (error === WalletError.NoExtension) {
