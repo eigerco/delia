@@ -1,9 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import type { AccountInfo } from "@polkadot/types/interfaces";
+import { HelpCircle } from "lucide-react";
 import { useMemo } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { type FieldError, useForm } from "react-hook-form";
+import { Tooltip } from "react-tooltip";
 import { z } from "zod";
 import { useCtx } from "../../GlobalCtx";
 import { blockToTime } from "../../lib/conversion";
@@ -11,6 +13,7 @@ import { type StorageProviderInfo, isStorageProviderInfo } from "../../lib/stora
 import { Balance, BalanceStatus } from "../Balance";
 import Collapsible from "../Collapsible";
 import { Button } from "../buttons/Button";
+import { FaucetButton } from "../buttons/FaucetButton";
 import { HookAccountSelector } from "./AccountSelector";
 import { DisabledInputInfo } from "./DisabledInputInfo";
 import DurationInput, { type DurationValue } from "./DurationInput";
@@ -168,8 +171,40 @@ export function DealProposalForm({
           <h2 className="text-xl font-bold mb-4">Deal Creation</h2>
           <div className="flex flex-col">
             <div className="grid grid-cols-1 gap-4 mb-4">
-              <HookAccountSelector id="client" register={register} accounts={accounts} />
-              <Balance status={balanceStatus} balanceType="Market" />
+              <div className="flex-col">
+                <label
+                  htmlFor="client"
+                  className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1"
+                >
+                  Client Account
+                  <span
+                    id="tooltip-account-selector"
+                    className="cursor-help inline-flex items-center ml-1"
+                  >
+                    <HelpCircle className="inline w-4 h-4 text-gray-400" />
+                  </span>
+                  <Tooltip
+                    anchorSelect="#tooltip-account-selector"
+                    content="The blockchain account that will be associated with (and pay for) this storage deal"
+                  />
+                </label>
+                <div className="flex gap-4 justify-between items-center">
+                  <div className="flex gap-4">
+                    <HookAccountSelector id="client" register={register} accounts={accounts} />
+                    <Balance status={balanceStatus} />
+                  </div>
+                  <FaucetButton
+                    selectedAddress={client}
+                    onSuccess={() => {
+                      const selected = accounts.find((a) => a.address === client);
+                      if (selected) {
+                        void fetchBalance();
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
               <PieceUploader
                 error={errors.piece?.message || errors.piece?.file?.message}
                 name="piece"

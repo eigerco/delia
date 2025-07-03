@@ -1,13 +1,13 @@
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Outlet } from "react-router";
+import { Link, Outlet, useLocation } from "react-router";
 import { default as initWasm } from "wasm-commp";
 import { useCtx } from "./GlobalCtx";
 import { GlobalCtxProvider } from "./GlobalCtxProvider";
 import { ConnectWallet } from "./components/ConnectWallet";
-import { NavDropdown } from "./components/NavDropdown";
 import Toaster from "./components/Toaster";
+import { DOWNLOAD_PATH, INDEX_PATH } from "./lib/consts";
 import { setupTypeRegistry } from "./lib/registry";
 
 function WsAddressInput() {
@@ -53,6 +53,8 @@ function App() {
   const [selectedAccount, setSelectedAccount] = useState<InjectedAccountWithMeta | null>(null);
   const [loaded, setLoaded] = useState<boolean>(false);
 
+  const location = useLocation();
+
   const registry = useMemo(() => setupTypeRegistry(), []);
 
   // Initialize WASM module, !VERY IMPORTANT! without this no WASM function will work.
@@ -81,7 +83,23 @@ function App() {
         <div className="flex mb-4 items-center">
           <h1 className="grow text-xl font-bold">📦 Delia</h1>
           <div className="relative mr-6">
-            <NavDropdown />
+            {location.pathname === "/" ? (
+              <Link
+                to={DOWNLOAD_PATH}
+                role="menuitem"
+                className="flex items-center gap-2 px-3 py-1 bg-gray-200 hover:bg-gray-300 whitespace-nowrap rounded"
+              >
+                Retrieval
+              </Link>
+            ) : location.pathname === "/retrieval" ? (
+              <Link
+                to={INDEX_PATH}
+                role="menuitem"
+                className="flex items-center gap-2 px-3 py-1 bg-gray-200 hover:bg-gray-300 whitespace-nowrap rounded"
+              >
+                Home
+              </Link>
+            ) : null}
           </div>
           <WsAddressInput />
         </div>
