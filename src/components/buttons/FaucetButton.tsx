@@ -46,7 +46,9 @@ export function FaucetButton({ selectedAddress, onSuccess }: FaucetButtonProps) 
       variant="primary"
       tooltip={faucetStatus.state === TransactionState.Loading ? "Request in progress" : ""}
     >
-      {faucetStatus.state === TransactionState.Loading ? "💧 Dripping..." : "🚰 Drip 10 Test Tokens"}
+      {faucetStatus.state === TransactionState.Loading
+        ? "💧 Dripping..."
+        : "🚰 Drip 10 Test Tokens"}
     </Button>
   );
 }
