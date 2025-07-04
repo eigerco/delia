@@ -3,14 +3,14 @@ import toast from "react-hot-toast";
 import { useCtx } from "../../GlobalCtx";
 import { sendUnsigned } from "../../lib/sendTransaction";
 import { Transaction, TransactionState, type TransactionStatus } from "../../lib/transactionStatus";
-import { Button } from "../buttons/Button";
+import { Button } from "./Button";
 
-interface FaucetPanelProps {
+interface FaucetButtonProps {
   selectedAddress: string;
   onSuccess: (txHash: string) => void;
 }
 
-export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
+export function FaucetButton({ selectedAddress, onSuccess }: FaucetButtonProps) {
   const { collatorWsApi: api } = useCtx();
   const [faucetStatus, setFaucetStatus] = useState<TransactionStatus>(Transaction.idle);
 
@@ -39,23 +39,16 @@ export function FaucetPanel({ selectedAddress, onSuccess }: FaucetPanelProps) {
   };
 
   return (
-    <div className="border rounded p-4 bg-gray-50 space-y-3">
-      <h3 className="text-lg font-semibold">💧 Faucet Drip</h3>
-      <p className="text-sm">
-        Use this to request testnet funds from the faucet. No signature is required.
-      </p>
-
-      <Button
-        disabled={faucetStatus.state === TransactionState.Loading}
-        loading={faucetStatus.state === TransactionState.Loading}
-        onClick={handleDrip}
-        variant="primary"
-        tooltip={faucetStatus.state === TransactionState.Loading ? "Request in progress" : ""}
-      >
-        {faucetStatus.state === TransactionState.Loading
-          ? "Requesting..."
-          : "💰 Request 10 Test Tokens"}
-      </Button>
-    </div>
+    <Button
+      disabled={faucetStatus.state === TransactionState.Loading}
+      loading={faucetStatus.state === TransactionState.Loading}
+      onClick={handleDrip}
+      variant="primary"
+      tooltip={faucetStatus.state === TransactionState.Loading ? "Request in progress" : ""}
+    >
+      {faucetStatus.state === TransactionState.Loading
+        ? "💧 Dripping..."
+        : "🚰 Drip 10 Test Tokens"}
+    </Button>
   );
 }
