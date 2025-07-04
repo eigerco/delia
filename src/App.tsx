@@ -91,7 +91,7 @@ function App() {
               >
                 Retrieval
               </Link>
-            ) : location.pathname === "/retrieval" ? (
+            ) : location.pathname === "/download" ? (
               <Link
                 to={INDEX_PATH}
                 role="menuitem"
