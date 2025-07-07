@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useCtx } from "../../GlobalCtx";
 import { sendUnsigned } from "../../lib/sendTransaction";
@@ -11,8 +11,34 @@ interface FaucetButtonProps {
 }
 
 export function FaucetButton({ selectedAddress, onSuccess }: FaucetButtonProps) {
-  const { collatorWsApi: api } = useCtx();
+  const { collatorWsApi: api, papiTypedApi, tokenProperties } = useCtx();
   const [faucetStatus, setFaucetStatus] = useState<TransactionStatus>(Transaction.idle);
+  const [dripAmount, setDripAmount] = useState<string | null>(null);
+  const [loadingDripAmount, setLoadingDripAmount] = useState<boolean>(true);
+
+  useEffect(() => {
+    const fetchDripAmount = async () => {
+      if (!papiTypedApi) return;
+
+      try {
+        setLoadingDripAmount(true);
+        const value = await papiTypedApi.constants.Faucet?.FaucetDripAmount();
+        if (value !== undefined && value !== null) {
+          setDripAmount(tokenProperties.formatUnit(value));
+        } else {
+          console.warn("Drip amount constant not found on chain");
+          setDripAmount(null);
+        }
+      } catch (err) {
+        console.error("Error fetching FaucetDripAmount:", err);
+        setDripAmount(null);
+      } finally {
+        setLoadingDripAmount(false);
+      }
+    };
+
+    fetchDripAmount();
+  }, [papiTypedApi, tokenProperties]);
 
   const handleDrip = async () => {
     if (!api || !selectedAddress) {
@@ -38,17 +64,28 @@ export function FaucetButton({ selectedAddress, onSuccess }: FaucetButtonProps) 
     );
   };
 
+  const buttonText =
+    faucetStatus.state === TransactionState.Loading
+      ? "💧 Dripping..."
+      : loadingDripAmount
+        ? "🚰 Drip"
+        : `🚰 Drip ${dripAmount?.toString()}`;
+
   return (
     <Button
-      disabled={faucetStatus.state === TransactionState.Loading}
+      disabled={faucetStatus.state === TransactionState.Loading || loadingDripAmount}
       loading={faucetStatus.state === TransactionState.Loading}
       onClick={handleDrip}
       variant="primary"
-      tooltip={faucetStatus.state === TransactionState.Loading ? "Request in progress" : ""}
+      tooltip={
+        faucetStatus.state === TransactionState.Loading
+          ? "Request in progress"
+          : loadingDripAmount
+            ? "Loading faucet amount from chain"
+            : ""
+      }
     >
-      {faucetStatus.state === TransactionState.Loading
-        ? "💧 Dripping..."
-        : "🚰 Drip 10 Test Tokens"}
+      {buttonText}
     </Button>
   );
 }

@@ -4,11 +4,7 @@ import { AlertCircle, Loader2, RefreshCw, Server } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { Control, Path } from "react-hook-form";
 import { useCtx } from "../../GlobalCtx";
-import {
-  type DealParams,
-  type StorageProviderInfo,
-  isStorageProviderInfo,
-} from "../../lib/storageProvider";
+import type { DealParams, StorageProviderInfo } from "../../lib/storageProvider";
 import { ProviderSelectionTable } from "./ProviderSelectionTable";
 import type { FormValues } from "./types";
 
@@ -18,30 +14,6 @@ type Status =
   | { type: "loading" }
   | { type: "loaded" }
   | { type: "failed"; error: string };
-
-// Yes, returning a string here is kinda weird, but makes the control flow SO MUCH SIMPLER
-// plus, throwing here is too much since these are supposed to be warnings
-// biome-ignore lint/suspicious/noExplicitAny: any is a superset of AnyJson and easier to work with
-const anyJsonToSpInfo = (key: string, value: any): StorageProviderInfo | string => {
-  if (!value) {
-    return `Provider ${key} has an undefined value, skipping...`;
-  }
-  if (typeof value !== "object") {
-    return `Provider ${key} is of unsupported type ${typeof value}, skipping...`;
-  }
-  if (!("info" in value)) {
-    return `Provider ${key} does not have an "info" field, skipping...`;
-  }
-  const spInfo = value.info;
-  if (!isStorageProviderInfo(spInfo)) {
-    return `Provider ${key} "info" field is not valid, skipping...`;
-  }
-  spInfo.accountId = key;
-  // @ts-ignore: this is an hack to get the proper type
-  spInfo.multiaddr = multiaddr(hexToU8a(spInfo.multiaddr));
-  spInfo.sectorSize = spInfo.sectorSize.replace("_", "");
-  return spInfo;
-};
 
 type ProviderSelectorProps = {
   control: Control<FormValues>;
@@ -67,33 +39,45 @@ const NoProviders = () => {
 export function ProviderSelector({ control, name, error, totalPrice }: ProviderSelectorProps) {
   const [status, setStatus] = useState<Status>({ type: "connecting" });
   const [providers, setProviders] = useState<Map<string, StorageProviderInfo>>(new Map());
-  const { collatorWsApi: polkaStorageApi } = useCtx();
+  const { papiTypedApi } = useCtx();
 
   const getStorageProviders = useCallback(async () => {
-    if (!polkaStorageApi) {
+    if (!papiTypedApi) {
       return;
     }
 
     setStatus({ type: "loading" });
 
     const newProviders = new Map<string, StorageProviderInfo>();
-    const entries = await polkaStorageApi.query.storageProvider.storageProviders.entries();
-    for (const [key, value] of entries) {
-      const accountId = key.args[0].toString();
-      // biome-ignore lint/suspicious/noExplicitAny: any is a superset of AnyJson and easier to work with
-      const spInfo = anyJsonToSpInfo(accountId, value.toJSON() as any);
-      if (typeof spInfo === "string") {
-        console.warn(spInfo);
-        continue;
-      }
-
-      newProviders.set(key.args[0].toString(), spInfo);
+    const papiEntries = await papiTypedApi.query.StorageProvider.StorageProviders.getEntries();
+    for (const entry of papiEntries) {
+      const accountId = entry.keyArgs[0].toString();
+      const value = entry.value;
+      const spInfo: StorageProviderInfo = {
+        accountId,
+        multiaddr: multiaddr(hexToU8a(value.info.multiaddr.asHex())),
+        sectorSize: value.info.sector_size.type,
+        windowPostPartitionSectors: value.info.window_post_partition_sectors.toString(),
+        windowPostProofType: value.info.window_post_proof_type.type,
+        dealParams: {
+          minimumPricePerBlock: 0,
+          dealDuration: {
+            lower: 0,
+            upper: 0,
+          },
+        },
+      };
+      newProviders.set(accountId, spInfo);
     }
 
-    const params = await polkaStorageApi.query.storageProvider.spDealParameters.entries();
-    for (const [key, value] of params) {
-      const providerId = key.args[0].toString();
-      const dealParams = value.toJSON() as unknown as DealParams;
+    const params = await papiTypedApi.query.StorageProvider.SPDealParameters.getEntries();
+    for (const param of params) {
+      const providerId = param.keyArgs[0].toString();
+      const value = param.value;
+      const dealParams: DealParams = {
+        minimumPricePerBlock: Number(value.minimum_price_per_block),
+        dealDuration: value.deal_duration,
+      };
       const spInfo = newProviders.get(providerId);
       if (!spInfo) {
         console.warn("Cannot associate deal params with SP", providerId, dealParams);
@@ -112,7 +96,7 @@ export function ProviderSelector({ control, name, error, totalPrice }: ProviderS
 
     setProviders(newProviders);
     setStatus({ type: "loaded" });
-  }, [polkaStorageApi]);
+  }, [papiTypedApi]);
 
   useEffect(() => {
     getStorageProviders();

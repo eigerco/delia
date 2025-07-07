@@ -1,8 +1,12 @@
+import { polkaStorage } from "@polkadot-api/descriptors";
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import type { TypeRegistry, u64 } from "@polkadot/types";
+import { createClient } from "polkadot-api";
+import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
+import { getWsProvider } from "polkadot-api/ws-provider/web";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
-import { GlobalCtx, TokenProperties } from "./GlobalCtx";
+import { GlobalCtx, type PolkaStorageApi, TokenProperties } from "./GlobalCtx";
 import { COLLATOR_LOCAL_RPC_URL } from "./lib/consts";
 
 export type Status =
@@ -45,12 +49,17 @@ export function GlobalCtxProvider({
 
   const collatorWsProviderRef = useRef<WsProvider | null>(null);
   const collatorWsRef = useRef<ApiPromise | null>(null);
+  const papiTypedApiRef = useRef<PolkaStorageApi | null>(null);
+
   const [status, setStatus] = useState<Status>({ type: "connecting" });
   const [latestFinalizedBlock, setLatestFinalizedBlock] = useState<number | null>(null);
   const [latestBlockTimestamp, setLatestBlockTimestamp] = useState<Date | null>(null);
   const [tokenProperties, setTokenProperties] = useState<TokenProperties>(TokenProperties.preset());
 
   const connect = useCallback(async () => {
+    setStatus({ type: "connecting" });
+    console.log(`Connecting to ${wsAddress}`);
+
     const wsProvider = new WsProvider(wsAddress);
     collatorWsProviderRef.current = wsProvider;
 
@@ -79,11 +88,7 @@ export function GlobalCtxProvider({
 
       await polkaStorageApi.isReady;
 
-      // While `fromApi` throws, it's a chain bug for it to do so, not a front end issue
-      // as such, being loud and crashing the app is better than limping along and providing wrong units to the clients
-      setTokenProperties(await TokenProperties.fromApi(polkaStorageApi));
-
-      console.log(`Connected to ${await polkaStorageApi.rpc.system.chain()}`);
+      console.log(`ApiPromise connected to ${await polkaStorageApi.rpc.system.chain()}`);
 
       const unsub = await polkaStorageApi.rpc.chain.subscribeFinalizedHeads(async (header) => {
         const blockNumber = header.number.toNumber();
@@ -98,6 +103,14 @@ export function GlobalCtxProvider({
 
         setStatus({ type: "connected" });
       });
+
+      const provider = getWsProvider(wsAddress);
+      const papiClient = createClient(withPolkadotSdkCompat(provider));
+      papiTypedApiRef.current = papiClient.getTypedApi(polkaStorage);
+
+      setTokenProperties(await TokenProperties.fromPolkaClient(papiClient));
+
+      console.log(`Papi client connected to ${(await papiClient.getChainSpecData()).name}`);
 
       return unsub;
     } catch (error) {
@@ -124,6 +137,7 @@ export function GlobalCtxProvider({
       }
       collatorWsRef.current?.disconnect();
       collatorWsRef.current = null;
+      papiTypedApiRef.current = null;
     };
   }, [connect]);
 
@@ -138,6 +152,7 @@ export function GlobalCtxProvider({
           : null,
       collatorWsProvider: collatorWsProviderRef.current,
       collatorWsApi: collatorWsRef.current,
+      papiTypedApi: papiTypedApiRef.current,
       collatorConnectionStatus: status,
       tokenProperties: tokenProperties,
     }),

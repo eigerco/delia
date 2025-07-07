@@ -2,6 +2,7 @@ import type { Multiaddr } from "@multiformats/multiaddr";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import type { TypeRegistry } from "@polkadot/types";
 import { Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useOutletContext } from "react-router";
 import { useCtx } from "../GlobalCtx";
@@ -10,6 +11,7 @@ import {
   calculateStartEndBlocks,
 } from "../components/deal-proposal-form/DealProposalForm";
 import type { FormValues } from "../components/deal-proposal-form/types";
+import { DEFAULT_MAX_PROVE_COMMIT_DURATION } from "../lib/consts";
 import { createSignedRpc, toRpc } from "../lib/dealProposal";
 import { createDownloadTrigger } from "../lib/download";
 import { proposeDeal, publishDeal, uploadFile } from "../lib/fileUpload";
@@ -89,13 +91,31 @@ async function executeDeal(
 
 export function DealPreparation() {
   const { accounts } = useOutletContext<OutletContextType>();
-  const { latestFinalizedBlock, collatorWsApi, collatorWsProvider, registry } = useCtx();
+  const { latestFinalizedBlock, collatorWsProvider, registry, papiTypedApi } = useCtx();
+  const [maxProveCommitDuration, setMaxProveCommitDuration] = useState<number>(
+    DEFAULT_MAX_PROVE_COMMIT_DURATION,
+  );
+
+  useEffect(() => {
+    if (!papiTypedApi) return;
+
+    const fetchConstant = async () => {
+      try {
+        const value = await papiTypedApi.constants.StorageProvider.MaxProveCommitDuration();
+        setMaxProveCommitDuration(value);
+      } catch (err) {
+        console.warn("Error fetching MaxProveCommitDuration from chain, using default", err);
+      }
+    };
+
+    fetchConstant();
+  }, [papiTypedApi]);
 
   const performDeal = async (providerInfo: ProviderInfo, dealInfo: DealInfo): Promise<DealId> => {
     if (!collatorWsProvider) {
       throw new Error("Collator WS provider not setup!");
     }
-    if (!collatorWsApi) {
+    if (!papiTypedApi) {
       throw new Error("Collator chain connection not setup!");
     }
     return await executeDeal(accounts, providerInfo, dealInfo, registry);
@@ -134,6 +154,7 @@ export function DealPreparation() {
         const { startBlock, endBlock, durationInBlocks } = calculateStartEndBlocks(
           latestFinalizedBlock.number,
           dealProposal.duration,
+          maxProveCommitDuration,
         );
 
         const dealInfo: DealInfo = {
@@ -193,6 +214,7 @@ export function DealPreparation() {
     <DealProposalForm
       currentBlock={latestFinalizedBlock.number}
       currentBlockTimestamp={latestFinalizedBlock.timestamp}
+      maxProveCommitDuration={maxProveCommitDuration}
       accounts={accounts}
       onSubmit={onSubmit}
     />

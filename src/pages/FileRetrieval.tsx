@@ -31,14 +31,14 @@ namespace InputReceipt {
 }
 
 export function Retrieval() {
-  const { collatorWsApi, collatorWsProvider } = useCtx();
+  const { papiTypedApi, collatorWsProvider } = useCtx();
   const [inputReceipt, setInputReceipt] = useState<InputReceipt | null>(null);
   const [shouldExtract, setShouldExtract] = useState<boolean>(true);
   const [isDownloading, setIsDownloading] = useState(false);
   const [canDownload, setCanDownload] = useState(false);
 
   const downloadInner = async () => {
-    if (!collatorWsProvider || !collatorWsApi) {
+    if (!collatorWsProvider || !papiTypedApi) {
       throw new Error("Failed to connect to collator!");
     }
     if (!inputReceipt) {

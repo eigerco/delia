@@ -6,3 +6,4 @@ export const COLLATOR_LOCAL_RPC_URL = "ws://127.0.0.1:42069"; // TODO: replace w
 export const BLOCK_TIME = 6000;
 export const INDEX_PATH = "/";
 export const DOWNLOAD_PATH = "/download";
+export const DEFAULT_MAX_PROVE_COMMIT_DURATION = 50;

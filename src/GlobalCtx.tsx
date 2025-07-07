@@ -1,8 +1,12 @@
+import type { polkaStorage } from "@polkadot-api/descriptors";
 import type { ApiPromise, WsProvider } from "@polkadot/api";
 import type { TypeRegistry } from "@polkadot/types";
 import { formatBalance } from "@polkadot/util";
+import type { PolkadotClient, TypedApi } from "polkadot-api";
 import { createContext, useContext } from "react";
 import { GlobalCtxProvider, type Status } from "./GlobalCtxProvider";
+
+export type PolkaStorageApi = TypedApi<typeof polkaStorage>;
 
 export class TokenProperties {
   tokenSymbol: string;
@@ -21,13 +25,12 @@ export class TokenProperties {
     });
   }
 
-  /** Query the Polkadot API for the chain properties, will throw if either are missing */
-  static async fromApi(api: ApiPromise): Promise<TokenProperties> {
-    const systemProperties = await api.rpc.system.properties();
+  static async fromPolkaClient(client: PolkadotClient): Promise<TokenProperties> {
+    const spec = await client.getChainSpecData();
+    const props = spec.properties;
     return new TokenProperties({
-      // We have a single token, hence the [0]
-      tokenDecimals: systemProperties.tokenDecimals.unwrap()[0].toNumber(),
-      tokenSymbol: systemProperties.tokenSymbol.unwrap()[0].toString(),
+      tokenDecimals: props.tokenDecimals,
+      tokenSymbol: props.tokenSymbol.toString(),
     });
   }
 
@@ -76,6 +79,7 @@ export type Ctx = {
   wsAddress: string;
   setWsAddress: (newValue: string) => void;
   latestFinalizedBlock: { number: number; timestamp: Date } | null;
+  papiTypedApi: PolkaStorageApi | null;
   collatorWsProvider: WsProvider | null;
   collatorWsApi: ApiPromise | null;
   collatorConnectionStatus: Status;
