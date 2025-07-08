@@ -39,6 +39,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate papi descriptors
+        run: pnpm run papi:generate
+
       - name: Check formatting
         run: pnpm fmt-check
 
