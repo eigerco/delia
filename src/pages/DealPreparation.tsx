@@ -11,10 +11,11 @@ import {
   calculateStartEndBlocks,
 } from "../components/deal-proposal-form/DealProposalForm";
 import type { FormValues } from "../components/deal-proposal-form/types";
-import { DEFAULT_MAX_PROVE_COMMIT_DURATION } from "../lib/consts";
+import { DEFAULT_MAX_PROVE_COMMIT_DURATION, fetchMaxProveCommitDurationConst } from "../lib/consts";
 import { createSignedRpc, toRpc } from "../lib/dealProposal";
 import { createDownloadTrigger } from "../lib/download";
 import { proposeDeal, publishDeal, uploadFile } from "../lib/fileUpload";
+import { loadWrapper } from "../lib/loadWrapper";
 import { SubmissionReceipt } from "../lib/submissionReceipt";
 
 type OutletContextType = {
@@ -99,16 +100,10 @@ export function DealPreparation() {
   useEffect(() => {
     if (!papiTypedApi) return;
 
-    const fetchConstant = async () => {
-      try {
-        const value = await papiTypedApi.constants.StorageProvider.MaxProveCommitDuration();
-        setMaxProveCommitDuration(value);
-      } catch (err) {
-        console.warn("Error fetching MaxProveCommitDuration from chain, using default", err);
-      }
-    };
-
-    fetchConstant();
+    loadWrapper(() => fetchMaxProveCommitDurationConst(papiTypedApi, setMaxProveCommitDuration), {
+      onError: () =>
+        console.error("Error fetching MaxProveCommitDuration from chain, using default"),
+    });
   }, [papiTypedApi]);
 
   const performDeal = async (providerInfo: ProviderInfo, dealInfo: DealInfo): Promise<DealId> => {

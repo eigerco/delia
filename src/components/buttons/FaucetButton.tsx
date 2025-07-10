@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useCtx } from "../../GlobalCtx";
+import { fetchDripAmountConst } from "../../lib/consts";
+import { loadWrapper } from "../../lib/loadWrapper";
 import { sendUnsigned } from "../../lib/sendTransaction";
 import { Transaction, TransactionState, type TransactionStatus } from "../../lib/transactionStatus";
 import { Button } from "./Button";
@@ -20,21 +22,14 @@ export function FaucetButton({ selectedAddress, onSuccess }: FaucetButtonProps) 
     const fetchDripAmount = async () => {
       if (!papiTypedApi) return;
 
-      try {
-        setLoadingDripAmount(true);
-        const value = await papiTypedApi.constants.Faucet?.FaucetDripAmount();
-        if (value !== undefined && value !== null) {
-          setDripAmount(tokenProperties.formatUnit(value));
-        } else {
-          console.warn("Drip amount constant not found on chain");
+      loadWrapper(() => fetchDripAmountConst(papiTypedApi, tokenProperties, setDripAmount), {
+        onStart: () => setLoadingDripAmount(true),
+        onEnd: () => setLoadingDripAmount(false),
+        onError: () => {
+          console.error("Error fetching FaucetDripAmount");
           setDripAmount(null);
-        }
-      } catch (err) {
-        console.error("Error fetching FaucetDripAmount:", err);
-        setDripAmount(null);
-      } finally {
-        setLoadingDripAmount(false);
-      }
+        },
+      });
     };
 
     fetchDripAmount();
@@ -44,7 +39,6 @@ export function FaucetButton({ selectedAddress, onSuccess }: FaucetButtonProps) 
     if (!api || !selectedAddress) {
       throw new Error("State hasn't been properly initialized");
     }
-
     await toast.promise(
       sendUnsigned({
         api,
