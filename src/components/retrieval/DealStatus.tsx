@@ -1,3 +1,4 @@
+import type { PolkaStorageQueries } from "@polkadot-api/descriptors";
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useCtx } from "../../GlobalCtx";
@@ -5,9 +6,7 @@ import type { PolkaStorageApi } from "../../GlobalCtx";
 import { formatDuration, secondsToDuration } from "../../lib/conversion";
 import type { SubmissionReceipt } from "../../lib/submissionReceipt";
 
-type DealProposal = Awaited<
-  ReturnType<PolkaStorageApi["query"]["StorageProvider"]["Proposals"]["getValue"]>
->;
+type DealProposal = PolkaStorageQueries["StorageProvider"]["Proposals"]["Value"];
 
 enum LoadState {
   Idle = 0,
