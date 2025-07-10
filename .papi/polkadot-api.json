@@ -1,0 +1,12 @@
+{
+  "version": 0,
+  "descriptorPath": ".papi/descriptors",
+  "entries": {
+    "polkaStorage": {
+      "wsUrl": "ws://localhost:42069",
+      "metadata": ".papi/metadata/polkaStorage.scale",
+      "genesis": "0xb3d32f8f59462fde64b7eb6eb2ca597af6270fbfbd9f18b569b6b50b485af196",
+      "codeHash": "0x2e7b2e15240e9d73e48dfd200e3e9a3ec0bb2c402cfce5abe0018903613da054"
+    }
+  }
+}

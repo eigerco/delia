@@ -13,7 +13,10 @@
     "fmt": "biome format --write ./src",
     "fmt-check": "biome format ./src",
     "prepare": "husky",
-    "wasm-test": "wasm-pack test --node ./wasm-commp"
+    "wasm-test": "wasm-pack test --node ./wasm-commp",
+    "papi:add": "pnpm exec papi add polkaStorage -w ${PAPI_ENDPOINT:-ws://localhost:42069}",
+    "papi:generate": "papi generate",
+    "papi": "pnpm run papi:add && pnpm run papi:generate"
   },
   "dependencies": {
     "@chainsafe/libp2p-noise": "^16.0.3",
@@ -24,6 +27,7 @@
     "@libp2p/identify": "^3.0.26",
     "@libp2p/websockets": "^9.2.6",
     "@multiformats/multiaddr": "^12.4.0",
+    "@polkadot-api/descriptors": "file:.papi/descriptors",
     "@polkadot/api": "^15.7.2",
     "@polkadot/extension-dapp": "^0.58.4",
     "@polkadot/extension-inject": "^0.58.4",
@@ -36,6 +40,7 @@
     "libp2p": "^2.8.0",
     "lucide-react": "^0.477.0",
     "multiformats": "^13.3.2",
+    "polkadot-api": "^1.14.1",
     "postcss": "^8.5.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

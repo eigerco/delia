@@ -1,6 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
-import type { AccountInfo } from "@polkadot/types/interfaces";
 import { HelpCircle } from "lucide-react";
 import { useMemo } from "react";
 import { useCallback, useEffect, useState } from "react";
@@ -8,6 +7,7 @@ import { type FieldError, useForm } from "react-hook-form";
 import { Tooltip } from "react-tooltip";
 import { z } from "zod";
 import { useCtx } from "../../GlobalCtx";
+import { OFFSET, daysToBlocks, monthsToBlocks } from "../../lib/consts";
 import { blockToTime } from "../../lib/conversion";
 import { type StorageProviderInfo, isStorageProviderInfo } from "../../lib/storageProvider";
 import { Balance, BalanceStatus } from "../Balance";
@@ -21,14 +21,6 @@ import { HookInput } from "./Input";
 import { PieceUploader } from "./PieceUploader";
 import { ProviderSelector } from "./ProviderSelector";
 import type { FormValues } from "./types";
-
-const BLOCKS_IN_MINUTE = 10;
-const OFFSET = BLOCKS_IN_MINUTE * 5;
-const DEFAULT_MAX_PROVE_COMMIT_DURATION = 50;
-
-// TODO(@th7nder,16/04/2025): fetch from chain
-// This is the minimum amount of blocks it'll take for the deal to be active.
-const maxProveCommitDuration = DEFAULT_MAX_PROVE_COMMIT_DURATION;
 
 const storageProviderInfoSchema = z.custom<StorageProviderInfo>(isStorageProviderInfo);
 
@@ -60,12 +52,13 @@ function validationSchema() {
   });
 }
 
-export function calculateStartEndBlocks(currentBlock: number, duration: DurationValue) {
+export function calculateStartEndBlocks(
+  currentBlock: number,
+  duration: DurationValue,
+  maxProveCommitDuration: number,
+) {
   const startBlock = currentBlock + OFFSET + maxProveCommitDuration;
-  const endBlock =
-    startBlock +
-    duration.days * 24 * 60 * BLOCKS_IN_MINUTE +
-    duration.months * 30 * 24 * 60 * BLOCKS_IN_MINUTE;
+  const endBlock = startBlock + daysToBlocks(duration.days) + monthsToBlocks(duration.months);
 
   const durationInBlocks = endBlock - startBlock;
 
@@ -79,11 +72,13 @@ export function calculateStartEndBlocks(currentBlock: number, duration: Duration
 export function DealProposalForm({
   currentBlock,
   currentBlockTimestamp,
+  maxProveCommitDuration,
   accounts,
   onSubmit,
 }: {
   currentBlock: number;
   currentBlockTimestamp: Date;
+  maxProveCommitDuration: number;
   accounts: InjectedAccountWithMeta[];
   onSubmit: (data: FormValues) => Promise<void>;
 }) {
@@ -113,18 +108,19 @@ export function DealProposalForm({
 
   const formValues = watch();
   const { duration, providers, piece } = formValues;
-  const { startBlock, endBlock, durationInBlocks } = calculateStartEndBlocks(
-    currentBlock,
-    duration,
-  );
+
+  const { papiTypedApi: api } = useCtx();
+
+  const startBlock = currentBlock + OFFSET + maxProveCommitDuration;
+  const endBlock = startBlock + daysToBlocks(duration.days) + monthsToBlocks(duration.months);
+  const durationInBlocks = endBlock - startBlock;
 
   const startBlockRealTime = blockToTime(startBlock, currentBlock, currentBlockTimestamp);
   const endBlockRealTime = blockToTime(endBlock, currentBlock, currentBlockTimestamp);
   const totalPrice = providers
-    .map((p) => p.dealParams.minimumPricePerBlock * durationInBlocks)
+    .map((p) => Number(p.dealParams.minimumPricePerBlock) * durationInBlocks)
     .reduce((a, b) => a + b, 0);
 
-  const { collatorWsApi: api } = useCtx();
   const client = formValues.client;
   const [balanceStatus, setBalanceStatus] = useState<BalanceStatus>(BalanceStatus.idle);
 
@@ -148,9 +144,8 @@ export function DealProposalForm({
 
     setBalanceStatus(BalanceStatus.loading);
     try {
-      const accountInfo = await api.query.system.account(client);
-      const { data } = accountInfo as AccountInfo;
-      const freeBalance: bigint = data.free.toBigInt();
+      const accountInfo = await api.query.System.Account.getValue(client);
+      const freeBalance: bigint = accountInfo?.data.free;
       setBalanceStatus(BalanceStatus.fetched(freeBalance));
     } catch (err) {
       console.error("Error fetching market balance:", err);
@@ -174,7 +169,7 @@ export function DealProposalForm({
               <div className="flex-col">
                 <label
                   htmlFor="client"
-                  className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1"
+                  className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1"
                 >
                   Client Account
                   <span
@@ -249,7 +244,6 @@ export function DealProposalForm({
                           label="Start Block"
                         />
                       </div>
-
                       <DisabledInputInfo
                         name="startBlockTime"
                         value={startBlockRealTime.toLocaleString("en-GB")}
