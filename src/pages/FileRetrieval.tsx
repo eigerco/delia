@@ -6,7 +6,6 @@ import { useCtx } from "../GlobalCtx";
 import { ReceiptUploader } from "../components/ReceiptUploader";
 import { Button } from "../components/buttons/Button";
 import { DealStatus } from "../components/retrieval/DealStatus";
-import { ExtractCheckbox } from "../components/retrieval/ExtractCheckbox";
 import { createDownloadTrigger } from "../lib/download";
 import { SubmissionReceipt } from "../lib/submissionReceipt";
 
@@ -33,7 +32,6 @@ namespace InputReceipt {
 export function Retrieval() {
   const { papiTypedApi, collatorWsProvider } = useCtx();
   const [inputReceipt, setInputReceipt] = useState<InputReceipt | null>(null);
-  const [shouldExtract, setShouldExtract] = useState<boolean>(true);
   const [isDownloading, setIsDownloading] = useState(false);
   const [canDownload, setCanDownload] = useState(false);
 
@@ -121,7 +119,6 @@ export function Retrieval() {
         )}
 
         <div className="flex flex-col gap-2">
-          <ExtractCheckbox extract={shouldExtract} setExtract={setShouldExtract} />
           <Button
             onClick={download}
             disabled={
