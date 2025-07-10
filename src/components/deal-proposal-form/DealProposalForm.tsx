@@ -7,6 +7,7 @@ import { type FieldError, useForm } from "react-hook-form";
 import { Tooltip } from "react-tooltip";
 import { z } from "zod";
 import { useCtx } from "../../GlobalCtx";
+import { OFFSET, daysToBlocks, monthsToBlocks } from "../../lib/consts";
 import { blockToTime } from "../../lib/conversion";
 import { type StorageProviderInfo, isStorageProviderInfo } from "../../lib/storageProvider";
 import { Balance, BalanceStatus } from "../Balance";
@@ -20,9 +21,6 @@ import { HookInput } from "./Input";
 import { PieceUploader } from "./PieceUploader";
 import { ProviderSelector } from "./ProviderSelector";
 import type { FormValues } from "./types";
-
-const BLOCKS_IN_MINUTE = 10;
-const OFFSET = BLOCKS_IN_MINUTE * 5;
 
 const storageProviderInfoSchema = z.custom<StorageProviderInfo>(isStorageProviderInfo);
 
@@ -60,10 +58,7 @@ export function calculateStartEndBlocks(
   maxProveCommitDuration: number,
 ) {
   const startBlock = currentBlock + OFFSET + maxProveCommitDuration;
-  const endBlock =
-    startBlock +
-    duration.days * 24 * 60 * BLOCKS_IN_MINUTE +
-    duration.months * 30 * 24 * 60 * BLOCKS_IN_MINUTE;
+  const endBlock = startBlock + daysToBlocks(duration.days) + monthsToBlocks(duration.months);
 
   const durationInBlocks = endBlock - startBlock;
 
@@ -117,10 +112,7 @@ export function DealProposalForm({
   const { papiTypedApi: api } = useCtx();
 
   const startBlock = currentBlock + OFFSET + maxProveCommitDuration;
-  const endBlock =
-    startBlock +
-    duration.days * 24 * 60 * BLOCKS_IN_MINUTE +
-    duration.months * 30 * 24 * 60 * BLOCKS_IN_MINUTE;
+  const endBlock = startBlock + daysToBlocks(duration.days) + monthsToBlocks(duration.months);
   const durationInBlocks = endBlock - startBlock;
 
   const startBlockRealTime = blockToTime(startBlock, currentBlock, currentBlockTimestamp);
