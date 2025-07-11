@@ -5,7 +5,7 @@
   "type": "module",
   "homepage": "https://jmg-duarte.github.io/delia/",
   "scripts": {
-    "dev": "pnpm run build:wasm && vite",
+    "dev": "pnpm run papi:generate && pnpm run build:wasm && vite",
     "build:wasm": "wasm-pack build --target web ./wasm-commp",
     "build": "pnpm run build:wasm && tsc -b && vite build",
     "preview": "vite preview",
@@ -32,7 +32,6 @@
     "@tailwindcss/vite": "^4.0.9",
     "autoprefixer": "^10.4.20",
     "ipfs-unixfs": "^11.2.1",
-    "it-cbor-stream": "^1.0.1",
     "lucide-react": "^0.477.0",
     "multiformats": "^13.3.2",
     "polkadot-api": "^1.14.1",
@@ -52,12 +51,9 @@
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@polkadot/types": "^15.7.2",
-    "@polkadot/types-codec": "^15.8.1",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",
-    "globals": "^15.15.0",
-    "husky": "^9.1.7",
     "typescript": "~5.7.2",
     "vite": "^6.2.0"
   }
