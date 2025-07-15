@@ -31,7 +31,7 @@ export function ProviderSelectionTable({
                 <th className="border whitespace-nowrap px-2">Sector Size</th>
                 <th className="border whitespace-nowrap px-2">Price per Block</th>
                 <th className="border whitespace-nowrap px-2">Account ID</th>
-                <th className="border whitespace-nowrap px-2">Peer ID</th>
+                <th className="border whitespace-nowrap px-2">Multiaddress</th>
               </tr>
             </thead>
             <tbody>
