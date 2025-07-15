@@ -27,7 +27,7 @@ export function WsAddressInput() {
         onBlur={() => setWsAddress(localValue)}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
-            setWsAddress(localValue);
+            e.currentTarget.blur();
           }
         }}
       />
