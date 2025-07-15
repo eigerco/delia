@@ -12,7 +12,6 @@
     "lint": "biome lint ./src && biome format ./src && tsc",
     "fmt": "biome format --write ./src",
     "fmt-check": "biome format ./src",
-    "prepare": "husky",
     "wasm-test": "wasm-pack test --node ./wasm-commp",
     "papi:add": "pnpm exec papi add polkaStorage -w ${PAPI_ENDPOINT:-ws://localhost:42069}",
     "papi:generate": "papi generate",

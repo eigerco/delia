@@ -47,9 +47,6 @@ importers:
       ipfs-unixfs:
         specifier: ^11.2.1
         version: 11.2.1
-      it-cbor-stream:
-        specifier: ^1.0.1
-        version: 1.0.1
       lucide-react:
         specifier: ^0.477.0
         version: 0.477.0(react@19.0.0)
@@ -102,9 +99,6 @@ importers:
       '@polkadot/types':
         specifier: ^15.7.2
         version: 15.7.2
-      '@polkadot/types-codec':
-        specifier: ^15.8.1
-        version: 15.8.1
       '@types/react':
         specifier: ^19.0.10
         version: 19.0.10
@@ -114,12 +108,6 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^4.3.4
         version: 4.3.4(vite@6.2.0(@types/node@22.16.2)(jiti@2.4.2)(lightningcss@1.29.1)(terser@5.39.0))
-      globals:
-        specifier: ^15.15.0
-        version: 15.15.0
-      husky:
-        specifier: ^9.1.7
-        version: 9.1.7
       typescript:
         specifier: ~5.7.2
         version: 5.7.3
@@ -1307,10 +1295,6 @@ packages:
     resolution: {integrity: sha512-WOBp/EEGUiIsJSp7wcv/y6MO+lV9UoncWqxuFfm8eBwzWNgyfBd6Gz+IeKQ9jCmyhoH99g15M3T+QaVHFjizVA==}
     engines: {node: '>=4'}
 
-  globals@15.15.0:
-    resolution: {integrity: sha512-7ACyT3wmyp3I61S4fG682L0VA2RGD9otkqGJIwNUMF1SWUombIIk+af1unuDYgMm082aHYwD+mzJvv9Iu8dsgg==}
-    engines: {node: '>=18'}
-
   goober@2.1.16:
     resolution: {integrity: sha512-erjk19y1U33+XAMe1VTvIONHYoSqE4iS7BYUZfHaqeohLmnC0FdxEh7rQU+6MZ4OajItzjZFSRtVANrQwNq6/g==}
     peerDependencies:
@@ -1329,11 +1313,6 @@ packages:
   human-signals@8.0.1:
     resolution: {integrity: sha512-eKCa6bwnJhvxj14kZk5NCPc6Hb6BdsU9DZcOnmQKSnO1VKrfV0zCvtttPZUsBvjmNDn8rpcJfpwSYnHBjc95MQ==}
     engines: {node: '>=18.18.0'}
-
-  husky@9.1.7:
-    resolution: {integrity: sha512-5gs5ytaNjBrh5Ow3zrvdUUY+0VxIuWVL4i9irt6friV+BqdCfmV11CQTWMiBYWHbXhco+J1kHfTOUkePhCDvMA==}
-    engines: {node: '>=18'}
-    hasBin: true
 
   ieee754@1.2.1:
     resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
@@ -1375,21 +1354,6 @@ packages:
 
   isexe@2.0.0:
     resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
-
-  it-byte-stream@1.1.1:
-    resolution: {integrity: sha512-OIOb8PvK9ZV7MHvyxIDNyN3jmrxrJdx99G0RIYYb3Tzo1OWv+O1C6mfg7nnlDuuTQz2POYFXe87AShKAEl+POw==}
-
-  it-cbor-stream@1.0.1:
-    resolution: {integrity: sha512-VbuYCQHkkCu8nxBjhGRWAbpJYhOK3yV/WSK6C9eLHjWdQotRX9Kq03yiyOoEuzMhC/qBYG0q66YIEq+BWEAeTg==}
-
-  it-length-prefixed-stream@1.2.1:
-    resolution: {integrity: sha512-FYqlxc2toUoK+aPO5r3KDBIUG1mOvk2DzmjQcsfLUTHRWMJP4Va9855tVzg/22Bj+VUUaT7gxBg7HmbiCxTK4w==}
-
-  it-queueless-pushable@1.0.2:
-    resolution: {integrity: sha512-BFIm48C4O8+i+oVEPQpZ70+CaAsVUircvZtZCrpG2Q64933aLp+tDmas1mTBwqVBfIUUlg09d+e6SWW1CBuykQ==}
-
-  it-stream-types@2.0.2:
-    resolution: {integrity: sha512-Rz/DEZ6Byn/r9+/SBCuJhpPATDF9D+dz5pbgSUyBsCDtza6wtNATrz/jz1gDyNanC3XdLboriHnOC925bZRBww==}
 
   jackspeak@3.4.3:
     resolution: {integrity: sha512-OGlZQpz2yfahA/Rd1Y8Cd9SIEsqvXkLVoSw/cgwhnhFMDbsQFeZYoJJ7bIZBS9BcamUW96asq/npPWugM+RQBw==}
@@ -1590,10 +1554,6 @@ packages:
     resolution: {integrity: sha512-weP+BZ8MVNnlCm8c0Qdc1WSWq4Qn7I+9CJGm7Qali6g44e/PUzbjNqJX5NJ9ljlNMosfJvg1fKEGILklK9cwnw==}
     engines: {node: '>=18'}
 
-  p-defer@4.0.1:
-    resolution: {integrity: sha512-Mr5KC5efvAK5VUptYEIopP1bakB85k2IWXaRC0rsh1uwn1L6M0LVml8OIQ4Gudg4oyZakf7FmeRLkMMtZW1i5A==}
-    engines: {node: '>=12'}
-
   p-queue@8.1.0:
     resolution: {integrity: sha512-mxLDbbGIBEXTJL0zEx8JIylaj3xQ7Z/7eEVjcF9fJX4DBiH9oqe+oahYnlKKxm0Ci9TlWTyhSHgygxMxjIB2jw==}
     engines: {node: '>=18'}
@@ -1693,9 +1653,6 @@ packages:
   punycode@2.3.1:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
-
-  race-signal@1.1.3:
-    resolution: {integrity: sha512-Mt2NznMgepLfORijhQMncE26IhkmjEphig+/1fKC0OtaKwys/gpvpmswSjoN01SS+VO951mj0L4VIDXdXsjnfA==}
 
   react-dom@19.0.0:
     resolution: {integrity: sha512-4GV5sHFG0e/0AD4X+ySy6UJd3jVl1iNsNHdpad0qhABJ11twS3TTBnseqsKurKcsNqCEFeGL3uLpVChpIO3QfQ==}
@@ -3445,8 +3402,6 @@ snapshots:
 
   globals@11.12.0: {}
 
-  globals@15.15.0: {}
-
   goober@2.1.16(csstype@3.1.3):
     dependencies:
       csstype: 3.1.3
@@ -3460,8 +3415,6 @@ snapshots:
       lru-cache: 10.4.3
 
   human-signals@8.0.1: {}
-
-  husky@9.1.7: {}
 
   ieee754@1.2.1: {}
 
@@ -3487,32 +3440,6 @@ snapshots:
   is-unicode-supported@2.1.0: {}
 
   isexe@2.0.0: {}
-
-  it-byte-stream@1.1.1:
-    dependencies:
-      it-queueless-pushable: 1.0.2
-      it-stream-types: 2.0.2
-      uint8arraylist: 2.4.8
-
-  it-cbor-stream@1.0.1:
-    dependencies:
-      cborg: 4.2.8
-      it-length-prefixed-stream: 1.2.1
-      it-stream-types: 2.0.2
-
-  it-length-prefixed-stream@1.2.1:
-    dependencies:
-      it-byte-stream: 1.1.1
-      it-stream-types: 2.0.2
-      uint8-varint: 2.0.4
-      uint8arraylist: 2.4.8
-
-  it-queueless-pushable@1.0.2:
-    dependencies:
-      p-defer: 4.0.1
-      race-signal: 1.1.3
-
-  it-stream-types@2.0.2: {}
 
   jackspeak@3.4.3:
     dependencies:
@@ -3686,8 +3613,6 @@ snapshots:
       string-width: 7.2.0
       strip-ansi: 7.1.0
 
-  p-defer@4.0.1: {}
-
   p-queue@8.1.0:
     dependencies:
       eventemitter3: 5.0.1
@@ -3797,8 +3722,6 @@ snapshots:
       uint8arrays: 5.1.0
 
   punycode@2.3.1: {}
-
-  race-signal@1.1.3: {}
 
   react-dom@19.0.0(react@19.0.0):
     dependencies:
