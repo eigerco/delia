@@ -27,7 +27,14 @@ export function paginateDeals(deals: Deal[], page: number): Deal[] {
   return deals.slice(start, start + DEAL_LIST_PAGE_SIZE);
 }
 
-export function useDeals(api: PolkaStorageApi | null) {
+export type UseDealsResult = {
+  deals: Deal[];
+  loading: boolean;
+  error: string | null;
+  loadDeals: () => void;
+};
+
+export function useDeals(api: PolkaStorageApi | null): UseDealsResult {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,5 +63,5 @@ export function useDeals(api: PolkaStorageApi | null) {
     fetchDeals();
   }, [fetchDeals]);
 
-  return { deals, loading, error, refresh: fetchDeals };
+  return { deals, loading, error, loadDeals: fetchDeals };
 }

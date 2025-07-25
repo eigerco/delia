@@ -10,7 +10,7 @@ import { Pagination } from "./Pagination";
 
 export function DealList() {
   const { papiTypedApi, latestFinalizedBlock } = useCtx();
-  const { deals, loading, error, refresh } = useDeals(papiTypedApi);
+  const { deals, loading, error, loadDeals } = useDeals(papiTypedApi);
   const [page, setPage] = useState(0);
   const [sortColumn, setSortColumn] = useState<"dealId" | "endBlock">("dealId");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
@@ -59,18 +59,18 @@ export function DealList() {
     return (
       <div className="text-center py-8 text-red-500">
         <p>{error}</p>
-        <button type="button" onClick={refresh} className="mt-2 underline">
+        <button type="button" onClick={loadDeals} className="mt-2 underline">
           Retry
         </button>
       </div>
     );
-  if (!latestFinalizedBlock) return null;
+  if (!latestFinalizedBlock) return;
 
   return (
     <div className="p-4">
       <div className="flex mb-1 items-center">
         <p className="font-medium text-xl">Deals</p>
-        <button type="button" onClick={refresh} className="hover:text-blue-400 ml-5">
+        <button type="button" onClick={loadDeals} className="hover:text-blue-400 ml-5">
           <RefreshCw width={16} />
         </button>
         <div className="ml-auto">
