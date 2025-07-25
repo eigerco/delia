@@ -30,9 +30,6 @@ export function DealRow({ deal, latestFinalizedBlock, onDownload }: DealRowProps
       <AddressCell label={"client"} address={client} id={id} />
       <td className="px-3 py-2">{endTime}</td>
       <DownloadCell canDownload={canDownload} onDownload={onDownload} id={id} />
-      <Tooltip id={`download-${id}`} place="top" />
-      <Tooltip id={`client-${id}`} place="top" />
-      <Tooltip id={`provider-${id}`} place="top" />
     </tr>
   );
 }
@@ -107,6 +104,7 @@ function DownloadCell({ canDownload, onDownload, id }: DownloadCellProps) {
           <Download className="w-5 h-5" />
         )}
       </button>
+      <Tooltip id={`download-${id}`} place="top" />
     </td>
   );
 }
