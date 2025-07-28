@@ -13,10 +13,8 @@ import {
 import type { FormValues } from "../components/deal-proposal-form/types";
 import { DEFAULT_MAX_PROVE_COMMIT_DURATION, fetchMaxProveCommitDurationConst } from "../lib/consts";
 import { createSignedRpc, toRpc } from "../lib/dealProposal";
-import { createDownloadTrigger } from "../lib/download";
 import { proposeDeal, publishDeal, uploadFile } from "../lib/fileUpload";
 import { loadWrapper } from "../lib/loadWrapper";
-import { SubmissionReceipt } from "../lib/submissionReceipt";
 
 type OutletContextType = {
   accounts: InjectedAccountWithMeta[];
@@ -160,17 +158,6 @@ export function DealPreparation() {
           endBlock,
         };
 
-        const submissionResults = SubmissionReceipt.new({
-          deals: [],
-          pieceCid: dealProposal.piece.pieceCid,
-          payloadCid: dealProposal.piece.payloadCid,
-          filename: dealProposal.piece.file.name,
-          startBlock: startBlock,
-          endBlock: endBlock,
-        });
-
-        // Using Promise.all here spams the user with N popups
-        // where N is the number of storage providers the user is uploading deals to
         for (const spInfo of dealProposal.providers) {
           const providerInfo: ProviderInfo = {
             accountId: spInfo.accountId,
@@ -179,11 +166,7 @@ export function DealPreparation() {
           };
 
           try {
-            submissionResults.deals.push({
-              storageProviderAccountId: providerInfo.accountId,
-              storageProviderMultiaddr: providerInfo.multiaddr.toString(),
-              dealId: await performDealToastWrapper(providerInfo, dealInfo),
-            });
+            await performDealToastWrapper(providerInfo, dealInfo);
           } catch (err) {
             if (err instanceof Error) {
               console.error(err.message);
@@ -192,12 +175,6 @@ export function DealPreparation() {
             }
           }
         }
-
-        if (submissionResults.deals.length === 0) {
-          throw new Error("All deals failed. No receipt generated.");
-        }
-
-        createDownloadTrigger("deal.json", new Blob([JSON.stringify(submissionResults.toJSON())]));
       },
       {
         loading: "Submitting deals!",

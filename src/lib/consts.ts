@@ -16,6 +16,7 @@ export const minutesToBlocks = (nBlocks: number) => nBlocks * BLOCKS_IN_MINUTE;
 export const hoursToBlocks = (nBlocks: number) => 60 * minutesToBlocks(nBlocks);
 export const daysToBlocks = (nBlocks: number) => 24 * hoursToBlocks(nBlocks);
 export const monthsToBlocks = (nBlocks: number) => 30 * daysToBlocks(nBlocks);
+export const DEAL_LIST_PAGE_SIZE = 10;
 
 export const fetchMaxProveCommitDurationConst = async (
   papiTypedApi: TypedApi<typeof polkaStorage>,
