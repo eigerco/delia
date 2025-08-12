@@ -1,19 +1,31 @@
+import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { Loader2, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCtx } from "../../GlobalCtx";
 import { DEAL_LIST_PAGE_SIZE } from "../../lib/consts";
 import { type Deal, paginateDeals, sortDeals, useDeals } from "../../lib/deals";
 import { downloadDeal } from "../../lib/download";
+import { DealFilter } from "./DealFilter";
 import { DealRow } from "./DealRow";
-import { DealSort } from "./DealSort";
 import { Pagination } from "./Pagination";
 
-export function DealList() {
+interface DealListProps {
+  accounts: InjectedAccountWithMeta[];
+}
+
+export function DealList({ accounts }: DealListProps) {
   const { papiTypedApi, latestFinalizedBlock } = useCtx();
-  const { deals, loading, error, loadDeals } = useDeals(papiTypedApi);
   const [page, setPage] = useState(0);
   const [sortColumn, setSortColumn] = useState<"dealId" | "endBlock">("dealId");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+
+  // memoize your injected addresses so reference stays stable
+  const clientAddresses = useMemo(() => accounts.map((a) => a.address), [accounts]);
+  const [selectedClients, setSelectedClients] = useState<string[] | undefined>(clientAddresses);
+  const { deals, loading, error, loadDeals } = useDeals({
+    api: papiTypedApi,
+    clients: selectedClients,
+  });
 
   useEffect(() => {
     const maxPage = Math.max(0, Math.ceil(deals.length / DEAL_LIST_PAGE_SIZE) - 1);
@@ -73,20 +85,24 @@ export function DealList() {
         <button type="button" onClick={loadDeals} className="hover:text-blue-400 ml-5">
           <RefreshCw width={16} />
         </button>
-        <div className="ml-auto">
-          <DealSort
+      </div>
+
+      <div>
+        <div className="flex justify-end mb-2">
+          <DealFilter
+            accounts={accounts}
+            selectedClients={selectedClients}
+            onChangeClients={setSelectedClients}
             sortColumn={sortColumn}
             sortDirection={sortDirection}
             onSortColumnChange={setSortColumn}
             onSortDirectionChange={setSortDirection}
           />
         </div>
-      </div>
 
-      {deals.length === 0 ? (
-        <p className="text-center">No active deals.</p>
-      ) : (
-        <div className="overflow-x-auto">
+        {deals.length === 0 ? (
+          <p className="text-center">No active deals.</p>
+        ) : (
           <table className="w-full text-sm text-left">
             <thead>
               <tr className="text-xs uppercase">
@@ -108,8 +124,8 @@ export function DealList() {
               ))}
             </tbody>
           </table>
-        </div>
-      )}
+        )}
+      </div>
 
       <Pagination
         page={page}

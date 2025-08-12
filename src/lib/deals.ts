@@ -1,11 +1,15 @@
-import type { PolkaStorageQueries } from "@polkadot-api/descriptors";
+import type { PolkaStorageApis } from "@polkadot-api/descriptors";
 import { useCallback, useEffect, useState } from "react";
 import type { PolkaStorageApi } from "../GlobalCtx";
 import { DEAL_LIST_PAGE_SIZE } from "./consts";
 
+type Proposals = PolkaStorageApis["StorageProviderApi"]["get_proposals"]["Value"];
+type ProposalEntry = Proposals[number];
+type Proposal = ProposalEntry[1];
+
 export type Deal = {
   key: bigint;
-  value: PolkaStorageQueries["StorageProvider"]["Proposals"]["Value"];
+  value: Proposal;
 };
 
 export function sortDeals(
@@ -34,7 +38,11 @@ export type UseDealsResult = {
   loadDeals: () => void;
 };
 
-export function useDeals(api: PolkaStorageApi | null): UseDealsResult {
+export function useDeals({
+  api,
+  clients,
+  providers,
+}: { api: PolkaStorageApi | null; clients?: string[]; providers?: string[] }): UseDealsResult {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,20 +52,20 @@ export function useDeals(api: PolkaStorageApi | null): UseDealsResult {
     setLoading(true);
     setError(null);
     try {
-      const entries = await api.query.StorageProvider.Proposals.getEntries();
-      const allDeals = entries.map((entry) => {
-        const key = entry.keyArgs[0];
-        const value = entry.value;
+      const entries = await api.apis.StorageProviderApi.get_proposals(clients, providers);
+      const deals = entries.map((entry) => {
+        const key = entry[0]; // DealID
+        const value = entry[1]; // Deal
         return { key, value };
       });
-      setDeals(allDeals);
+      setDeals(deals);
     } catch (e) {
       console.error(e);
       setError("Failed to load deals.");
     } finally {
       setLoading(false);
     }
-  }, [api]);
+  }, [api, clients, providers]);
 
   useEffect(() => {
     fetchDeals();

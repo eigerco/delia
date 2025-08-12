@@ -59,7 +59,7 @@ export function DealSort({
     );
 
   return (
-    <div ref={containerRef} className="overflow-visible relative inline-block">
+    <div ref={containerRef} className="overflow-visible relative inline-block ml-2">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
