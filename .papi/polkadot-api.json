@@ -3,10 +3,10 @@
   "descriptorPath": ".papi/descriptors",
   "entries": {
     "polkaStorage": {
-      "wsUrl": "ws://localhost:42069",
+      "wsUrl": "wss://collator.polka-storage.eiger.co",
       "metadata": ".papi/metadata/polkaStorage.scale",
-      "genesis": "0x4545454545454545454545454545454545454545454545454545454545454545",
-      "codeHash": "0xb84fe515e735f6a2ca1032f6d1ff7befc5a29c5c48ea56bd90eebb0d509533ee"
+      "genesis": "0xa6f9a4facafa6157734b6a52503070304d34919a8299f46e6c7bde2ee000ccd6",
+      "codeHash": "0x6f566b9e2ea5b0c4fc8389087736baf74e42dd8fa8ab0d7f3da55dc62a39ccaa"
     }
   }
 }

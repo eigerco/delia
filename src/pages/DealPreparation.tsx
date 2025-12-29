@@ -1,4 +1,3 @@
-import type { Multiaddr } from "@multiformats/multiaddr";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import type { TypeRegistry } from "@polkadot/types";
 import { Loader2 } from "lucide-react";
@@ -12,6 +11,7 @@ import {
 } from "../components/deal-proposal-form/DealProposalForm";
 import type { FormValues } from "../components/deal-proposal-form/types";
 import { DEFAULT_MAX_PROVE_COMMIT_DURATION, fetchMaxProveCommitDurationConst } from "../lib/consts";
+import { type ProviderInfo, baseURLFromP2pMultiaddr } from "../lib/conversion";
 import { createSignedRpc, toRpc } from "../lib/dealProposal";
 import { proposeDeal, publishDeal, uploadFile } from "../lib/fileUpload";
 import { loadWrapper } from "../lib/loadWrapper";
@@ -28,12 +28,6 @@ type DealInfo = {
   endBlock: number;
 };
 
-type ProviderInfo = {
-  accountId: string;
-  multiaddr: Multiaddr;
-  pricePerBlock: number;
-};
-
 type DealId = number;
 
 async function executeDeal(
@@ -43,6 +37,8 @@ async function executeDeal(
   registry: TypeRegistry,
 ): Promise<DealId> {
   const { address, port } = providerInfo.multiaddr.nodeAddress();
+  const uploadAddress = baseURLFromP2pMultiaddr(providerInfo.multiaddr.nodeAddress());
+  console.log(uploadAddress);
 
   const clientAccount = accounts.find((v) => v.address === dealInfo.proposal.client);
   if (!clientAccount) {
@@ -61,12 +57,18 @@ async function executeDeal(
       ip: address,
       port: port,
     },
+    uploadAddress,
   );
 
-  const response = await uploadFile(dealInfo.file, proposeDealResponse, {
-    ip: address,
-    port: port,
-  });
+  const response = await uploadFile(
+    dealInfo.file,
+    proposeDealResponse,
+    {
+      ip: address,
+      port: port,
+    },
+    uploadAddress,
+  );
   if (!response.ok) {
     throw new Error(response.statusText);
   }
@@ -80,10 +82,14 @@ async function executeDeal(
     registry,
     clientAccount,
   );
-  const dealId = await publishDeal(signedRpc, {
-    ip: address,
-    port: port,
-  });
+  const dealId = await publishDeal(
+    signedRpc,
+    {
+      ip: address,
+      port: port,
+    },
+    uploadAddress,
+  );
 
   return dealId;
 }

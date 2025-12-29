@@ -15,7 +15,7 @@ export async function uploadFile(
   body.append("file", file);
 
   const addr = secure_addr ? secure_addr : `http://${address.ip}:${address.port}`;
-
+  console.log(`Uploading to: ${addr}`);
   return await fetch(`${addr}/api/v0/upload/${dealCid}`, {
     method: "PUT",
     body,
@@ -32,6 +32,7 @@ export async function proposeDeal(
   }
 
   const addr = secure_addr ? secure_addr : `http://${address.ip}:${address.port}`;
+  console.log(`Proposing to: ${addr}`);
   const response = await fetch(`${addr}/api/v0/propose_deal`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
