@@ -1,19 +1,17 @@
-name: Deploy to GitHub Pages
+name: Deploy Runtime Upgrade to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [paseo-runtime-upgrade]
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment
 concurrency:
-  group: "pages"
+  group: "pages-paseo-runtime-upgrade"
   cancel-in-progress: true
 
 jobs:
@@ -44,6 +42,11 @@ jobs:
         uses: pnpm/action-setup@v2
         with:
           version: latest
+
+      # Need to build the WASM before type-checking
+      # otherwise we're missing code and tsc will fail
+      - name: Build WASM
+        run: pnpm build:wasm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

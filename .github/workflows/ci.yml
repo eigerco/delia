@@ -26,10 +26,11 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: 1.83.0
           targets: wasm32-unknown-unknown
 
       - name: Install wasm-pack
-        run: cargo install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
       # Need to build the WASM before type-checking
       # otherwise we're missing code and tsc will fail

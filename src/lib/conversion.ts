@@ -1,3 +1,4 @@
+import type { Multiaddr, NodeAddress } from "@multiformats/multiaddr";
 import { BLOCK_TIME } from "./consts";
 
 export function blockToTime(
@@ -60,3 +61,26 @@ export function formatDuration(duration: {
   }
   return `${result.join(", ")}`;
 }
+
+export function baseURLFromP2pMultiaddr(nodeAddress: NodeAddress): string {
+  const { address, port } = nodeAddress;
+
+  // address can be an IP or a hostname depending on the multiaddr
+  // We only rewrite when it's our p2p DNS name.
+  const uploadHost =
+    typeof address === "string" && address.startsWith("p2p.")
+      ? address.replace(/^p2p\./, "upload.")
+      : address;
+
+  // If the p2p multiaddr is tcp/443/wss, upload should be https on 443
+  // If you're on some other port locally, keep it consistent.
+  const isStandardHttps = port === 443 || port === 0 || port == null;
+
+  return isStandardHttps ? `https://${uploadHost}` : `https://${uploadHost}:${port}`;
+}
+
+export type ProviderInfo = {
+  accountId: string;
+  multiaddr: Multiaddr;
+  pricePerBlock: number;
+};
